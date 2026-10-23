@@ -15,6 +15,16 @@ const PRESA_MAP = [
   { name: 'Ala', key: 'ala_vitrina', btnId: 'btn-presa-ala', badgeId: 'stock-ala-badge', colorClass: 'text-yellow-400' }
 ];
 
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('hidden');
+}
+
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('hidden');
+}
+
 // Inicialización al cargar la página
 document.addEventListener('DOMContentLoaded', async () => {
   initClock();
@@ -236,6 +246,44 @@ function getProductStockInfo(product, summary) {
   };
 }
 
+// Selector visual de ícono de alto impacto por SKU
+function getProductIcon(product) {
+  switch (product.sku) {
+    case 'POL-ENT': return '🍗👑';
+    case 'POL-12': return '🍗🍗';
+    case 'POL-14': return '🍗🍟';
+    case 'POL-PEC': return '🍗';
+    case 'POL-MUS': return '🍗';
+    case 'POL-CON': return '🍗';
+    case 'POL-ALA': return '🍗';
+    case 'ALM-COMP': return '🍽️';
+    case 'POR-PAPAS': return '🍟';
+    case 'POR-AREP': return '🫓';
+    case 'POR-FRIJ': return '🫘';
+    case 'POR-CALD': return '🥣';
+    case 'POR-ARROZ': return '🍚';
+    case 'GAS-COC-400':
+    case 'GAS-ZER-400':
+    case 'GAS-COL-400':
+    case 'GAS-MAN-400':
+    case 'GAS-QUA-400': return '🥤';
+    case 'GAS-COL-15L':
+    case 'GAS-MAN-15L':
+    case 'GAS-COC-15L': return '🍾';
+    default: return product.icon || '🍗';
+  }
+}
+
+function getCategoryBadgeLabel(category) {
+  switch (category) {
+    case 'pollo': return 'Pollo';
+    case 'almuerzos': return 'Almuerzo';
+    case 'porciones': return 'Porción';
+    case 'gaseosas': return 'Bebida';
+    default: return category;
+  }
+}
+
 // Renderizado de las tarjetas de productos
 function renderProducts() {
   const grid = document.getElementById('productsGrid');
@@ -250,7 +298,7 @@ function renderProducts() {
     const stockInfo = getProductStockInfo(p, stockSummary);
     const card = document.createElement('button');
     card.dataset.sku = p.sku;
-    const baseClasses = "touch-card p-3 rounded-2xl border text-left flex flex-col justify-between shadow-md transition-all relative group";
+    const baseClasses = "touch-card p-3 sm:p-4 rounded-2xl border text-center flex flex-col items-center justify-between shadow-lg transition-all relative group overflow-hidden min-h-[195px] sm:min-h-[220px]";
 
     if (!stockInfo.isAvailable) {
       card.className = `${baseClasses} bg-slate-900/60 border-slate-800 opacity-50 cursor-not-allowed`;
@@ -262,7 +310,7 @@ function renderProducts() {
         alert(`El producto "${p.name}" está agotado en inventario.`);
       };
     } else {
-      card.className = `${baseClasses} bg-slate-800/80 hover:bg-slate-750 border-slate-700/80 active:border-amber-500 active:scale-98`;
+      card.className = `${baseClasses} bg-slate-800/85 hover:bg-slate-750 hover:border-amber-500/60 border-slate-700/80 active:border-amber-500 active:scale-98`;
       card.disabled = false;
       card.removeAttribute('aria-disabled');
       card.onclick = () => onProductClick(p);
@@ -270,17 +318,33 @@ function renderProducts() {
 
     let stockBadgeHtml = '';
     if (stockInfo.badgeText) {
-      stockBadgeHtml = `<span class="text-[10px] px-2 py-0.5 rounded-full ${stockInfo.badgeClass}">${stockInfo.badgeText}</span>`;
+      stockBadgeHtml = `<span class="text-[10px] px-2 py-0.5 rounded-full ${stockInfo.badgeClass} shadow-sm backdrop-blur-sm">${stockInfo.badgeText}</span>`;
     }
 
+    const icon = getProductIcon(p);
+    const catLabel = getCategoryBadgeLabel(p.category);
+
     card.innerHTML = `
-      <div class="flex items-start justify-between w-full mb-2">
-        <span class="text-3xl ${!stockInfo.isAvailable ? 'grayscale opacity-75' : ''}">${p.icon || '🍗'}</span>
+      <div class="absolute top-2 left-2 text-[10px] uppercase font-bold tracking-wider text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded-md border border-slate-800">
+        ${catLabel}
+      </div>
+      <div class="absolute top-2 right-2">
         ${stockBadgeHtml}
       </div>
-      <div>
-        <h4 class="font-black text-sm ${stockInfo.isAvailable ? 'text-slate-100 group-hover:text-amber-400' : 'text-slate-400 line-through'} transition leading-snug mb-1">${p.name}</h4>
-        <div class="text-base font-black ${stockInfo.isAvailable ? 'text-amber-400' : 'text-slate-500'} tabular-nums">${formatCOP(p.price)}</div>
+
+      <div class="my-1.5 mt-3 flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-700/60 shadow-inner group-hover:border-amber-500/50 group-hover:bg-amber-500/10 transition-all duration-200">
+        <span class="text-5xl sm:text-6xl drop-shadow select-none transform group-hover:scale-110 transition-transform duration-200 ${!stockInfo.isAvailable ? 'grayscale opacity-60' : ''}">
+          ${icon}
+        </span>
+      </div>
+
+      <div class="w-full">
+        <h4 class="font-black text-sm sm:text-base ${stockInfo.isAvailable ? 'text-slate-100 group-hover:text-amber-300' : 'text-slate-400 line-through'} transition-colors leading-tight line-clamp-2 min-h-[2.2rem] flex items-center justify-center px-1">
+          ${p.name}
+        </h4>
+        <div class="mt-2 w-full py-1.5 px-2 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 group-hover:bg-amber-500 group-hover:text-slate-950 font-black text-base sm:text-lg tabular-nums shadow-sm transition-all text-center">
+          ${formatCOP(p.price)}
+        </div>
       </div>
     `;
 
@@ -903,5 +967,226 @@ async function submitCancelWithPin() {
     alert('✅ ' + data.message + ' (Registrado en bitácora forense)');
   } catch (err) {
     alert('Error al anular venta: ' + err.message);
+  }
+}
+
+// ==================== EDITOR DE PRECIOS DEL MENÚ ====================
+async function openPriceEditorModal() {
+  const modal = document.getElementById('priceEditorModal');
+  const container = document.getElementById('priceEditorItemsContainer');
+  const fb = document.getElementById('priceEditorFeedback');
+  if (fb) {
+    fb.className = 'hidden';
+    fb.textContent = '';
+  }
+  if (modal) modal.classList.remove('hidden');
+
+  try {
+    const res = await fetch('/api/pos/products');
+    const products = await res.json();
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!products || products.length === 0) {
+      container.innerHTML = '<div class="p-4 text-center text-slate-400">No hay productos disponibles.</div>';
+      return;
+    }
+
+    products.forEach((p, idx) => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 gap-3 hover:border-slate-700 transition';
+      row.innerHTML = `
+        <div class="flex items-center space-x-3 min-w-0 flex-1">
+          <span class="text-2xl">${p.icon || '🍗'}</span>
+          <div class="truncate">
+            <div class="font-bold text-slate-100 truncate">${p.name}</div>
+            <div class="text-[10px] text-slate-400 uppercase tracking-wider">${p.category} | SKU: ${p.sku}</div>
+          </div>
+        </div>
+        <div class="flex items-center space-x-1.5 flex-shrink-0">
+          <span class="text-xs text-amber-400 font-bold">$</span>
+          <input type="number" step="500" min="0" 
+            id="priceInput_${idx}"
+            data-sku="${p.sku}"
+            value="${p.price}"
+            class="w-28 bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-lg px-2 py-1.5 text-right font-black text-amber-400 text-sm tabular-nums focus:outline-none">
+        </div>
+      `;
+      container.appendChild(row);
+    });
+  } catch (err) {
+    if (container) {
+      container.innerHTML = `<div class="p-4 text-center text-red-400">Error al cargar productos: ${err.message}</div>`;
+    }
+  }
+}
+
+async function submitPriceUpdates() {
+  const container = document.getElementById('priceEditorItemsContainer');
+  const pinInput = document.getElementById('priceAdminPinInput');
+  const fb = document.getElementById('priceEditorFeedback');
+  if (!container) return;
+
+  const pin = pinInput ? pinInput.value.trim() : '';
+  if (!pin) {
+    if (fb) {
+      fb.className = 'p-2.5 rounded-xl text-xs font-bold bg-red-950/80 text-red-300 border border-red-700 block';
+      fb.textContent = '❌ Se requiere el PIN de Administrador (por defecto: 4321).';
+    }
+    return;
+  }
+
+  const inputs = container.querySelectorAll('input[data-sku]');
+  const prices = [];
+  inputs.forEach(inp => {
+    const sku = inp.dataset.sku;
+    const priceVal = parseInt(inp.value, 10);
+    prices.push({ sku: sku, price: isNaN(priceVal) ? 0 : Math.max(0, priceVal) });
+  });
+
+  try {
+    const res = await fetch('/api/pos/update-prices', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: pin, prices: prices })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Error al actualizar precios');
+    }
+
+    if (fb) {
+      fb.className = 'p-2.5 rounded-xl text-xs font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-700 block';
+      fb.textContent = `✅ Precios actualizados exitosamente (${prices.length} productos).`;
+    }
+
+    setTimeout(() => {
+      closeModal('priceEditorModal');
+      loadProducts();
+    }, 1000);
+  } catch (err) {
+    if (fb) {
+      fb.className = 'p-2.5 rounded-xl text-xs font-bold bg-red-950/80 text-red-300 border border-red-700 block';
+      fb.textContent = `❌ ${err.message}`;
+    }
+  }
+}
+
+// ==================== INVENTARIO INICIAL ====================
+async function openSetInitialStockModal() {
+  const modal = document.getElementById('setInitialStockModal');
+  const container = document.getElementById('initialStockItemsContainer');
+  const fb = document.getElementById('setInitialStockFeedback');
+
+  if (fb) {
+    fb.className = 'hidden';
+    fb.textContent = '';
+  }
+
+  if (container) {
+    container.innerHTML = `<div class="p-4 text-center text-slate-400">Cargando insumos disponibles...</div>`;
+  }
+
+  if (modal) modal.classList.remove('hidden');
+
+  try {
+    const res = await fetch('/api/inventory/daily-reconciliation');
+    const data = await res.json();
+
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!data.items || data.items.length === 0) {
+      container.innerHTML = `<div class="p-4 text-center text-slate-400">No se encontraron insumos en inventario.</div>`;
+      return;
+    }
+
+    const locOrder = { 'Vitrina': 1, 'Bodega': 2, 'Nevera': 3, 'Cocina': 4 };
+    data.items.sort((a, b) => (locOrder[a.location] || 99) - (locOrder[b.location] || 99));
+
+    data.items.forEach((it, idx) => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between p-2 rounded-xl bg-slate-950/70 border border-slate-800 gap-2 hover:border-slate-700 transition';
+      
+      let locEmoji = '📦';
+      if (it.location === 'Vitrina') locEmoji = '🍗';
+      else if (it.location === 'Nevera') locEmoji = '🥤';
+      else if (it.location === 'Cocina') locEmoji = '🍳';
+
+      row.innerHTML = `
+        <div class="flex items-center space-x-2 flex-1 min-w-0">
+          <span class="text-xl">${locEmoji}</span>
+          <div class="truncate">
+            <div class="font-bold text-slate-100 truncate text-xs sm:text-sm">${it.item_name}</div>
+            <div class="text-[10px] text-slate-400">${it.location} • Unidad: ${it.unit || 'uds'} (Actual: ${it.current_stock || 0})</div>
+          </div>
+        </div>
+        <div class="w-28 flex items-center space-x-1">
+          <input type="number" step="any" min="0" 
+            id="initStockInput_${idx}"
+            data-item-name="${it.item_name}"
+            data-location="${it.location}"
+            value="${it.initial_stock}"
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-right font-black text-amber-400 text-xs focus:outline-none focus:border-blue-500 tabular-nums">
+        </div>
+      `;
+      container.appendChild(row);
+    });
+
+  } catch (e) {
+    if (container) {
+      container.innerHTML = `<div class="p-4 text-center text-red-400">Error al cargar insumos: ${e.message}</div>`;
+    }
+  }
+}
+
+async function submitInitialStock() {
+  const container = document.getElementById('initialStockItemsContainer');
+  const fb = document.getElementById('setInitialStockFeedback');
+  const updateLiveCheckbox = document.getElementById('updateLiveStockCheckbox');
+  const updateLive = updateLiveCheckbox ? updateLiveCheckbox.checked : true;
+  if (!container) return;
+
+  const inputs = container.querySelectorAll('input[data-item-name]');
+  const items = [];
+
+  inputs.forEach(inp => {
+    const itemName = inp.dataset.itemName;
+    const location = inp.dataset.location;
+    const val = parseFloat(inp.value);
+    items.push({
+      item_name: itemName,
+      location: location,
+      quantity: isNaN(val) ? 0.0 : Math.max(0, val)
+    });
+  });
+
+  try {
+    const res = await fetch('/api/inventory/set-initial-stock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: items, update_live_stock: updateLive })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Error al guardar inventario inicial');
+    }
+
+    if (fb) {
+      fb.className = 'p-2 rounded-xl text-xs font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-700 block';
+      fb.textContent = `✅ Inventario inicial registrado exitosamente (${data.recorded_count} insumos).`;
+    }
+
+    setTimeout(() => {
+      closeModal('setInitialStockModal');
+      if (typeof loadStockSummary === 'function') loadStockSummary();
+      if (typeof loadDailyReconciliation === 'function') loadDailyReconciliation();
+    }, 1000);
+
+  } catch (e) {
+    if (fb) {
+      fb.className = 'p-2 rounded-xl text-xs font-bold bg-red-950/80 text-red-300 border border-red-700 block';
+      fb.textContent = `❌ ${e.message}`;
+    }
   }
 }

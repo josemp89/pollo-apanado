@@ -118,15 +118,27 @@ async function openSetInitialStockModal() {
       return;
     }
 
+    const locOrder = { 'Vitrina': 1, 'Bodega': 2, 'Nevera': 3, 'Cocina': 4 };
+    data.items.sort((a, b) => (locOrder[a.location] || 99) - (locOrder[b.location] || 99));
+
     data.items.forEach((it, idx) => {
       const row = document.createElement('div');
-      row.className = 'flex items-center justify-between p-2 rounded-xl bg-slate-950/70 border border-slate-800 gap-2';
+      row.className = 'flex items-center justify-between p-2 rounded-xl bg-slate-950/70 border border-slate-800 gap-2 hover:border-slate-700 transition';
+      
+      let locEmoji = '📦';
+      if (it.location === 'Vitrina') locEmoji = '🍗';
+      else if (it.location === 'Nevera') locEmoji = '🥤';
+      else if (it.location === 'Cocina') locEmoji = '🍳';
+
       row.innerHTML = `
-        <div class="flex-1 min-w-0">
-          <div class="font-bold text-slate-100 truncate">${it.item_name}</div>
-          <div class="text-[10px] text-slate-400">${it.location} (${it.unit || 'uds'})</div>
+        <div class="flex items-center space-x-2 flex-1 min-w-0">
+          <span class="text-xl">${locEmoji}</span>
+          <div class="truncate">
+            <div class="font-bold text-slate-100 truncate text-xs sm:text-sm">${it.item_name}</div>
+            <div class="text-[10px] text-slate-400">${it.location} • Unidad: ${it.unit || 'uds'} (Actual: ${it.current_stock || 0})</div>
+          </div>
         </div>
-        <div class="w-32 flex items-center space-x-1">
+        <div class="w-28 flex items-center space-x-1">
           <input type="number" step="any" min="0" 
             id="initStockInput_${idx}"
             data-item-name="${it.item_name}"
@@ -148,6 +160,8 @@ async function openSetInitialStockModal() {
 async function submitInitialStock() {
   const container = document.getElementById('initialStockItemsContainer');
   const fb = document.getElementById('setInitialStockFeedback');
+  const updateLiveCheckbox = document.getElementById('updateLiveStockCheckbox');
+  const updateLive = updateLiveCheckbox ? updateLiveCheckbox.checked : true;
   if (!container) return;
 
   const inputs = container.querySelectorAll('input[data-item-name]');
@@ -168,7 +182,7 @@ async function submitInitialStock() {
     const res = await fetch('/api/inventory/set-initial-stock', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: items })
+      body: JSON.stringify({ items: items, update_live_stock: updateLive })
     });
     const data = await res.json();
     if (!res.ok) {
@@ -183,12 +197,115 @@ async function submitInitialStock() {
     setTimeout(() => {
       closeModal('setInitialStockModal');
       loadDailyReconciliation();
+      if (typeof loadDailySummary === 'function') loadDailySummary();
     }, 1000);
 
   } catch (e) {
     if (fb) {
       fb.className = 'p-2 rounded-xl text-xs font-bold bg-red-950/80 text-red-300 border border-red-700 block';
       fb.textContent = `❌ ${e.message}`;
+    }
+  }
+}
+
+// ==================== EDITOR DE PRECIOS DEL MENÚ ====================
+async function openPriceEditorModal() {
+  const modal = document.getElementById('priceEditorModal');
+  const container = document.getElementById('priceEditorItemsContainer');
+  const fb = document.getElementById('priceEditorFeedback');
+  if (fb) {
+    fb.className = 'hidden';
+    fb.textContent = '';
+  }
+  if (modal) modal.classList.remove('hidden');
+
+  try {
+    const res = await fetch('/api/pos/products');
+    const products = await res.json();
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!products || products.length === 0) {
+      container.innerHTML = '<div class="p-4 text-center text-slate-400">No hay productos disponibles.</div>';
+      return;
+    }
+
+    products.forEach((p, idx) => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 gap-3 hover:border-slate-700 transition';
+      row.innerHTML = `
+        <div class="flex items-center space-x-3 min-w-0 flex-1">
+          <span class="text-2xl">${p.icon || '🍗'}</span>
+          <div class="truncate">
+            <div class="font-bold text-slate-100 truncate">${p.name}</div>
+            <div class="text-[10px] text-slate-400 uppercase tracking-wider">${p.category} | SKU: ${p.sku}</div>
+          </div>
+        </div>
+        <div class="flex items-center space-x-1.5 flex-shrink-0">
+          <span class="text-xs text-amber-400 font-bold">$</span>
+          <input type="number" step="500" min="0" 
+            id="priceInput_${idx}"
+            data-sku="${p.sku}"
+            value="${p.price}"
+            class="w-28 bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-lg px-2 py-1.5 text-right font-black text-amber-400 text-sm tabular-nums focus:outline-none">
+        </div>
+      `;
+      container.appendChild(row);
+    });
+  } catch (err) {
+    if (container) {
+      container.innerHTML = `<div class="p-4 text-center text-red-400">Error al cargar productos: ${err.message}</div>`;
+    }
+  }
+}
+
+async function submitPriceUpdates() {
+  const container = document.getElementById('priceEditorItemsContainer');
+  const pinInput = document.getElementById('priceAdminPinInput');
+  const fb = document.getElementById('priceEditorFeedback');
+  if (!container) return;
+
+  const pin = pinInput ? pinInput.value.trim() : '';
+  if (!pin) {
+    if (fb) {
+      fb.className = 'p-2.5 rounded-xl text-xs font-bold bg-red-950/80 text-red-300 border border-red-700 block';
+      fb.textContent = '❌ Se requiere el PIN de Administrador (por defecto: 4321).';
+    }
+    return;
+  }
+
+  const inputs = container.querySelectorAll('input[data-sku]');
+  const prices = [];
+  inputs.forEach(inp => {
+    const sku = inp.dataset.sku;
+    const priceVal = parseInt(inp.value, 10);
+    prices.push({ sku: sku, price: isNaN(priceVal) ? 0 : Math.max(0, priceVal) });
+  });
+
+  try {
+    const res = await fetch('/api/pos/update-prices', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: pin, prices: prices })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Error al actualizar precios');
+    }
+
+    if (fb) {
+      fb.className = 'p-2.5 rounded-xl text-xs font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-700 block';
+      fb.textContent = `✅ Precios actualizados exitosamente (${prices.length} productos).`;
+    }
+
+    setTimeout(() => {
+      closeModal('priceEditorModal');
+      if (typeof loadDailySummary === 'function') loadDailySummary();
+    }, 1000);
+  } catch (err) {
+    if (fb) {
+      fb.className = 'p-2.5 rounded-xl text-xs font-bold bg-red-950/80 text-red-300 border border-red-700 block';
+      fb.textContent = `❌ ${err.message}`;
     }
   }
 }

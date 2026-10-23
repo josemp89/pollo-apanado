@@ -27,6 +27,58 @@ class CancelSaleRequest(BaseModel):
     reason: Optional[str] = Field("Error de digitación", description="Motivo declarado de la anulación")
     authorized_by: Optional[str] = Field("Administrador", description="Nombre o identificación del autorizador")
 
+class PriceUpdateItem(BaseModel):
+    sku: str
+    price: int = Field(..., ge=0, description="Precio en pesos colombianos debe ser no negativo")
+
+class UpdatePricesRequest(BaseModel):
+    pin: Optional[str] = None
+    prices: List[PriceUpdateItem]
+
+@router.post("/update-prices")
+def update_product_prices(payload: UpdatePricesRequest):
+    provided_pin = str(payload.pin).strip() if payload.pin else ""
+    if not provided_pin:
+        raise HTTPException(status_code=403, detail="Se requiere PIN de Administrador para modificar precios.")
+
+    expected_pin = os.environ.get("ADMIN_PIN")
+    if not expected_pin:
+        conn_check = get_db_connection()
+        try:
+            row = conn_check.execute("SELECT value FROM system_settings WHERE key = 'admin_pin'").fetchone()
+            expected_pin = row["value"] if row else "4321"
+        finally:
+            conn_check.close()
+
+    if not secrets.compare_digest(provided_pin, expected_pin.strip()):
+        raise HTTPException(status_code=403, detail="PIN de Administrador inválido.")
+
+    conn = get_db_connection()
+    try:
+        with conn:
+            for item in payload.prices:
+                conn.execute("UPDATE products SET price = ? WHERE sku = ?", (item.price, item.sku))
+            
+            # Auditoría
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    action_type TEXT NOT NULL,
+                    details TEXT,
+                    authorized_by TEXT DEFAULT 'Administrador',
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            conn.execute("""
+                INSERT INTO audit_log (action_type, details, authorized_by, created_at)
+                VALUES ('MODIFICACION_PRECIOS', ?, 'Administrador', datetime('now', 'localtime'))
+            """, (f"Actualizados {len(payload.prices)} precios del menú",))
+        conn.close()
+        return {"success": True, "message": f"Precios actualizados exitosamente ({len(payload.prices)} productos)."}
+    except Exception as e:
+        conn.close()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/products")
 def get_products():
     conn = get_db_connection()

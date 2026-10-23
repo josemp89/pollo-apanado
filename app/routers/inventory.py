@@ -30,6 +30,7 @@ class SetInitialStockRequest(BaseModel):
     date: Optional[str] = None
     items: List[InitialStockItem]
     recorded_by: Optional[str] = "admin"
+    update_live_stock: Optional[bool] = False
 
 # ==================== HELPER FUNCTIONS ====================
 
@@ -253,6 +254,12 @@ def set_initial_stock(payload: SetInitialStockRequest):
                     recorded_by = excluded.recorded_by,
                     recorded_at = CURRENT_TIMESTAMP;
             """, (target_date, stored_name, loc.strip(), float(qty), recorded_by))
+
+            if payload.update_live_stock and inv_match:
+                cursor.execute("""
+                    UPDATE inventory SET stock = ? WHERE id = ?;
+                """, (float(qty), inv_match["id"]))
+
             recorded_count += 1
 
         conn.commit()
