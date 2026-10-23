@@ -76,3 +76,8 @@ def get_tutorial_view(request: Request):
 def get_manifest():
     manifest_path = os.path.join(STATIC_DIR, "manifest.json")
     return FileResponse(manifest_path, media_type="application/manifest+json")
+
+@app.get("/sw.js")
+def get_service_worker():
+    sw_path = os.path.join(STATIC_DIR, "sw.js")
+    return FileResponse(sw_path, media_type="application/javascript")

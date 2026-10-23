@@ -1190,3 +1190,36 @@ async function submitInitialStock() {
     }
   }
 }
+
+// ==================== PWA & INSTALACIÓN EN PANTALLA PRINCIPAL ====================
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(err => {
+      console.log('SW registration note:', err);
+    });
+  });
+}
+
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const btn = document.getElementById('btnInstallPwa');
+  if (btn) btn.classList.remove('hidden');
+});
+
+function triggerPwaInstall() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        const btn = document.getElementById('btnInstallPwa');
+        if (btn) btn.classList.add('hidden');
+      }
+      deferredInstallPrompt = null;
+    });
+  } else {
+    const modal = document.getElementById('pwaInstructionsModal');
+    if (modal) modal.classList.remove('hidden');
+  }
+}

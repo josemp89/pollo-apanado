@@ -2,8 +2,15 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Caja & Socios - Pollo Apanado</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/img/icon-192.png">
+  <link rel="apple-touch-icon" href="/static/img/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Pollo Apanado">
+  <meta name="theme-color" content="#d97706">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -43,6 +50,10 @@
       <button onclick="openSupplierEntryModal()" class="px-3.5 py-1.5 rounded-lg text-xs font-black bg-blue-600 hover:bg-blue-500 text-white flex items-center space-x-1.5 transition active:scale-95 shadow-md border border-blue-400" title="Registrar recepción de mercancía y proveedores">
         <span>🚚</span>
         <span>+ Proveedores</span>
+      </button>
+      <button id="btnInstallPwa" onclick="triggerPwaInstall()" class="px-3 py-1.5 rounded-lg text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white flex items-center space-x-1 transition active:scale-95 shadow-md border border-emerald-400" title="Instalar como aplicación en el escritorio o tablet">
+        <span>📲</span>
+        <span>Instalar App</span>
       </button>
       <a href="/tutorial" class="px-3.5 py-1.5 rounded-lg text-xs font-black bg-purple-600 hover:bg-purple-500 text-white flex items-center space-x-1.5 transition shadow-md border border-purple-400" title="Ver Video Tutorial de Uso del Sistema">
         <span>🎬</span>
@@ -1455,6 +1466,53 @@
       }
     }
   </script>
+  <!-- MODAL: CÓMO INSTALAR EN TABLET / PANTALLA DE INICIO -->
+  <div id="pwaInstructionsModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-500/60 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-black text-base text-emerald-400 flex items-center space-x-2">
+          <span>📲</span>
+          <span>Instalar en Tablet / Pantalla de Inicio</span>
+        </h3>
+        <button onclick="closeModal('pwaInstructionsModal')" class="text-slate-400 hover:text-white font-bold text-xl select-none">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs text-slate-300">
+        <p class="font-bold text-white text-sm">
+          Para que el sistema aparezca en la pantalla de inicio de tu tablet (como una aplicación real):
+        </p>
+
+        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+          <div class="font-bold text-amber-400 flex items-center space-x-1.5">
+            <span>🤖</span>
+            <span>En Tablets Android / Google Chrome:</span>
+          </div>
+          <ol class="list-decimal list-inside space-y-1 text-slate-300 ml-1">
+            <li>Toca los <strong>3 puntos verticales (⋮)</strong> en la esquina superior derecha del navegador.</li>
+            <li>Selecciona <strong>"Agregar a la pantalla principal"</strong> o <strong>"Instalar aplicación"</strong> <em>(¡Ojo! No le des a la flecha ⬇️ de descargar archivo)</em>.</li>
+            <li>Toca <strong>"Instalar"</strong> o <strong>"Agregar"</strong>.</li>
+          </ol>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+          <div class="font-bold text-blue-400 flex items-center space-x-1.5">
+            <span>🍎</span>
+            <span>En iPad / Safari:</span>
+          </div>
+          <ol class="list-decimal list-inside space-y-1 text-slate-300 ml-1">
+            <li>Toca el botón <strong>Compartir</strong> (icono de cuadrado con flecha hacia arriba 📤).</li>
+            <li>Baja un poco y toca <strong>"Agregar al inicio" (➕)</strong>.</li>
+            <li>Toca <strong>"Agregar"</strong> en la esquina superior derecha.</li>
+          </ol>
+        </div>
+      </div>
+
+      <button onclick="closeModal('pwaInstructionsModal')" class="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-lg transition select-none">
+        ¡ENTENDIDO!
+      </button>
+    </div>
+  </div>
+
   <script src="/static/js/cash.js?v=20261021_v5"></script>
 </body>
 </html>
