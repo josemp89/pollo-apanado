@@ -51,6 +51,11 @@ app.include_router(inventory.router)
 def on_startup():
     init_db()
 
+@app.get("/healthz")
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "app": "Pollo Apanado"}
+
 @app.get("/", response_class=HTMLResponse)
 def get_pos_view(request: Request):
     return templates.TemplateResponse(request=request, name="index.html", context={"view": "pos"})
