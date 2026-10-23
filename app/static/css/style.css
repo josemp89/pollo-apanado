@@ -1,0 +1,83 @@
+/* Optimizaciones táctiles y ergonomía móvil / tablet / iOS Safari */
+html, body {
+  -webkit-tap-highlight-color: transparent;
+  height: 100%;
+  height: 100dvh;
+}
+
+button, a, input, select {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Scroll nativo suave con inercia para iOS WebKit */
+#productsGrid {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
+
+.cat-scroll-container, nav {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+}
+
+#cartAside, #cartItemsList {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Scrollbar suave para las listas */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Efecto de presionado táctil */
+.touch-card {
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.touch-card:active {
+  transform: scale(0.96);
+}
+
+/* Animación de entrada modal */
+@keyframes scaleUp {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-scale-up {
+  animation: scaleUp 0.15s ease-out forwards;
+}
+
+/* Ergonomía táctil para tablet */
+.touch-target-44 {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.touch-manipulation {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+

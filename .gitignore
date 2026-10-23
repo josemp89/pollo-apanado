@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*.log
+cloudflared.exe
+mingit.zip
+temp_recording_dir/
+tutorial_audio_temp/
+full_tutorial_soundtrack.mp3
+temp_walkthrough.webm
+temp_raw_video/

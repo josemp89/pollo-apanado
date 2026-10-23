@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: pollo-apanado
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    disk:
+      name: pollo-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: DATABASE_PATH
+        value: /data/asadero.db
+      - key: ENV
+        value: production

@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  asadero-pos:
+    build: .
+    container_name: pollo_apanado_pos
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      # Volumen persistente para que la base de datos nunca se borre
+      - ./data:/app/data
+    environment:
+      - TZ=America/Bogota

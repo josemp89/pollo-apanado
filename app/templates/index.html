@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mostrador POS - Pollo Apanado</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#d97706">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/css/style.css?v=20261021_v5">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-900 text-slate-100 h-screen h-[100dvh] flex flex-col font-sans overflow-hidden">
+
+  <!-- BARRA SUPERIOR -->
+  <header class="bg-slate-800/90 border-b border-slate-700 px-3 sm:px-4 py-2 flex items-center justify-between shadow-md gap-2">
+    <div class="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+      <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl sm:text-2xl shadow-inner">
+        🍗
+      </div>
+      <div>
+        <h1 class="text-sm sm:text-lg font-black tracking-wide text-amber-400 leading-tight">POLLO APANADO</h1>
+        <p class="hidden sm:block text-xs text-slate-400 font-medium">Punto de Venta Mostrador</p>
+      </div>
+    </div>
+
+    <!-- Navegación de Módulos (Adaptada a pantallas táctiles y móviles) -->
+    <nav class="flex items-center space-x-1 sm:space-x-1.5 bg-slate-900/80 p-1 rounded-xl border border-slate-700/80 overflow-x-auto no-scrollbar flex-shrink-0">
+      <a href="/" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 shadow-sm flex items-center space-x-1 transition flex-shrink-0">
+        <span>🛒</span>
+        <span>Mostrador</span>
+      </a>
+      <a href="/cocina" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 flex items-center space-x-1 transition flex-shrink-0">
+        <span>🍳</span>
+        <span>Cocina</span>
+      </a>
+      <a href="/caja" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 flex items-center space-x-1 transition flex-shrink-0">
+        <span>💰</span>
+        <span>Caja</span>
+      </a>
+      <button id="btnOpenSupplierEntry" onclick="openSupplierEntryModal()" class="px-3 py-1.5 rounded-lg text-xs font-black bg-blue-600 hover:bg-blue-500 text-white flex items-center space-x-1.5 transition active:scale-95 shadow-md border border-blue-400 flex-shrink-0" title="Registrar recepción de mercancía y proveedores">
+        <span>🚚</span>
+        <span>+ Proveedores</span>
+      </button>
+      <a href="/tutorial" class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black bg-purple-600 hover:bg-purple-500 text-white flex items-center space-x-1 transition shadow-sm border border-purple-400 flex-shrink-0" title="Ver Video Tutorial">
+        <span>🎬</span>
+        <span>Tutorial</span>
+      </a>
+    </nav>
+
+    <!-- Reloj en vivo y Status -->
+    <div class="flex items-center space-x-2 flex-shrink-0">
+      <div class="hidden sm:block text-right">
+        <div id="liveClock" class="text-sm font-black text-amber-300 tabular-nums">--:--:--</div>
+        <div id="liveDate" class="text-[11px] text-slate-400 font-medium">--</div>
+      </div>
+      <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-500 animate-pulse" title="Conectado"></div>
+    </div>
+  </header>
+
+  <!-- BANNER DE ÚLTIMA VENTA / DESHACER -->
+  <div id="lastSaleBanner" class="hidden bg-emerald-900/90 border-b border-emerald-600 px-4 py-2 flex items-center justify-between text-xs transition-all duration-300">
+    <div class="flex items-center space-x-2">
+      <span class="text-base">✅</span>
+      <span id="lastSaleText" class="font-bold text-emerald-200">Venta registrada con éxito</span>
+    </div>
+    <button id="btnUndoSale" onclick="cancelLastSale()" class="bg-red-600/90 hover:bg-red-700 active:scale-95 text-white font-bold px-3 py-1 rounded-lg text-xs shadow transition flex items-center space-x-1">
+      <span>↩️</span>
+      <span>Deshacer venta</span>
+    </button>
+  </div>
+
+  <!-- CONTENEDOR PRINCIPAL: PANTALLA DIVIDIDA EN DESKTOP / VISTA COMPLETA EN MÓVIL -->
+  <main class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+
+    <!-- LADO IZQUIERDO: MENÚ TÁCTIL (100% EN MÓVIL, 65% EN ESCRITORIO/TABLET) -->
+    <section class="flex-1 flex flex-col border-r border-slate-800 overflow-hidden bg-slate-900/50 min-w-0">
+      
+      <!-- PESTAÑAS DE CATEGORÍA -->
+      <div class="cat-scroll-container p-2 sm:p-3 bg-slate-800/40 border-b border-slate-800 flex space-x-2 overflow-x-auto no-scrollbar flex-shrink-0">
+        <button onclick="filterCategory(event, 'todos')" data-category="todos" class="cat-btn active flex-1 py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-black text-xs sm:text-sm tracking-wide bg-amber-500 text-slate-950 shadow-md transition active:scale-95 text-center flex items-center justify-center space-x-1.5 flex-shrink-0">
+          <span>⭐</span>
+          <span>TODOS</span>
+        </button>
+        <button onclick="filterCategory(event, 'pollo')" data-category="pollo" class="cat-btn flex-1 py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-bold text-xs sm:text-sm text-slate-300 bg-slate-800 hover:bg-slate-700/80 transition active:scale-95 text-center flex items-center justify-center space-x-1.5 flex-shrink-0">
+          <span>🍗</span>
+          <span>POLLO & COMBOS</span>
+        </button>
+        <button onclick="filterCategory(event, 'almuerzos')" data-category="almuerzos" class="cat-btn flex-1 py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-bold text-xs sm:text-sm text-slate-300 bg-slate-800 hover:bg-slate-700/80 transition active:scale-95 text-center flex items-center justify-center space-x-1.5 flex-shrink-0">
+          <span>🍽️</span>
+          <span>ALMUERZOS</span>
+        </button>
+        <button onclick="filterCategory(event, 'porciones')" data-category="porciones" class="cat-btn flex-1 py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-bold text-xs sm:text-sm text-slate-300 bg-slate-800 hover:bg-slate-700/80 transition active:scale-95 text-center flex items-center justify-center space-x-1.5 flex-shrink-0">
+          <span>🍚</span>
+          <span>PORCIONES</span>
+        </button>
+        <button onclick="filterCategory(event, 'gaseosas')" data-category="gaseosas" class="cat-btn flex-1 py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-bold text-xs sm:text-sm text-slate-300 bg-slate-800 hover:bg-slate-700/80 transition active:scale-95 text-center flex items-center justify-center space-x-1.5 flex-shrink-0">
+          <span>🥤</span>
+          <span>GASEOSAS</span>
+        </button>
+      </div>
+
+      <!-- GRILLA TÁCTIL DE PRODUCTOS (2 COLUMNAS EN TELÉFONOS, 3-4 EN TABLET/PC) -->
+      <div id="productsGrid" class="flex-1 p-2 sm:p-3 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-2.5 auto-rows-max">
+        <!-- Renderizado dinámico vía JavaScript -->
+      </div>
+
+      <!-- BARRA FLOTANTE MÓVIL: VER PEDIDO / TOTAL (VISIBLE SOLO EN TELÉFONOS) -->
+      <div id="mobileCartBar" class="lg:hidden bg-slate-850 bg-slate-900/95 border-t border-slate-700 px-4 py-2.5 flex items-center justify-between shadow-2xl backdrop-blur-md z-30 flex-shrink-0">
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="toggleMobileCart(true)">
+          <div class="relative w-11 h-11 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl shadow-inner">
+            🛒
+            <span id="mobileCartBadge" class="hidden absolute -top-1.5 -right-1.5 bg-amber-500 text-slate-950 text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-900 shadow">0</span>
+          </div>
+          <div>
+            <div id="mobileCartItemCount" class="text-xs text-slate-400 font-semibold">0 productos</div>
+            <div id="mobileCartTotalDisplay" class="text-lg font-black text-amber-400 tabular-nums leading-tight">$ 0</div>
+          </div>
+        </div>
+        <button type="button" onclick="toggleMobileCart(true)" class="py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-xs shadow-lg transition flex items-center space-x-1.5">
+          <span>Ver Pedido</span>
+          <span class="text-sm font-bold">➔</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- LADO DERECHO: COMANDA / TICKET ACTIVO (LATERAL EN PC/TABLET, MODAL DESLIZANTE EN TELÉFONOS) -->
+    <aside id="cartAside" class="fixed inset-0 z-40 bg-slate-900 flex flex-col transition-transform duration-300 transform translate-y-full lg:translate-y-0 lg:static lg:w-96 lg:flex lg:flex-shrink-0 shadow-2xl border-l border-slate-800">
+      
+      <!-- CABECERA DE COMANDA -->
+      <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-800/60 flex-shrink-0">
+        <div class="flex items-center space-x-2">
+          <!-- Botón Volver al Menú en Móvil -->
+          <button type="button" onclick="toggleMobileCart(false)" class="lg:hidden text-xs font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 rounded-lg transition active:scale-95 flex items-center space-x-1 border border-slate-700 mr-1" title="Volver al catálogo">
+            <span>✕</span>
+            <span>Cerrar</span>
+          </button>
+          <span class="text-xl">📝</span>
+          <span class="font-black text-sm uppercase tracking-wider text-slate-200">Ticket en Curso</span>
+        </div>
+        <button onclick="clearCart()" class="text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg transition active:scale-95 flex items-center space-x-1">
+          <span>🗑️</span>
+          <span>Vaciar</span>
+        </button>
+      </div>
+
+      <!-- CONTENEDOR DE COMANDA / ITEMS (SCROLLABLE) -->
+      <div class="flex-1 p-3 overflow-y-auto relative">
+        <!-- Estado Vacío -->
+        <div id="cartEmptyState" class="h-full flex flex-col items-center justify-center text-slate-500 space-y-2 py-12">
+          <span class="text-4xl opacity-50">🛒</span>
+          <p class="text-sm font-semibold">Toca una presa o producto</p>
+          <p class="text-xs text-slate-600">El pedido aparecerá aquí</p>
+          <button type="button" onclick="toggleMobileCart(false)" class="lg:hidden mt-3 px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold text-amber-400 border border-slate-700">
+            Ir al Menú de Productos
+          </button>
+        </div>
+
+        <!-- LISTA DE PRODUCTOS AGREGADOS -->
+        <div id="cartItemsList" class="space-y-2 hidden">
+          <!-- Filas inyectadas reactivamente por pos.js -->
+        </div>
+      </div>
+
+      <!-- SECCIÓN DE TOTAL Y MEDIOS DE PAGO -->
+      <div class="p-3.5 bg-slate-800/90 border-t border-slate-700/80 space-y-3 flex-shrink-0">
+        
+        <!-- RESUMEN DE TOTAL -->
+        <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
+          <span class="text-xs font-black uppercase tracking-wider text-slate-400">Total a Cobrar</span>
+          <span id="cartTotalDisplay" class="text-2xl font-black text-amber-400 tracking-tight tabular-nums">$ 0</span>
+        </div>
+
+        <!-- BOTONES DE COBRO RÁPIDO EN 1 TOQUE -->
+        <div class="grid grid-cols-3 gap-2">
+          <button id="btnPayCash" onclick="handlePayment('efectivo')" class="py-3 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex flex-col items-center justify-center space-y-1">
+            <span class="text-lg">💵</span>
+            <span>EFECTIVO</span>
+          </button>
+          <button id="btnPayDigital" onclick="handlePayment('nequi_daviplata')" class="py-3 px-2 rounded-xl bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex flex-col items-center justify-center space-y-1">
+            <span class="text-lg">📲</span>
+            <span>NEQUI/DAVI</span>
+          </button>
+          <button id="btnPayDatafono" onclick="handlePayment('datafono')" class="py-3 px-2 rounded-xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex flex-col items-center justify-center space-y-1">
+            <span class="text-lg">💳</span>
+            <span>DATÁFONO</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- MODAL RÁPIDO DE SELECCIÓN DE PRESA PARA ALMUERZO -->
+  <div id="presaModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-850 bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 animate-scale-up">
+      <div class="text-center space-y-1">
+        <span class="text-3xl">🍽️</span>
+        <h3 class="text-lg font-black text-amber-400">¿Qué Presa Lleva el Almuerzo?</h3>
+        <p class="text-xs text-slate-400">Selecciona la presa para descontar exactamente del inventario</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3" id="presaChoices">
+        <button type="button" id="btn-presa-pechuga" data-presa="Pechuga" onclick="confirmPresaChoice('Pechuga')" class="p-4 rounded-xl bg-slate-800 hover:bg-blue-600/30 border border-slate-700 hover:border-blue-500 active:scale-95 text-center transition space-y-1">
+          <div class="text-2xl">🍗</div>
+          <div class="font-black text-sm text-slate-100">Pechuga</div>
+          <div id="stock-pechuga-badge" class="text-[11px] text-blue-400 font-bold">Cargando...</div>
+        </button>
+        <button type="button" id="btn-presa-muslo" data-presa="Muslo" onclick="confirmPresaChoice('Muslo')" class="p-4 rounded-xl bg-slate-800 hover:bg-orange-600/30 border border-slate-700 hover:border-orange-500 active:scale-95 text-center transition space-y-1">
+          <div class="text-2xl">🍗</div>
+          <div class="font-black text-sm text-slate-100">Muslo</div>
+          <div id="stock-muslo-badge" class="text-[11px] text-orange-400 font-bold">Cargando...</div>
+        </button>
+        <button type="button" id="btn-presa-contramuslo" data-presa="Contramuslo" onclick="confirmPresaChoice('Contramuslo')" class="p-4 rounded-xl bg-slate-800 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500 active:scale-95 text-center transition space-y-1">
+          <div class="text-2xl">🍗</div>
+          <div class="font-black text-sm text-slate-100">Contramuslo</div>
+          <div id="stock-contramuslo-badge" class="text-[11px] text-amber-400 font-bold">Cargando...</div>
+        </button>
+        <button type="button" id="btn-presa-ala" data-presa="Ala" onclick="confirmPresaChoice('Ala')" class="p-4 rounded-xl bg-slate-800 hover:bg-yellow-600/30 border border-slate-700 hover:border-yellow-500 active:scale-95 text-center transition space-y-1">
+          <div class="text-2xl">🍗</div>
+          <div class="font-black text-sm text-slate-100">Ala</div>
+          <div id="stock-ala-badge" class="text-[11px] text-yellow-400 font-bold">Cargando...</div>
+        </button>
+      </div>
+
+      <div class="text-center pt-2">
+        <button onclick="closePresaModal()" class="text-xs font-bold text-slate-400 hover:text-white py-1 px-4 rounded-lg">
+          Cancelar selección
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL RÁPIDO DE PAGO EN EFECTIVO CON CALCULADORA DE CAMBIO -->
+  <div id="cashModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-black text-base text-emerald-400 flex items-center space-x-2">
+          <span>💵</span>
+          <span>Cobro en Efectivo</span>
+        </h3>
+        <button onclick="closeCashModal()" class="text-slate-400 hover:text-white font-bold text-lg">&times;</button>
+      </div>
+
+      <div class="space-y-3">
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex justify-between items-center">
+          <span class="text-xs text-slate-400 font-bold">Total Cuenta:</span>
+          <span id="cashModalTotal" class="text-xl font-black text-amber-400">$ 0</span>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Recibido del Cliente:</label>
+          <input type="number" id="cashReceivedInput" oninput="updateChangeCalculation()" placeholder="Ej. 50000" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-xl font-black text-emerald-400 text-center tracking-wider focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <!-- Botones de billetes acumulativos y utilidades (Grid 3x2, h-11 >= 44px) -->
+        <div class="grid grid-cols-3 gap-2">
+          <button type="button" onclick="addCashAmount(10000)" class="h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-bold text-slate-100 border border-slate-700 transition flex items-center justify-center select-none shadow-sm">
+            +$10.000
+          </button>
+          <button type="button" onclick="addCashAmount(20000)" class="h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-bold text-slate-100 border border-slate-700 transition flex items-center justify-center select-none shadow-sm">
+            +$20.000
+          </button>
+          <button type="button" onclick="addCashAmount(50000)" class="h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-bold text-slate-100 border border-slate-700 transition flex items-center justify-center select-none shadow-sm">
+            +$50.000
+          </button>
+          <button type="button" onclick="addCashAmount(100000)" class="h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-bold text-slate-100 border border-slate-700 transition flex items-center justify-center select-none shadow-sm">
+            +$100.000
+          </button>
+          <button type="button" onclick="setExactCash()" class="h-11 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 active:scale-95 text-xs font-black transition flex items-center justify-center select-none shadow-sm">
+            🎯 Pago Exacto
+          </button>
+          <button type="button" onclick="clearCashAmount()" class="h-11 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 active:scale-95 text-xs font-bold transition flex items-center justify-center space-x-1 select-none shadow-sm">
+            <span>🗑️</span>
+            <span>Limpiar</span>
+          </button>
+        </div>
+
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center">
+          <span class="text-xs text-slate-400 font-bold">Cambio / Vueltas:</span>
+          <span id="cashChangeDisplay" class="text-lg font-black text-emerald-400">$ 0</span>
+        </div>
+
+        <button id="btnConfirmCashPayment" onclick="submitCashPayment()" class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-sm shadow-xl transition">
+          CONFIRMAR PAGO EN EFECTIVO
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓN DE PAGO DIGITAL (NEQUI/DAVIPLATA / DATÁFONO) -->
+  <div id="digitalModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-scale-up">
+      <!-- Encabezado con método dinámico -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 id="digitalModalTitle" class="font-black text-base text-purple-400 flex items-center space-x-2">
+          <span id="digitalModalIcon">📲</span>
+          <span id="digitalModalTitleText">Confirmar Pago Digital</span>
+        </h3>
+        <button type="button" onclick="closeDigitalModal()" class="text-slate-400 hover:text-white font-bold text-lg w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 select-none">&times;</button>
+      </div>
+
+      <div class="space-y-3">
+        <!-- Indicador de Método y Monto -->
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 space-y-1">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-slate-400 font-bold">Método:</span>
+            <span id="digitalModalBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30">Nequi / Daviplata</span>
+          </div>
+          <div class="flex justify-between items-center pt-1 border-t border-slate-700/60">
+            <span class="text-xs text-slate-400 font-bold">Total a Cobrar:</span>
+            <span id="digitalModalTotal" class="text-xl font-black text-amber-400 tabular-nums">$ 0</span>
+          </div>
+        </div>
+
+        <!-- Alerta de verificación obligatoria para el cajero -->
+        <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3 flex items-start space-x-2.5">
+          <span class="text-base text-amber-400 mt-0.5">⚠️</span>
+          <p class="text-xs text-slate-300 leading-relaxed font-medium">
+            Verifica la notificación en tu teléfono o el comprobante aprobado del datáfono antes de registrar la venta.
+          </p>
+        </div>
+
+        <!-- Input de comprobante o referencia (Opcional) -->
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">
+            N° Comprobante / Voucher <span class="text-slate-500 font-normal">(Opcional)</span>:
+          </label>
+          <input type="text" id="digitalVoucherInput" placeholder="Ej. M123456 o número de aprobación" onkeydown="if(event.key==='Enter') confirmDigitalPayment()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-100 placeholder-slate-600 focus:outline-none focus:border-purple-500 tracking-wider">
+        </div>
+
+        <!-- Botones de Acción (>= 44px altura) -->
+        <div class="flex space-x-2 pt-1">
+          <button type="button" onclick="closeDigitalModal()" class="w-1/3 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-bold text-xs border border-slate-700 transition flex items-center justify-center select-none">
+            Cancelar
+          </button>
+          <button type="button" id="btnConfirmDigital" onclick="confirmDigitalPayment()" class="flex-1 h-12 rounded-xl bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-black text-xs shadow-xl transition flex items-center justify-center select-none">
+            CONFIRMAR PAGO
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE AUTORIZACIÓN CON PIN DE ADMINISTRADOR (MÓDULO ANTIFRAUDE R3) -->
+  <div id="adminPinModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border-2 border-red-500/70 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-scale-up">
+      <!-- Encabezado con ícono de candado -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-black text-base text-red-400 flex items-center space-x-2">
+          <span>🔐</span>
+          <span>Autorización Requerida</span>
+        </h3>
+        <button type="button" onclick="closeAdminPinModal()" class="text-slate-400 hover:text-white font-bold text-lg w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 select-none">&times;</button>
+      </div>
+
+      <p class="text-xs text-slate-300">
+        La anulación de ventas requiere autorización con PIN de Administrador/Socio. Esta acción queda registrada en la bitácora forense inmutable.
+      </p>
+
+      <!-- Mensaje de Error / Feedback de 403 -->
+      <div id="pinErrorAlert" class="hidden bg-red-950/80 border border-red-500 text-red-300 text-xs p-2.5 rounded-xl font-bold flex items-center space-x-2">
+        <span>⛔</span>
+        <span id="pinErrorText">Acceso denegado: PIN inválido.</span>
+      </div>
+
+      <!-- Input de PIN con display táctil -->
+      <div class="space-y-1">
+        <label class="block text-xs font-bold text-slate-300">PIN de Seguridad (4 dígitos):</label>
+        <div class="relative">
+          <input type="password" id="adminPinInput" maxlength="8" readonly placeholder="••••" class="w-full text-center tracking-widest text-2xl font-black bg-slate-950 border border-slate-700 rounded-xl py-2 text-amber-400 placeholder-slate-600 focus:outline-none focus:border-red-500">
+        </div>
+      </div>
+
+      <!-- Teclado Numérico Táctil para Tablet -->
+      <div class="grid grid-cols-3 gap-2">
+        <button type="button" onclick="pinKeyPress('1')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-slate-100 border border-slate-700 select-none shadow">1</button>
+        <button type="button" onclick="pinKeyPress('2')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-slate-100 border border-slate-700 select-none shadow">2</button>
+        <button type="button" onclick="pinKeyPress('3')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-slate-100 border border-slate-700 select-none shadow">3</button>
+        <button type="button" onclick="pinKeyPress('4')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-slate-100 border border-slate-700 select-none shadow">4</button>
+        <button type="button" onclick="pinKeyPress('5')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-slate-100 border border-slate-700 select-none shadow">5</button>
+        <button type="button" onclick="pinKeyPress('6')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-slate-100 border border-slate-700 select-none shadow">6</button>
+        <button type="button" onclick="pinKeyPress('7')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-slate-100 border border-slate-700 select-none shadow">7</button>
+        <button type="button" onclick="pinKeyPress('8')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-slate-100 border border-slate-700 select-none shadow">8</button>
+        <button type="button" onclick="pinKeyPress('9')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-slate-100 border border-slate-700 select-none shadow">9</button>
+        <button type="button" onclick="pinKeyClear()" class="h-12 rounded-xl bg-red-950/60 hover:bg-red-900 active:scale-95 text-xs font-bold text-red-300 border border-red-800/60 select-none flex items-center justify-center">BORRAR</button>
+        <button type="button" onclick="pinKeyPress('0')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-slate-100 border border-slate-700 select-none shadow">0</button>
+        <button type="button" onclick="pinKeyBackspace()" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-black text-slate-300 border border-slate-700 select-none flex items-center justify-center">⌫</button>
+      </div>
+
+      <!-- Selector de Motivo y Autorizador -->
+      <div class="space-y-2 pt-1 border-t border-slate-800">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 mb-1">Motivo de Anulación:</label>
+          <select id="cancelReasonSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 focus:outline-none focus:border-red-500">
+            <option value="Error de digitación del cajero">Error de digitación del cajero</option>
+            <option value="Cliente desistió / no esperó">Cliente desistió / no esperó</option>
+            <option value="Producto devuelto / reclamo">Producto devuelto / reclamo</option>
+            <option value="Otro motivo operativo">Otro motivo operativo</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-slate-400 mb-1">Autorizado por:</label>
+          <select id="cancelAuthorizedByInput" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 focus:outline-none focus:border-red-500">
+            <option value="Administrador">Administrador</option>
+            <option value="Socio Capital 1">Socio Capital 1</option>
+            <option value="Socio Capital 2">Socio Capital 2</option>
+            <option value="Socio Operativo Santiago">Socio Operativo Santiago</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="flex space-x-2 pt-2">
+        <button type="button" onclick="closeAdminPinModal()" class="w-1/3 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-bold text-xs border border-slate-700 transition flex items-center justify-center select-none">
+          Cancelar
+        </button>
+        <button type="button" id="btnConfirmCancelSale" onclick="submitCancelWithPin()" class="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black text-xs shadow-xl transition flex items-center justify-center space-x-1 select-none">
+          <span>🚨</span>
+          <span>ANULAR CON PIN</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ENTRADA DE MERCANCÍA / PROVEEDOR (R2) -->
+  <div id="supplierEntryModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-blue-500/60 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-black text-base text-blue-400 flex items-center space-x-2">
+          <span>📦</span>
+          <span>Entrada de Mercancía / Proveedores</span>
+        </h3>
+        <button onclick="closeSupplierEntryModal()" class="text-slate-400 hover:text-white font-bold text-lg select-none">&times;</button>
+      </div>
+
+      <form id="supplierEntryForm" onsubmit="submitSupplierEntry(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Proveedor:</label>
+          <input type="text" id="supplierNameInput" required placeholder="Ej. Avícola Los Pollos / Postobón" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-bold text-slate-100 focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Factura / Remisión:</label>
+            <input type="text" id="supplierInvoiceInput" required placeholder="Ej. FAC-10492" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-bold text-slate-100 focus:outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Ubicación:</label>
+            <select id="supplierLocationSelect" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-100 focus:outline-none focus:border-blue-500">
+              <option value="Bodega">Bodega (Frío / Seco)</option>
+              <option value="Nevera">Nevera (Bebidas)</option>
+              <option value="Cocina">Cocina (Insumos)</option>
+              <option value="Vitrina">Vitrina (Térmica)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Insumo / Producto:</label>
+          <div class="space-y-1">
+            <select id="supplierItemSelect" onchange="onSupplierItemSelectChange()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-100 focus:outline-none focus:border-blue-500">
+              <option value="">-- Seleccionar insumo existente o escribir abajo --</option>
+              <option value="pollo_entero_crudo" data-loc="Bodega">Pollos Enteros Crudos (Bodega)</option>
+              <option value="harina_apanar_kg" data-loc="Bodega">Harina Apanador (Bodega)</option>
+              <option value="aceite_fritura_lt" data-loc="Bodega">Aceite para Freidoras (Bodega)</option>
+              <option value="GAS-COL-400" data-loc="Nevera">Postobón Colombiana 400ml (Nevera)</option>
+              <option value="GAS-MAN-400" data-loc="Nevera">Postobón Manzana 400ml (Nevera)</option>
+              <option value="GAS-COL-15L" data-loc="Nevera">Postobón Colombiana 1.5L (Nevera)</option>
+              <option value="GAS-MAN-15L" data-loc="Nevera">Postobón Manzana 1.5L (Nevera)</option>
+              <option value="GAS-COC-400" data-loc="Nevera">Coca-Cola 400ml (Nevera)</option>
+              <option value="GAS-ZER-400" data-loc="Nevera">Coca-Cola Zero 400ml (Nevera)</option>
+              <option value="GAS-QUA-400" data-loc="Nevera">Quatro Toronja 400ml (Nevera)</option>
+              <option value="GAS-COC-15L" data-loc="Nevera">Coca-Cola 1.5L (Nevera)</option>
+              <option value="arepas_unidades" data-loc="Cocina">Arepas Disponibles (Cocina)</option>
+              <option value="papas_raciones" data-loc="Cocina">Papas a la Francesa (Cocina)</option>
+            </select>
+            <input type="text" id="supplierItemCustomInput" placeholder="O nombre personalizado del insumo" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-blue-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Cantidad Ingresada:</label>
+            <input type="number" id="supplierQuantityInput" required min="0.1" step="any" placeholder="Ej. 20" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-black text-amber-400 focus:outline-none focus:border-blue-500 tabular-nums">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Costo Total ($ COP):</label>
+            <input type="number" id="supplierTotalCostInput" min="0" step="100" placeholder="Ej. 180000" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-black text-emerald-400 focus:outline-none focus:border-blue-500 tabular-nums">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Notas / Observaciones (Opcional):</label>
+          <input type="text" id="supplierNotesInput" placeholder="Ej. Pollo fresco de 1.8kg" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-1.5 text-slate-300 focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div id="supplierEntryFeedback" class="hidden p-2 rounded-xl text-xs font-bold"></div>
+
+        <div class="flex space-x-2 pt-2">
+          <button type="button" onclick="closeSupplierEntryModal()" class="w-1/3 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold select-none">
+            Cancelar
+          </button>
+          <button type="submit" id="btnSubmitSupplierEntry" class="flex-1 h-11 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black shadow-lg transition flex items-center justify-center space-x-1 select-none">
+            <span>📥</span>
+            <span>CONFIRMAR ENTRADA</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openSupplierEntryModal() {
+      const modal = document.getElementById('supplierEntryModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
+      const fb = document.getElementById('supplierEntryFeedback');
+      if (fb) {
+        fb.className = 'hidden';
+        fb.textContent = '';
+      }
+    }
+    window.openSupplierEntryModal = openSupplierEntryModal;
+
+    function closeSupplierEntryModal() {
+      const modal = document.getElementById('supplierEntryModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+    }
+    window.closeSupplierEntryModal = closeSupplierEntryModal;
+
+    function onSupplierItemSelectChange() {
+      const sel = document.getElementById('supplierItemSelect');
+      const custom = document.getElementById('supplierItemCustomInput');
+      const locSel = document.getElementById('supplierLocationSelect');
+      if (!sel || !sel.value) return;
+      const opt = sel.options[sel.selectedIndex];
+      if (custom) custom.value = opt.text.split(' (')[0];
+      if (opt.dataset && opt.dataset.loc && locSel) {
+        locSel.value = opt.dataset.loc;
+      }
+    }
+
+    async function submitSupplierEntry(event) {
+      event.preventDefault();
+      const supplierName = document.getElementById('supplierNameInput').value.trim();
+      const invoiceNumber = document.getElementById('supplierInvoiceInput').value.trim();
+      const sel = document.getElementById('supplierItemSelect');
+      const custom = document.getElementById('supplierItemCustomInput').value.trim();
+      const itemName = custom || (sel ? sel.value : '');
+      const location = document.getElementById('supplierLocationSelect').value;
+      const quantity = parseFloat(document.getElementById('supplierQuantityInput').value);
+      const totalCost = parseFloat(document.getElementById('supplierTotalCostInput').value) || 0;
+      const notes = document.getElementById('supplierNotesInput').value.trim();
+      const fb = document.getElementById('supplierEntryFeedback');
+
+      if (!supplierName || !invoiceNumber || !itemName || !location || !quantity || quantity <= 0) {
+        if (fb) {
+          fb.className = 'p-2 rounded-xl text-xs font-bold bg-red-950/80 text-red-300 border border-red-700 block';
+          fb.textContent = 'Por favor completa todos los campos requeridos correctamente.';
+        }
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/inventory/supplier-entry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            supplier_name: supplierName,
+            invoice_number: invoiceNumber,
+            item_name: itemName,
+            location: location,
+            quantity: quantity,
+            total_cost: totalCost,
+            notes: notes || undefined
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || 'Error al registrar entrada de proveedor');
+        }
+
+        if (fb) {
+          fb.className = 'p-2 rounded-xl text-xs font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-700 block';
+          fb.textContent = `✅ Recepción ${data.entry_code} registrada exitosamente. Nuevo stock: ${data.new_stock}`;
+        }
+
+        setTimeout(() => {
+          const form = document.getElementById('supplierEntryForm');
+          if (form) form.reset();
+          closeSupplierEntryModal();
+          if (typeof loadProducts === 'function') loadProducts();
+        }, 1200);
+
+      } catch (err) {
+        if (fb) {
+          fb.className = 'p-2 rounded-xl text-xs font-bold bg-red-950/80 text-red-300 border border-red-700 block';
+          fb.textContent = `❌ ${err.message}`;
+        }
+      }
+    }
+  </script>
+
+  <!-- SCRIPTS -->
+  <script src="/static/js/pos.js?v=20261021_v5"></script>
+</body>
+</html>

@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caja & Socios - Pollo Apanado</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans select-none pb-12">
+
+  <!-- BARRA SUPERIOR -->
+  <header class="bg-slate-800/90 border-b border-slate-700 px-4 py-2.5 flex items-center justify-between shadow-md sticky top-0 z-40 backdrop-blur-md">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-2xl">
+        💰
+      </div>
+      <div>
+        <h1 class="text-lg font-black tracking-wide text-emerald-400 leading-tight">CUADRE DE CAJA & CONTROL DE SOCIOS</h1>
+        <p class="text-xs text-slate-400 font-medium">Arqueo Explícito, Seguridad Antifraude, Vitrina & Desglose 100%</p>
+      </div>
+    </div>
+
+    <!-- Navegación -->
+    <nav class="flex items-center space-x-1.5 bg-slate-900/80 p-1 rounded-xl border border-slate-700/80">
+      <a href="/" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition">
+        🛒 Mostrador
+      </a>
+      <a href="/cocina" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition">
+        🍳 Cocina & Tiempos
+      </a>
+      <a href="/caja" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950 shadow-sm transition">
+        💰 Caja & Socios
+      </a>
+      <button onclick="openSupplierEntryModal()" class="px-3.5 py-1.5 rounded-lg text-xs font-black bg-blue-600 hover:bg-blue-500 text-white flex items-center space-x-1.5 transition active:scale-95 shadow-md border border-blue-400" title="Registrar recepción de mercancía y proveedores">
+        <span>🚚</span>
+        <span>+ Proveedores</span>
+      </button>
+      <a href="/tutorial" class="px-3.5 py-1.5 rounded-lg text-xs font-black bg-purple-600 hover:bg-purple-500 text-white flex items-center space-x-1.5 transition shadow-md border border-purple-400" title="Ver Video Tutorial de Uso del Sistema">
+        <span>🎬</span>
+        <span>Tutorial</span>
+      </a>
+    </nav>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 p-4 max-w-7xl mx-auto w-full space-y-4 overflow-y-auto">
+
+    <!-- 1. BARRA DE ESTADO DEL TURNO DE CAJA (R1) -->
+    <div id="shiftStatusBar" class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 shadow-xl flex flex-col md:flex-row items-center justify-between gap-3">
+      <div class="flex items-center space-x-3 w-full md:w-auto">
+        <div id="shiftStatusIndicator" class="w-3.5 h-3.5 rounded-full bg-amber-500 animate-pulse"></div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span id="shiftStatusBadge" class="text-xs font-black px-2.5 py-0.5 rounded-full bg-slate-700 text-slate-300 uppercase tracking-wider">Cargando Turno...</span>
+            <span id="shiftCodeText" class="text-xs font-mono text-slate-400 font-bold"></span>
+          </div>
+          <p id="shiftDetailsText" class="text-xs text-slate-300 mt-0.5">Consultando ciclo de caja...</p>
+        </div>
+      </div>
+
+      <!-- Botones de Acción de Turno -->
+      <div class="flex items-center space-x-2 w-full md:w-auto justify-end">
+        <button id="btnOpenShift" onclick="openShiftModal()" class="h-11 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex items-center space-x-1.5 select-none">
+          <span>🟢</span>
+          <span>ABRIR TURNO</span>
+        </button>
+        <button id="btnRegisterExpense" onclick="openExpenseModal()" class="h-11 px-3.5 rounded-xl bg-slate-700 hover:bg-slate-600 active:scale-95 text-red-300 font-bold text-xs border border-red-500/30 transition flex items-center space-x-1.5 select-none">
+          <span>💸</span>
+          <span>GASTO MENOR</span>
+        </button>
+        <button id="btnCloseShift" onclick="openCloseShiftModal()" class="h-11 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 active:scale-95 text-slate-950 font-black text-xs shadow-lg transition flex items-center space-x-1.5 select-none">
+          <span>🏁</span>
+          <span>CERRAR TURNO</span>
+        </button>
+        <button onclick="loadDailySummary()" class="h-11 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition" title="Refrescar">
+          🔄
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. TARJETAS SUPERIORES DE TOTALES (5 Columnas) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      
+      <!-- Total Venta Diaria -->
+      <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <span class="text-xs font-bold uppercase text-slate-400">Total Ingresos Brutos</span>
+        <div id="statTotalSales" class="text-2xl font-black text-amber-400 tabular-nums my-1">$ 0</div>
+        <span id="statTicketsCount" class="text-[11px] text-slate-400">0 ventas registradas</span>
+      </div>
+
+      <!-- Margen Bruto de Ganancia -->
+      <div class="bg-slate-800/70 border border-emerald-500/40 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-emerald-950/20">
+        <span class="text-xs font-bold uppercase text-emerald-400 flex items-center space-x-1">
+          <span>📈</span>
+          <span>Margen Bruto Real</span>
+        </span>
+        <div id="statEstimatedMargin" class="text-2xl font-black text-emerald-400 tabular-nums my-1">$ 0</div>
+        <span class="text-[11px] text-emerald-300/80">Ingresos menos costo insumos</span>
+      </div>
+
+      <!-- Efectivo Esperado en Mano -->
+      <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <span class="text-xs font-bold uppercase text-emerald-400 flex items-center space-x-1">
+          <span>💵</span>
+          <span>Efectivo en Cajón</span>
+        </span>
+        <div id="statEfectivo" class="text-2xl font-black text-emerald-400 tabular-nums my-1">$ 0</div>
+        <span id="statBaseInfo" class="text-[11px] text-slate-400">Base + Ventas - Gastos</span>
+      </div>
+
+      <!-- Digital (Nequi / Daviplata) -->
+      <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <span class="text-xs font-bold uppercase text-purple-400 flex items-center space-x-1">
+          <span>📲</span>
+          <span>Nequi / Daviplata</span>
+        </span>
+        <div id="statNequi" class="text-2xl font-black text-purple-400 tabular-nums my-1">$ 0</div>
+        <span class="text-[11px] text-slate-400">Transferencias a cuenta</span>
+      </div>
+
+      <!-- Datáfono -->
+      <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <span class="text-xs font-bold uppercase text-sky-400 flex items-center space-x-1">
+          <span>💳</span>
+          <span>Datáfono / Tarjetas</span>
+        </span>
+        <div id="statDatafono" class="text-2xl font-black text-sky-400 tabular-nums my-1">$ 0</div>
+        <span class="text-[11px] text-slate-400">Vouchers de tarjeta</span>
+      </div>
+    </div>
+
+    <!-- 3. PLANILLA CENTRAL DE ARQUEO EXPLÍCITO (FÓRMULA R1) -->
+    <div class="bg-slate-800/80 border-2 border-emerald-500/50 rounded-2xl p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <span class="text-2xl">📋</span>
+          <div>
+            <h2 class="text-base font-black text-emerald-300 tracking-wide uppercase">PLANILLA DE ARQUEO Y CONCILIACIÓN DE CAJA</h2>
+            <p class="text-xs text-slate-400">Fórmula estricta: Base Inicial (+) Ventas Efectivo (-) Gastos Menores (=) Efectivo Esperado</p>
+          </div>
+        </div>
+        <span id="reconcilBadge" class="text-xs font-black px-3 py-1 rounded-full bg-slate-700 text-slate-300 uppercase">Sin Cerrar</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        <!-- FÓRMULA DE EFECTIVO FÍSICO -->
+        <div class="bg-slate-900/90 rounded-xl p-4 border border-slate-700/80 space-y-2.5 text-xs font-medium">
+          <div class="text-slate-400 font-bold uppercase text-[11px] tracking-wider border-b border-slate-800 pb-1">
+            💵 Movimiento de Efectivo en Cajón Físico
+          </div>
+          
+          <div class="flex justify-between items-center py-1">
+            <span class="text-slate-300">(+) Base Inicial de Apertura:</span>
+            <span id="planBaseInicial" class="font-black text-white text-sm tabular-nums">$ 0</span>
+          </div>
+
+          <div class="flex justify-between items-center py-1">
+            <span class="text-emerald-400 font-bold">(+) Ventas Facturadas en Efectivo:</span>
+            <span id="planCashSales" class="font-black text-emerald-400 text-sm tabular-nums">$ 0</span>
+          </div>
+
+          <div class="flex justify-between items-center py-1">
+            <span class="text-red-400 font-bold">(-) Gastos Menores Autorizados de Caja:</span>
+            <span id="planTotalExpenses" class="font-black text-red-400 text-sm tabular-nums">-$ 0</span>
+          </div>
+
+          <div class="border-t-2 border-emerald-500/40 pt-2 flex justify-between items-center bg-emerald-950/30 px-3 py-2 rounded-lg">
+            <span class="font-black text-emerald-200 text-xs uppercase">(=) EFECTIVO FINAL ESPERADO EN CAJÓN:</span>
+            <span id="planExpectedCash" class="font-black text-emerald-300 text-base tabular-nums">$ 0</span>
+          </div>
+
+          <div class="border-t border-slate-800 pt-2 flex justify-between items-center">
+            <span class="text-slate-400 font-bold">Efectivo Físico Real Contado:</span>
+            <span id="planActualCash" class="font-black text-white text-sm tabular-nums">--</span>
+          </div>
+
+          <div class="flex justify-between items-center">
+            <span class="text-slate-400 font-bold">Diferencia / Cuadre:</span>
+            <span id="planDifference" class="font-black text-sm tabular-nums">--</span>
+          </div>
+        </div>
+
+        <!-- FONDOS DIGITALES Y LIQUIDEZ TOTAL -->
+        <div class="bg-slate-900/90 rounded-xl p-4 border border-slate-700/80 space-y-2.5 text-xs font-medium flex flex-col justify-between">
+          <div class="space-y-2.5">
+            <div class="text-slate-400 font-bold uppercase text-[11px] tracking-wider border-b border-slate-800 pb-1">
+              📲 Canales Digitales & Liquidez Consolidada
+            </div>
+
+            <div class="flex justify-between items-center py-1">
+              <span class="text-purple-300 flex items-center space-x-1">
+                <span>📲</span>
+                <span>Nequi / Daviplata (Bancos, no toca cajón):</span>
+              </span>
+              <span id="planDigitalTransfers" class="font-black text-purple-400 text-sm tabular-nums">$ 0</span>
+            </div>
+
+            <div class="flex justify-between items-center py-1">
+              <span class="text-sky-300 flex items-center space-x-1">
+                <span>💳</span>
+                <span>Datáfono / Tarjetas (Vouchers Redeban/Bold):</span>
+              </span>
+              <span id="planCardVouchers" class="font-black text-sky-400 text-sm tabular-nums">$ 0</span>
+            </div>
+
+            <div class="flex justify-between items-center py-1 border-t border-slate-800">
+              <span class="text-slate-300 font-bold">Gran Total Ventas del Día:</span>
+              <span id="planGranTotalSales" class="font-black text-amber-400 text-sm tabular-nums">$ 0</span>
+            </div>
+          </div>
+
+          <div class="border-t-2 border-slate-700 pt-2 bg-slate-950 px-3 py-2.5 rounded-lg flex justify-between items-center">
+            <div>
+              <span class="font-black text-slate-200 text-xs block">LIQUIDEZ TOTAL RECAUDADA:</span>
+              <span class="text-[10px] text-slate-400 font-normal">(Efectivo Esperado + Transferencias + Tarjetas)</span>
+            </div>
+            <span id="planTotalLiquidity" class="font-black text-emerald-400 text-lg tabular-nums">$ 0</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 4. ALERTA ROJA DE VENTAS ANULADAS & BITÁCORA FORENSE (R3) -->
+    <div id="cancellationsAlertCard" class="rounded-2xl p-5 shadow-2xl transition-all duration-300 border-2">
+      <!-- Renderizado dinámico vía JS -->
+    </div>
+
+    <!-- 5. ARQUEO FÍSICO DE VITRINA Y DETECCIÓN DE SUSTRACCIONES (R4) -->
+    <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <span class="text-2xl">🍗</span>
+          <div>
+            <h2 class="text-base font-black text-amber-400 tracking-wide uppercase">ARQUEO FÍSICO DE VITRINA TÉRMICA & CONTROL DE MERMA</h2>
+            <p class="text-xs text-slate-400">Contraste entre existencias físicas contadas vs. stock teórico del sistema</p>
+          </div>
+        </div>
+        <button onclick="openVitrinaAuditModal()" class="h-10 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-xs shadow-md transition flex items-center space-x-1.5 self-start sm:self-auto">
+          <span>🔍</span>
+          <span>REGISTRAR CONTEO FÍSICO</span>
+        </button>
+      </div>
+
+      <!-- Banner de Alerta de Sustracción si existe -->
+      <div id="vitrinaTheftAlertBanner" class="hidden bg-red-950/90 border-2 border-red-500 rounded-xl p-4 text-xs font-bold text-red-200 space-y-1 animate-pulse">
+        <!-- Detalle de alerta forense -->
+      </div>
+
+      <!-- Grilla de Presas de Vitrina -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1">
+          <div class="flex justify-between items-center text-slate-400 font-bold">
+            <span>Pechugas:</span>
+            <span id="vitrinaTeoricoPechuga" class="text-white font-mono font-black">--</span>
+          </div>
+          <div class="flex justify-between items-center text-slate-400">
+            <span>Físico Contado:</span>
+            <span id="vitrinaFisicoPechuga" class="font-mono font-black text-amber-400">--</span>
+          </div>
+          <div class="flex justify-between items-center pt-1 border-t border-slate-800 text-[11px]">
+            <span>Diferencia:</span>
+            <span id="vitrinaDiffPechuga" class="font-black font-mono">--</span>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1">
+          <div class="flex justify-between items-center text-slate-400 font-bold">
+            <span>Muslos:</span>
+            <span id="vitrinaTeoricoMuslo" class="text-white font-mono font-black">--</span>
+          </div>
+          <div class="flex justify-between items-center text-slate-400">
+            <span>Físico Contado:</span>
+            <span id="vitrinaFisicoMuslo" class="font-mono font-black text-amber-400">--</span>
+          </div>
+          <div class="flex justify-between items-center pt-1 border-t border-slate-800 text-[11px]">
+            <span>Diferencia:</span>
+            <span id="vitrinaDiffMuslo" class="font-black font-mono">--</span>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1">
+          <div class="flex justify-between items-center text-slate-400 font-bold">
+            <span>Contramuslos:</span>
+            <span id="vitrinaTeoricoContramuslo" class="text-white font-mono font-black">--</span>
+          </div>
+          <div class="flex justify-between items-center text-slate-400">
+            <span>Físico Contado:</span>
+            <span id="vitrinaFisicoContramuslo" class="font-mono font-black text-amber-400">--</span>
+          </div>
+          <div class="flex justify-between items-center pt-1 border-t border-slate-800 text-[11px]">
+            <span>Diferencia:</span>
+            <span id="vitrinaDiffContramuslo" class="font-black font-mono">--</span>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1">
+          <div class="flex justify-between items-center text-slate-400 font-bold">
+            <span>Alas:</span>
+            <span id="vitrinaTeoricoAla" class="text-white font-mono font-black">--</span>
+          </div>
+          <div class="flex justify-between items-center text-slate-400">
+            <span>Físico Contado:</span>
+            <span id="vitrinaFisicoAla" class="font-mono font-black text-amber-400">--</span>
+          </div>
+          <div class="flex justify-between items-center pt-1 border-t border-slate-800 text-[11px]">
+            <span>Diferencia:</span>
+            <span id="vitrinaDiffAla" class="font-black font-mono">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. DESGLOSE EXHAUSTIVO DE PRODUCTOS Y RECAUDO 100% (R2) -->
+    <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 shadow-xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl">📊</span>
+          <div>
+            <h2 class="text-base font-black text-amber-300 uppercase">DESGLOSE EXHAUSTIVO DE PRODUCTOS Y DINERO RECAUDADO</h2>
+            <p class="text-xs text-slate-400">Detalle por presas solas, combos, almuerzos con presa elegida, porciones y marcas de gaseosa</p>
+          </div>
+        </div>
+        <span id="zeroDriftBadge" class="text-xs font-black px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase">
+          ✅ Conciliación 100% Cero Deriva
+        </span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-slate-900/90 text-slate-400 border-b border-slate-700 font-bold uppercase text-[11px]">
+              <th class="py-2.5 px-3">Categoría / Familia</th>
+              <th class="py-2.5 px-3">Producto / Presentación</th>
+              <th class="py-2.5 px-3 text-right">Cant. Vendida</th>
+              <th class="py-2.5 px-3 text-right">Precio Unitario</th>
+              <th class="py-2.5 px-3 text-right">Total Recaudado</th>
+            </tr>
+          </thead>
+          <tbody id="productBreakdownTableBody" class="divide-y divide-slate-800">
+            <!-- Renderizado dinámico -->
+          </tbody>
+          <tfoot>
+            <tr class="bg-slate-950 font-black text-sm text-slate-100 border-t-2 border-amber-500">
+              <td colspan="4" class="py-3 px-3 uppercase text-right text-amber-400">GRAN TOTAL VENTAS DEL DÍA (100%):</td>
+              <td id="breakdownGrandTotal" class="py-3 px-3 text-right text-amber-400 tabular-nums">$ 0</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- 7. TERMÓMETRO DEL PUNTO DE EQUILIBRIO DIARIO -->
+    <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-2">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+        <div>
+          <h3 class="text-sm font-black text-slate-100 uppercase tracking-wide flex items-center space-x-2">
+            <span>🎯</span>
+            <span>Punto de Equilibrio Diario: $258.462 COP (Margen de Contribución)</span>
+          </h3>
+          <p class="text-[11px] text-slate-400">
+            Cubre arriendo ($1.4M), nómina, servicios y créditos de compraventa en 26 días/mes
+          </p>
+        </div>
+        <div class="text-right">
+          <span id="breakevenPercentText" class="text-lg font-black text-amber-400">0%</span>
+          <span id="breakevenStatusBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-700 text-slate-300 ml-2">En proceso</span>
+        </div>
+      </div>
+      <div class="w-full bg-slate-950 h-3.5 rounded-full overflow-hidden border border-slate-700/60 p-0.5">
+        <div id="breakevenBar" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- 8. DISTRIBUCIÓN DE UTILIDADES ENTRE SOCIOS (CAP TABLE) -->
+    <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+        <div class="flex items-center space-x-2">
+          <span class="text-xl">🤝</span>
+          <h3 class="text-sm font-black text-slate-100 uppercase">Reparto Estimado de Utilidades del Día (Cap Table)</h3>
+        </div>
+        <span class="text-[11px] text-slate-400">Fondo de reserva: 5%</span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1">
+          <div class="text-slate-400 font-semibold">Socio de Capital 1 (40%):</div>
+          <div id="partner1Share" class="text-lg font-black text-amber-400">$ 0</div>
+          <div class="text-[10px] text-slate-500">Aporte financiero inicial</div>
+        </div>
+
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1">
+          <div class="text-slate-400 font-semibold">Socio de Capital 2 (40%):</div>
+          <div id="partner2Share" class="text-lg font-black text-amber-400">$ 0</div>
+          <div class="text-[10px] text-slate-500">Aporte financiero inicial</div>
+        </div>
+
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1">
+          <div class="text-slate-400 font-semibold">Socio Operativo Santiago (20%):</div>
+          <div id="partnerSantiagoShare" class="text-lg font-black text-emerald-400">$ 0</div>
+          <div class="text-[10px] text-emerald-500/80">Adicional a salario ordinario</div>
+        </div>
+
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1">
+          <div class="text-slate-400 font-semibold">Fondo de Reserva (5%):</div>
+          <div id="reserveFundShare" class="text-lg font-black text-blue-400">$ 0</div>
+          <div class="text-[10px] text-slate-500">Mantenimiento y emergencias</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. ALERTAS DE COMPRAS A PROVEEDORES -->
+    <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-3">
+      <div class="flex items-center space-x-2 border-b border-slate-700 pb-2">
+        <span class="text-xl">⚠️</span>
+        <h3 class="text-sm font-black text-slate-100 uppercase">Alertas de Stock & Pedidos a Proveedores</h3>
+      </div>
+      <div id="alertsContainer" class="space-y-2 max-h-56 overflow-y-auto text-xs">
+        <!-- Dinámico -->
+      </div>
+    </div>
+
+    <!-- 10. CONCILIACIÓN DIARIA DE INVENTARIO (R3) -->
+    <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-xl">
+            📊
+          </div>
+          <div>
+            <h3 class="text-sm font-black text-slate-100 uppercase tracking-wide">
+              Conciliación Diaria de Inventario (Stock Inicial + Entradas - Ventas)
+            </h3>
+            <p class="text-xs text-slate-400 font-medium">
+              Ecuación de conservación matemática en tiempo real: Cero Deriva en Bodega, Cocina, Vitrina y Nevera
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <span id="reconciliationBalanceBadge" class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+            ✅ Cero Deriva (100% Cuadrado)
+          </span>
+          <button onclick="openSetInitialStockModal()" class="px-3 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-xs border border-slate-600 transition flex items-center space-x-1 shadow-sm">
+            <span>📝</span>
+            <span>Ajustar Stock Inicial</span>
+          </button>
+          <button onclick="loadDailyReconciliation()" class="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition" title="Refrescar conciliación">
+            🔄
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabla de Conciliación en Tiempo Real -->
+      <div class="overflow-x-auto rounded-xl border border-slate-700/80 bg-slate-950/60">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-900/90 text-slate-400 uppercase text-[10px] font-bold border-b border-slate-700/80">
+            <tr>
+              <th class="py-2.5 px-3">Insumo / Producto</th>
+              <th class="py-2.5 px-3">Ubicación</th>
+              <th class="py-2.5 px-3 text-right">Stock Inicial</th>
+              <th class="py-2.5 px-3 text-right">(+) Entradas Prov.</th>
+              <th class="py-2.5 px-3 text-right">(-) Ventas / Despacho</th>
+              <th class="py-2.5 px-3 text-right">Stock Esperado</th>
+              <th class="py-2.5 px-3 text-right">Stock Físico Real</th>
+              <th class="py-2.5 px-3 text-center">Deriva / Estado</th>
+            </tr>
+          </thead>
+          <tbody id="reconciliationTableBody" class="divide-y divide-slate-800 font-medium">
+            <tr>
+              <td colspan="8" class="py-4 text-center text-slate-400">Cargando conciliación en tiempo real...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ==================== MODALES OPERATIVOS ==================== -->
+
+  <!-- MODAL: ABRIR TURNO DE CAJA -->
+  <div id="openShiftModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-500/60 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-black text-base text-emerald-400 flex items-center space-x-2">
+          <span>🟢</span>
+          <span>Apertura de Turno de Caja</span>
+        </h3>
+        <button onclick="closeModal('openShiftModal')" class="text-slate-400 hover:text-white font-bold text-lg select-none">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Nombre del Cajero Responsable:</label>
+          <input type="text" id="openCashierName" value="Santiago" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 font-bold text-white focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Base Inicial en Efectivo ($ COP):</label>
+          <input type="number" id="openBaseInicial" value="100000" step="5000" min="0" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 font-black text-lg text-emerald-400 focus:outline-none focus:border-emerald-500 tabular-nums">
+          <p class="text-[10px] text-slate-400 mt-1">Fondo de cambio entregado en billetes y monedas para iniciar jornada.</p>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Notas de Apertura (Opcional):</label>
+          <input type="text" id="openNotes" placeholder="Ej. Turno matutino, billetes de 5k y 10k" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-medium text-slate-200 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="flex space-x-2 pt-2">
+          <button onclick="closeModal('openShiftModal')" class="w-1/3 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold select-none">Cancelar</button>
+          <button onclick="submitOpenShift()" class="flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-lg select-none">CONFIRMAR APERTURA</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REGISTRAR GASTO MENOR DE CAJA -->
+  <div id="expenseModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-red-500/60 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-black text-base text-red-400 flex items-center space-x-2">
+          <span>💸</span>
+          <span>Registrar Gasto de Caja Menor</span>
+        </h3>
+        <button onclick="closeModal('expenseModal')" class="text-slate-400 hover:text-white font-bold text-lg select-none">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Monto Retirado ($ COP):</label>
+          <input type="number" id="expenseAmount" placeholder="Ej. 15000" min="100" step="500" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 font-black text-lg text-red-400 focus:outline-none focus:border-red-500 tabular-nums">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Categoría:</label>
+          <select id="expenseCategory" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-200 focus:outline-none focus:border-red-500">
+            <option value="insumos">Insumos Urgentes (Hielo, Cilantro, etc.)</option>
+            <option value="servicios">Servicios / Domicilios</option>
+            <option value="transporte">Transporte / Flete</option>
+            <option value="mantenimiento">Mantenimiento / Limpieza</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Concepto / Justificación:</label>
+          <input type="text" id="expenseConcept" placeholder="Ej. Compra 2 bolsas de hielo" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-bold text-slate-200 focus:outline-none focus:border-red-500">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Autorizado por:</label>
+          <input type="text" id="expenseAuthorizedBy" value="Santiago" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-bold text-slate-200 focus:outline-none focus:border-red-500">
+        </div>
+
+        <div class="flex space-x-2 pt-2">
+          <button onclick="closeModal('expenseModal')" class="w-1/3 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold select-none">Cancelar</button>
+          <button onclick="submitExpense()" class="flex-1 h-11 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black shadow-lg select-none">DEDUCIR DE CAJA</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CERRAR TURNO & ARQUEO DE CAJA -->
+  <div id="closeShiftModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/60 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-black text-base text-amber-400 flex items-center space-x-2">
+          <span>🏁</span>
+          <span>Cierre de Turno & Arqueo</span>
+        </h3>
+        <button onclick="closeModal('closeShiftModal')" class="text-slate-400 hover:text-white font-bold text-lg select-none">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <div class="text-slate-400 font-bold mb-1">Efectivo Esperado Según Sistema:</div>
+          <div id="closeModalExpectedCash" class="text-xl font-black text-emerald-400 tabular-nums">$ 0</div>
+          <div class="text-[10px] text-slate-500">Base Inicial + Ventas Efectivo - Gastos Menores</div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Efectivo Físico Real Contado en Cajón ($ COP):</label>
+          <input type="number" id="closeActualCash" placeholder="Ingresa monto total contado" step="1000" min="0" oninput="calculateClosingDiffPreview()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 font-black text-lg text-white focus:outline-none focus:border-amber-500 tabular-nums">
+        </div>
+
+        <div id="closeDiffPreviewBox" class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center hidden">
+          <span class="text-slate-400 font-bold">Diferencia Prevista:</span>
+          <span id="closeDiffPreviewText" class="font-black text-sm tabular-nums">$ 0</span>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Observaciones de Cierre (Opcional):</label>
+          <input type="text" id="closeNotes" placeholder="Ej. Cuadre exacto, todo conforme" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-medium text-slate-200 focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div class="flex space-x-2 pt-2">
+          <button onclick="closeModal('closeShiftModal')" class="w-1/3 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold select-none">Cancelar</button>
+          <button onclick="submitCloseShift()" class="flex-1 h-11 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-black shadow-lg select-none">CERRAR TURNO</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ARQUEO FÍSICO DE VITRINA TÉRMICA (R4) -->
+  <div id="vitrinaAuditModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/60 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-black text-base text-amber-400 flex items-center space-x-2">
+          <span>🍗</span>
+          <span>Conteo Físico Real de Vitrina</span>
+        </h3>
+        <button onclick="closeModal('vitrinaAuditModal')" class="text-slate-400 hover:text-white font-bold text-lg select-none">&times;</button>
+      </div>
+
+      <p class="text-xs text-slate-300">
+        Cuenta físicamente las presas que se encuentran en la vitrina caliente al momento del arqueo:
+      </p>
+
+      <div class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Pechugas Físicas:</label>
+            <input type="number" id="auditPechugas" min="0" step="1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-black text-base text-amber-400 focus:outline-none focus:border-amber-500 text-center">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Muslos Físicos:</label>
+            <input type="number" id="auditMuslos" min="0" step="1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-black text-base text-amber-400 focus:outline-none focus:border-amber-500 text-center">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Contramuslos Físicos:</label>
+            <input type="number" id="auditContramuslos" min="0" step="1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-black text-base text-amber-400 focus:outline-none focus:border-amber-500 text-center">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Alas Físicas:</label>
+            <input type="number" id="auditAlas" min="0" step="1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-black text-base text-amber-400 focus:outline-none focus:border-amber-500 text-center">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Auditor Responsable:</label>
+          <input type="text" id="auditAuditor" value="Santiago" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-bold text-white focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div class="flex items-center space-x-2 pt-1">
+          <input type="checkbox" id="auditAdjustInventory" checked class="w-4 h-4 rounded text-amber-500 bg-slate-950 border-slate-700">
+          <label for="auditAdjustInventory" class="text-slate-300 font-bold select-none cursor-pointer">
+            Actualizar inventario teórico al conteo físico real
+          </label>
+        </div>
+
+        <div class="flex space-x-2 pt-2">
+          <button onclick="closeModal('vitrinaAuditModal')" class="w-1/3 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold select-none">Cancelar</button>
+          <button onclick="submitVitrinaAudit()" class="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-lg select-none">REGISTRAR ARQUEO</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ESTABLECER INVENTARIO INICIAL DIARIO (R3) -->
+  <div id="setInitialStockModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-blue-500/60 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-black text-base text-blue-400 flex items-center space-x-2">
+          <span>📝</span>
+          <span>Establecer Inventario Inicial del Día</span>
+        </h3>
+        <button onclick="closeModal('setInitialStockModal')" class="text-slate-400 hover:text-white font-bold text-lg select-none">&times;</button>
+      </div>
+
+      <p class="text-xs text-slate-300">
+        Declara las existencias matutinas con las que arranca la jornada para auditar la conciliación:
+      </p>
+
+      <div id="initialStockItemsContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs max-h-72">
+        <!-- Render dinámico de insumos -->
+      </div>
+
+      <div id="setInitialStockFeedback" class="hidden p-2 rounded-xl text-xs font-bold"></div>
+
+      <div class="flex space-x-2 pt-2 border-t border-slate-800">
+        <button onclick="closeModal('setInitialStockModal')" class="w-1/3 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold select-none">
+          Cancelar
+        </button>
+        <button onclick="submitInitialStock()" class="flex-1 h-11 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg transition flex items-center justify-center space-x-1 select-none">
+          <span>💾</span>
+          <span>GUARDAR STOCK INICIAL</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== LÓGICA JAVASCRIPT ==================== -->
+  <script>
+    let activeShiftData = null;
+    let currentDailyData = null;
+
+    function formatCOP(num) {
+      if (num === null || num === undefined) return '$ 0';
+      return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        maximumFractionDigits: 0
+      }).format(num);
+    }
+
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    }
+
+    function openShiftModal() {
+      openModal('openShiftModal');
+    }
+
+    function openExpenseModal() {
+      openModal('expenseModal');
+    }
+
+    function openCloseShiftModal() {
+      if (currentDailyData && currentDailyData.cash_reconciliation) {
+        document.getElementById('closeModalExpectedCash').textContent = formatCOP(currentDailyData.cash_reconciliation.expected_cash);
+      }
+      openModal('closeShiftModal');
+    }
+
+    async function openVitrinaAuditModal() {
+      try {
+        const res = await fetch('/api/cash/vitrina-status');
+        const data = await res.json();
+        if (data.theoretical) {
+          document.getElementById('auditPechugas').value = Math.max(0, data.theoretical.pechuga);
+          document.getElementById('auditMuslos').value = Math.max(0, data.theoretical.muslo);
+          document.getElementById('auditContramuslos').value = Math.max(0, data.theoretical.contramuslo);
+          document.getElementById('auditAlas').value = Math.max(0, data.theoretical.ala);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      openModal('vitrinaAuditModal');
+    }
+
+    function calculateClosingDiffPreview() {
+      const actual = parseInt(document.getElementById('closeActualCash').value || 0, 10);
+      const expected = currentDailyData?.cash_reconciliation?.expected_cash || 0;
+      const diff = actual - expected;
+
+      const previewBox = document.getElementById('closeDiffPreviewBox');
+      const previewText = document.getElementById('closeDiffPreviewText');
+      previewBox.classList.remove('hidden');
+
+      if (diff === 0) {
+        previewText.textContent = '✅ $ 0 (Caja Cuadrada Exacta)';
+        previewText.className = 'font-black text-sm text-emerald-400 tabular-nums';
+      } else if (diff < 0) {
+        previewText.textContent = `🚨 Faltante: -${formatCOP(Math.abs(diff))}`;
+        previewText.className = 'font-black text-sm text-red-400 tabular-nums';
+      } else {
+        previewText.textContent = `⚠️ Sobrante: +${formatCOP(diff)}`;
+        previewText.className = 'font-black text-sm text-sky-400 tabular-nums';
+      }
+    }
+
+    async function submitOpenShift() {
+      const cashier_name = document.getElementById('openCashierName').value.trim();
+      const base_inicial = parseInt(document.getElementById('openBaseInicial').value || 0, 10);
+      const notes = document.getElementById('openNotes').value.trim();
+
+      if (!cashier_name) {
+        alert("Ingresa el nombre del cajero.");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/cash/open-shift', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ cashier_name, base_inicial, notes })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error al abrir turno");
+
+        closeModal('openShiftModal');
+        alert("✅ " + data.message);
+        loadDailySummary();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function submitExpense() {
+      const amount = parseInt(document.getElementById('expenseAmount').value || 0, 10);
+      const category = document.getElementById('expenseCategory').value;
+      const concept = document.getElementById('expenseConcept').value.trim();
+      const authorized_by = document.getElementById('expenseAuthorizedBy').value.trim();
+
+      if (amount <= 0 || !concept) {
+        alert("Ingresa un monto válido y el concepto del gasto.");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/cash/expense', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ amount, category, concept, authorized_by })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error al registrar gasto");
+
+        closeModal('expenseModal');
+        alert("✅ " + data.message);
+        loadDailySummary();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function submitCloseShift() {
+      const actual_cash = parseInt(document.getElementById('closeActualCash').value, 10);
+      const notes = document.getElementById('closeNotes').value.trim();
+
+      if (isNaN(actual_cash) || actual_cash < 0) {
+        alert("Por favor ingresa el monto total de efectivo contado en cajón.");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/cash/close-shift', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ actual_cash, notes })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error al cerrar turno");
+
+        closeModal('closeShiftModal');
+        alert("✅ " + data.message);
+        loadDailySummary();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function submitVitrinaAudit() {
+      const pechugas_fisico = parseFloat(document.getElementById('auditPechugas').value || 0);
+      const muslos_fisico = parseFloat(document.getElementById('auditMuslos').value || 0);
+      const contramuslos_fisico = parseFloat(document.getElementById('auditContramuslos').value || 0);
+      const alas_fisico = parseFloat(document.getElementById('auditAlas').value || 0);
+      const auditor = document.getElementById('auditAuditor').value.trim() || 'Santiago';
+      const adjust_inventory = document.getElementById('auditAdjustInventory').checked;
+
+      try {
+        const res = await fetch('/api/cash/vitrina-audit', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            auditor, pechugas_fisico, muslos_fisico, contramuslos_fisico, alas_fisico, adjust_inventory
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error al registrar arqueo de vitrina");
+
+        closeModal('vitrinaAuditModal');
+        if (data.has_theft_alert) {
+          alert("🚨 ATENCIÓN: " + data.theft_alert_detail);
+        } else {
+          alert("✅ " + data.message);
+        }
+        loadDailySummary();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function loadDailySummary() {
+      try {
+        const res = await fetch('/api/cash/daily-summary');
+        const data = await res.json();
+        currentDailyData = data;
+
+        // 1. Estado del turno
+        const shift = data.shift_info;
+        const ind = document.getElementById('shiftStatusIndicator');
+        const badge = document.getElementById('shiftStatusBadge');
+        const codeText = document.getElementById('shiftCodeText');
+        const detailsText = document.getElementById('shiftDetailsText');
+        const btnOpen = document.getElementById('btnOpenShift');
+        const btnClose = document.getElementById('btnCloseShift');
+        const btnExpense = document.getElementById('btnRegisterExpense');
+
+        if (shift && shift.status === 'abierto') {
+          ind.className = 'w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse';
+          badge.className = 'text-xs font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase tracking-wider';
+          badge.textContent = 'TURNO ABIERTO';
+          codeText.textContent = shift.shift_code;
+          detailsText.textContent = `Cajero: ${shift.cashier_name} | Base Inicial: ${formatCOP(shift.base_inicial)} | Abierto a las: ${shift.opened_at.slice(11, 16)}`;
+          btnOpen.classList.add('hidden');
+          btnClose.classList.remove('hidden');
+          btnExpense.classList.remove('hidden');
+        } else if (shift && shift.status === 'cerrado') {
+          ind.className = 'w-3.5 h-3.5 rounded-full bg-slate-500';
+          badge.className = 'text-xs font-black px-2.5 py-0.5 rounded-full bg-slate-700 text-slate-300 uppercase tracking-wider';
+          badge.textContent = 'TURNO CERRADO';
+          codeText.textContent = shift.shift_code;
+          detailsText.textContent = `Último turno cerrado por: ${shift.cashier_name} | Diferencia de cierre: ${formatCOP(shift.difference)}`;
+          btnOpen.classList.remove('hidden');
+          btnClose.classList.add('hidden');
+          btnExpense.classList.add('hidden');
+        } else {
+          ind.className = 'w-3.5 h-3.5 rounded-full bg-amber-500';
+          badge.className = 'text-xs font-black px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase tracking-wider';
+          badge.textContent = 'CAJA SIN ABRIR';
+          codeText.textContent = '';
+          detailsText.textContent = 'No hay turno activo para hoy. Abre el turno para registrar la base inicial.';
+          btnOpen.classList.remove('hidden');
+          btnClose.classList.add('hidden');
+          btnExpense.classList.add('hidden');
+        }
+
+        // 2. Tarjetas superiores
+        document.getElementById('statTotalSales').textContent = formatCOP(data.cash_summary.gran_total);
+        document.getElementById('statEstimatedMargin').textContent = formatCOP(data.estimated_margin);
+        document.getElementById('statTicketsCount').textContent = `${data.cash_summary.total_tickets} ventas registradas hoy`;
+        document.getElementById('statEfectivo').textContent = formatCOP(data.cash_reconciliation.expected_cash);
+        document.getElementById('statNequi').textContent = formatCOP(data.cash_summary.nequi_daviplata);
+        document.getElementById('statDatafono').textContent = formatCOP(data.cash_summary.datafono);
+
+        // 3. Planilla central de arqueo explícito (R1)
+        const rec = data.cash_reconciliation;
+        document.getElementById('planBaseInicial').textContent = formatCOP(rec.base_inicial);
+        document.getElementById('planCashSales').textContent = formatCOP(rec.cash_sales);
+        document.getElementById('planTotalExpenses').textContent = `-${formatCOP(rec.total_expenses)}`;
+        document.getElementById('planExpectedCash').textContent = formatCOP(rec.expected_cash);
+        document.getElementById('planActualCash').textContent = rec.actual_cash !== null ? formatCOP(rec.actual_cash) : 'Pendiente de cierre';
+        document.getElementById('planDigitalTransfers').textContent = formatCOP(rec.digital_transfers);
+        document.getElementById('planCardVouchers').textContent = formatCOP(rec.card_vouchers);
+        document.getElementById('planGranTotalSales').textContent = formatCOP(rec.gran_total_sales);
+        document.getElementById('planTotalLiquidity').textContent = formatCOP(rec.total_liquidity);
+
+        const diffEl = document.getElementById('planDifference');
+        const reconcilBadge = document.getElementById('reconcilBadge');
+        if (rec.difference !== null) {
+          if (rec.difference === 0) {
+            diffEl.textContent = '✅ $ 0 (Caja Cuadrada Exacta)';
+            diffEl.className = 'font-black text-sm text-emerald-400 tabular-nums';
+            reconcilBadge.className = 'text-xs font-black px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase';
+            reconcilBadge.textContent = '✅ Cuadre Exacto';
+          } else if (rec.difference < 0) {
+            diffEl.textContent = `🚨 Faltante: -${formatCOP(Math.abs(rec.difference))}`;
+            diffEl.className = 'font-black text-sm text-red-400 tabular-nums';
+            reconcilBadge.className = 'text-xs font-black px-3 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 uppercase';
+            reconcilBadge.textContent = '🚨 Descuadre (Faltante)';
+          } else {
+            diffEl.textContent = `⚠️ Sobrante: +${formatCOP(rec.difference)}`;
+            diffEl.className = 'font-black text-sm text-sky-400 tabular-nums';
+            reconcilBadge.className = 'text-xs font-black px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40 uppercase';
+            reconcilBadge.textContent = '⚠️ Sobrante';
+          }
+        } else {
+          diffEl.textContent = 'Turno en curso';
+          diffEl.className = 'font-bold text-sm text-slate-400';
+          reconcilBadge.className = 'text-xs font-black px-3 py-1 rounded-full bg-slate-700 text-slate-300 uppercase';
+          reconcilBadge.textContent = 'En curso';
+        }
+
+        // 4. Renderizar Alerta Roja de Ventas Anuladas (R3)
+        renderCancellationsAlert(data.cancellations_audit);
+
+        // 5. Renderizar Arqueo Físico de Vitrina (R4)
+        renderVitrinaStatus(data.latest_vitrina_audit);
+
+        // 6. Renderizar Desglose Exhaustivo de Productos (R2)
+        renderProductBreakdown(data.product_breakdown, data.cash_summary.gran_total);
+
+        // 7. Termómetro Punto de Equilibrio
+        const pct = data.breakeven_percentage;
+        document.getElementById('breakevenPercentText').textContent = `${pct}%`;
+        const bar = document.getElementById('breakevenBar');
+        bar.style.width = `${Math.min(100, pct)}%`;
+        const beBadge = document.getElementById('breakevenStatusBadge');
+        if (pct >= 100) {
+          beBadge.className = "text-xs font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 ml-2";
+          beBadge.textContent = "¡META CUBIERTA!";
+          bar.className = "bg-emerald-500 h-full rounded-full transition-all duration-500";
+        } else {
+          beBadge.className = "text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 ml-2";
+          const pending = Math.max(0, data.daily_breakeven_target - data.estimated_margin);
+          beBadge.textContent = `Faltan ${formatCOP(pending)} de margen`;
+          bar.className = "bg-amber-500 h-full rounded-full transition-all duration-500";
+        }
+
+        // 8. Reparto de Socios
+        const part = data.partner_distribution || {};
+        document.getElementById('partner1Share').textContent = formatCOP(part.partner_1_capital_40pct || 0);
+        document.getElementById('partner2Share').textContent = formatCOP(part.partner_2_capital_40pct || 0);
+        document.getElementById('partnerSantiagoShare').textContent = formatCOP(part.partner_santiago_operativo_20pct || 0);
+        document.getElementById('reserveFundShare').textContent = formatCOP(part.reserve_fund_5pct || 0);
+
+        // 9. Alertas de Stock Bajo
+        const alertsCont = document.getElementById('alertsContainer');
+        if (!data.low_stock_alerts || data.low_stock_alerts.length === 0) {
+          alertsCont.innerHTML = '<div class="text-emerald-400 font-bold text-center py-4">✅ Todo el inventario tiene existencias seguras.</div>';
+        } else {
+          alertsCont.innerHTML = '';
+          data.low_stock_alerts.forEach(item => {
+            const div = document.createElement('div');
+            div.className = "bg-red-500/10 border border-red-500/30 rounded-xl p-2.5 flex items-center justify-between";
+            div.innerHTML = `
+              <div>
+                <div class="font-black text-red-200">${item.name}</div>
+                <div class="text-[10px] text-red-300/80">Stock actual: <span class="font-black text-white">${item.stock} ${item.unit}</span> (Mínimo: ${item.min_threshold})</div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-lg bg-red-600 text-white font-bold uppercase">Pedir urgente</span>
+            `;
+            alertsCont.appendChild(div);
+          });
+        }
+
+      } catch (err) {
+        console.error("Error al cargar resumen:", err);
+      }
+    }
+
+    function renderCancellationsAlert(audit) {
+      const card = document.getElementById('cancellationsAlertCard');
+      if (!audit || audit.total_cancelled_count === 0) {
+        card.className = "bg-slate-800/60 border border-slate-700/80 rounded-2xl p-4 shadow-lg flex items-center space-x-3 text-xs";
+        card.innerHTML = `
+          <div class="text-2xl">🛡️</div>
+          <div>
+            <div class="font-bold text-slate-200">Auditoría Forense: Cero Anulaciones Registradas Hoy</div>
+            <div class="text-[11px] text-slate-400">No se han efectuado reversiones de comanda ni devoluciones de dinero. El flujo de caja físico y vitrina se mantiene íntegro.</div>
+          </div>
+        `;
+        return;
+      }
+
+      // Alerta Roja
+      card.className = "bg-red-950/70 border-2 border-red-500 rounded-2xl p-5 shadow-2xl space-y-4 animate-scale-up";
+      const p = audit.returned_presas_summary || {};
+
+      let recordsHtml = '';
+      (audit.records || []).forEach(r => {
+        const presasStr = r.presas ? `P:${r.presas.pechugas||0} M:${r.presas.muslos||0} C:${r.presas.contramuslos||0} A:${r.presas.alas||0}` : '--';
+        recordsHtml += `
+          <tr class="border-b border-red-900/40 text-xs">
+            <td class="py-2 px-2.5 font-mono text-red-300 font-bold">${r.time_str || '--'}</td>
+            <td class="py-2 px-2.5 font-mono text-white font-bold">${r.sale_code}</td>
+            <td class="py-2 px-2.5 text-right font-black text-red-400 tabular-nums">${formatCOP(r.total_amount)}</td>
+            <td class="py-2 px-2.5 uppercase font-bold text-slate-300">${r.payment_method}</td>
+            <td class="py-2 px-2.5 font-bold text-amber-300">${presasStr}</td>
+            <td class="py-2 px-2.5 text-slate-300">${r.reason}</td>
+            <td class="py-2 px-2.5 font-bold text-slate-200">${r.authorized_by}</td>
+          </tr>
+        `;
+      });
+
+      card.innerHTML = `
+        <div class="flex items-center justify-between border-b border-red-800/80 pb-3">
+          <div class="flex items-center space-x-2.5">
+            <span class="text-2xl">🚨</span>
+            <div>
+              <h3 class="text-sm font-black text-red-300 uppercase tracking-wide">
+                ALERTA ROJA DE SEGURIDAD ANTIFRAUDE: ${audit.total_cancelled_count} VENTA(S) ANULADA(S)
+              </h3>
+              <p class="text-xs text-red-200/90 font-medium">
+                ⚠️ ATENCIÓN SOCIOS: Se devolvió un total de <strong>${formatCOP(audit.total_refunded_cop)}</strong>. Verifiquen de inmediato que este dinero no haya sido sustraído del cajón y que las presas reingresadas estén físicamente en la vitrina.
+              </p>
+            </div>
+          </div>
+          <span class="text-xs font-black px-3 py-1 rounded-full bg-red-600 text-white uppercase tracking-wider">
+            Alerta Crítica
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div class="bg-red-900/40 p-3 rounded-xl border border-red-700/60 space-y-1">
+            <span class="text-red-300 font-bold">Dinero Revertido en Efectivo:</span>
+            <div class="text-xl font-black text-white tabular-nums">${formatCOP(audit.refunded_by_method.efectivo)}</div>
+            <span class="text-[10px] text-red-300/80">Impacto directo en faltante de cajón físico</span>
+          </div>
+
+          <div class="bg-red-900/40 p-3 rounded-xl border border-red-700/60 space-y-1">
+            <span class="text-red-300 font-bold">Dinero Revertido en Digital/Tarjetas:</span>
+            <div class="text-xl font-black text-white tabular-nums">${formatCOP((audit.refunded_by_method.nequi_daviplata || 0) + (audit.refunded_by_method.datafono || 0))}</div>
+            <span class="text-[10px] text-red-300/80">Nequi, Daviplata y Datáfono</span>
+          </div>
+
+          <div class="bg-red-900/40 p-3 rounded-xl border border-red-700/60 space-y-1">
+            <span class="text-red-300 font-bold">Presas Totales que Debieron Reingresar:</span>
+            <div class="text-xl font-black text-amber-300 tabular-nums">${p.total || 0} presas</div>
+            <span class="text-[10px] text-amber-200/80">Pechugas: ${p.pechugas||0} | Muslos: ${p.muslos||0} | Contramuslos: ${p.contramuslos||0} | Alas: ${p.alas||0}</span>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto pt-1">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-red-950 text-red-300 font-black uppercase text-[10px] border-b border-red-800">
+                <th class="py-2 px-2.5">Hora Exacta</th>
+                <th class="py-2 px-2.5">Código Venta</th>
+                <th class="py-2 px-2.5 text-right">Monto Devuelto</th>
+                <th class="py-2 px-2.5">Método</th>
+                <th class="py-2 px-2.5">Presas Devueltas</th>
+                <th class="py-2 px-2.5">Motivo Declarado</th>
+                <th class="py-2 px-2.5">Autorizado Por</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-red-900/30">
+              ${recordsHtml}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    async function renderVitrinaStatus(lastAudit) {
+      try {
+        const res = await fetch('/api/cash/vitrina-status');
+        const st = await res.json();
+        const theo = st.theoretical || {};
+
+        document.getElementById('vitrinaTeoricoPechuga').textContent = theo.pechuga || 0;
+        document.getElementById('vitrinaTeoricoMuslo').textContent = theo.muslo || 0;
+        document.getElementById('vitrinaTeoricoContramuslo').textContent = theo.contramuslo || 0;
+        document.getElementById('vitrinaTeoricoAla').textContent = theo.ala || 0;
+
+        const banner = document.getElementById('vitrinaTheftAlertBanner');
+        if (lastAudit && lastAudit.has_theft_alert) {
+          banner.classList.remove('hidden');
+          banner.innerHTML = `
+            <div class="flex items-center space-x-2 text-red-300 font-black text-sm">
+              <span>🚨</span>
+              <span>${lastAudit.theft_alert_detail}</span>
+            </div>
+            <div class="text-[11px] text-red-200/80">Auditado por ${lastAudit.auditor} a las ${lastAudit.time_str}</div>
+          `;
+        } else {
+          banner.classList.add('hidden');
+        }
+
+        if (lastAudit) {
+          document.getElementById('vitrinaFisicoPechuga').textContent = lastAudit.pechugas_fisico;
+          document.getElementById('vitrinaFisicoMuslo').textContent = lastAudit.muslos_fisico;
+          document.getElementById('vitrinaFisicoContramuslo').textContent = lastAudit.contramuslos_fisico;
+          document.getElementById('vitrinaFisicoAla').textContent = lastAudit.alas_fisico;
+
+          setDiffBadge('vitrinaDiffPechuga', lastAudit.pechugas_diff);
+          setDiffBadge('vitrinaDiffMuslo', lastAudit.muslos_diff);
+          setDiffBadge('vitrinaDiffContramuslo', lastAudit.contramuslos_diff);
+          setDiffBadge('vitrinaDiffAla', lastAudit.alas_diff);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function setDiffBadge(id, diff) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (diff === 0) {
+        el.textContent = '0 (Cuadrado)';
+        el.className = 'font-black font-mono text-emerald-400';
+      } else if (diff < 0) {
+        el.textContent = `${diff} (Faltante)`;
+        el.className = 'font-black font-mono text-red-400';
+      } else {
+        el.textContent = `+${diff} (Sobrante)`;
+        el.className = 'font-black font-mono text-sky-400';
+      }
+    }
+
+    function renderProductBreakdown(bd, granTotal) {
+      const tbody = document.getElementById('productBreakdownTableBody');
+      tbody.innerHTML = '';
+
+      if (!bd) return;
+
+      const categories = [
+        { key: 'presas_solas', title: '🍗 Presas Solas Individuales', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
+        { key: 'combos', title: '👑 Combos de Pollo Apanado (1/4, 1/2, Entero)', badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' },
+        { key: 'almuerzos', title: '🍽️ Almuerzos Ejecutivos Completos', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
+        { key: 'porciones', title: '🥣 Porciones Sueltas & Acompañamientos', badge: 'bg-teal-500/20 text-teal-300 border-teal-500/40' },
+        { key: 'gaseosas_postobon', title: '🥤 Gaseosas Postobón (Colombiana & Manzana)', badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40' },
+        { key: 'gaseosas_cocacola', title: '🥤 Gaseosas Coca-Cola (Tradicional, Zero, Quatro)', badge: 'bg-red-500/20 text-red-300 border-red-500/40' }
+      ];
+
+      categories.forEach(cat => {
+        const group = bd[cat.key];
+        if (!group || !group.items || group.items.length === 0) return;
+
+        // Fila de encabezado de categoría
+        const headerTr = document.createElement('tr');
+        headerTr.className = 'bg-slate-850 bg-slate-900/60 font-black text-slate-300';
+        headerTr.innerHTML = `
+          <td colspan="2" class="py-2 px-3">
+            <span class="text-xs px-2.5 py-0.5 rounded-full border ${cat.badge} font-black">${cat.title}</span>
+          </td>
+          <td class="py-2 px-3 text-right font-black">${group.total_qty} unds</td>
+          <td class="py-2 px-3"></td>
+          <td class="py-2 px-3 text-right font-black text-amber-400 tabular-nums">${formatCOP(group.subtotal_cop)}</td>
+        `;
+        tbody.appendChild(headerTr);
+
+        // Ítems de la categoría
+        group.items.forEach(it => {
+          const itTr = document.createElement('tr');
+          itTr.className = 'hover:bg-slate-800/40 transition text-slate-300';
+          itTr.innerHTML = `
+            <td class="py-1.5 px-3 font-mono text-[11px] text-slate-500">${it.sku}</td>
+            <td class="py-1.5 px-3 font-bold text-white">${it.product_name}</td>
+            <td class="py-1.5 px-3 text-right font-mono font-bold">${it.total_quantity}</td>
+            <td class="py-1.5 px-3 text-right font-mono text-slate-400">${formatCOP(it.unit_price)}</td>
+            <td class="py-1.5 px-3 text-right font-mono font-bold text-slate-100 tabular-nums">${formatCOP(it.total_revenue)}</td>
+          `;
+          tbody.appendChild(itTr);
+        });
+
+        // Si es almuerzo, mostrar desglose de presas elegidas
+        if (cat.key === 'almuerzos' && group.by_presa && Object.keys(group.by_presa).length > 0) {
+          const presaDetails = Object.entries(group.by_presa).map(([p, q]) => `${p}: ${q}`).join(' | ');
+          const subTr = document.createElement('tr');
+          subTr.className = 'bg-slate-950/50 text-[11px] text-emerald-400/90 italic';
+          subTr.innerHTML = `
+            <td></td>
+            <td colspan="4" class="py-1 px-3">
+              🍗 Preferencia de presas despachadas: <strong>${presaDetails}</strong>
+            </td>
+          `;
+          tbody.appendChild(subTr);
+        }
+      });
+
+      document.getElementById('breakdownGrandTotal').textContent = formatCOP(bd.total_revenue_sum || granTotal);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDailySummary();
+      if (typeof loadDailyReconciliation === 'function') {
+        loadDailyReconciliation();
+      }
+    });
+  </script>
+  <!-- MODAL: ENTRADA DE MERCANCÍA / PROVEEDOR (R2) -->
+  <div id="supplierEntryModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-blue-500/60 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-black text-base text-blue-400 flex items-center space-x-2">
+          <span>📦</span>
+          <span>Entrada de Mercancía / Proveedores</span>
+        </h3>
+        <button onclick="closeSupplierEntryModal()" class="text-slate-400 hover:text-white font-bold text-lg select-none">&times;</button>
+      </div>
+
+      <form id="supplierEntryForm" onsubmit="submitSupplierEntry(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Proveedor:</label>
+          <input type="text" id="supplierNameInput" required placeholder="Ej. Avícola Los Pollos / Postobón" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-bold text-slate-100 focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Factura / Remisión:</label>
+            <input type="text" id="supplierInvoiceInput" required placeholder="Ej. FAC-10492" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-bold text-slate-100 focus:outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Ubicación:</label>
+            <select id="supplierLocationSelect" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-100 focus:outline-none focus:border-blue-500">
+              <option value="Bodega">Bodega (Frío / Seco)</option>
+              <option value="Nevera">Nevera (Bebidas)</option>
+              <option value="Cocina">Cocina (Insumos)</option>
+              <option value="Vitrina">Vitrina (Térmica)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Insumo / Producto:</label>
+          <div class="space-y-1">
+            <select id="supplierItemSelect" onchange="onSupplierItemSelectChange()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-100 focus:outline-none focus:border-blue-500">
+              <option value="">-- Seleccionar insumo existente o escribir abajo --</option>
+              <option value="pollo_entero_crudo" data-loc="Bodega">Pollos Enteros Crudos (Bodega)</option>
+              <option value="harina_apanar_kg" data-loc="Bodega">Harina Apanador (Bodega)</option>
+              <option value="aceite_fritura_lt" data-loc="Bodega">Aceite para Freidoras (Bodega)</option>
+              <option value="GAS-COL-400" data-loc="Nevera">Postobón Colombiana 400ml (Nevera)</option>
+              <option value="GAS-MAN-400" data-loc="Nevera">Postobón Manzana 400ml (Nevera)</option>
+              <option value="GAS-COL-15L" data-loc="Nevera">Postobón Colombiana 1.5L (Nevera)</option>
+              <option value="GAS-MAN-15L" data-loc="Nevera">Postobón Manzana 1.5L (Nevera)</option>
+              <option value="GAS-COC-400" data-loc="Nevera">Coca-Cola 400ml (Nevera)</option>
+              <option value="GAS-ZER-400" data-loc="Nevera">Coca-Cola Zero 400ml (Nevera)</option>
+              <option value="GAS-QUA-400" data-loc="Nevera">Quatro Toronja 400ml (Nevera)</option>
+              <option value="GAS-COC-15L" data-loc="Nevera">Coca-Cola 1.5L (Nevera)</option>
+              <option value="arepas_unidades" data-loc="Cocina">Arepas Disponibles (Cocina)</option>
+              <option value="papas_raciones" data-loc="Cocina">Papas a la Francesa (Cocina)</option>
+            </select>
+            <input type="text" id="supplierItemCustomInput" placeholder="O nombre personalizado del insumo" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-blue-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Cantidad Ingresada:</label>
+            <input type="number" id="supplierQuantityInput" required min="0.1" step="any" placeholder="Ej. 20" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-black text-amber-400 focus:outline-none focus:border-blue-500 tabular-nums">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Costo Total ($ COP):</label>
+            <input type="number" id="supplierTotalCostInput" min="0" step="100" placeholder="Ej. 180000" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-black text-emerald-400 focus:outline-none focus:border-blue-500 tabular-nums">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Notas / Observaciones (Opcional):</label>
+          <input type="text" id="supplierNotesInput" placeholder="Ej. Pollo fresco de 1.8kg" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-1.5 text-slate-300 focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div id="supplierEntryFeedback" class="hidden p-2 rounded-xl text-xs font-bold"></div>
+
+        <div class="flex space-x-2 pt-2">
+          <button type="button" onclick="closeSupplierEntryModal()" class="w-1/3 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold select-none">
+            Cancelar
+          </button>
+          <button type="submit" id="btnSubmitSupplierEntry" class="flex-1 h-11 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black shadow-lg transition flex items-center justify-center space-x-1 select-none">
+            <span>📥</span>
+            <span>CONFIRMAR ENTRADA</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openSupplierEntryModal() {
+      const modal = document.getElementById('supplierEntryModal');
+      if (modal) modal.classList.remove('hidden');
+      const fb = document.getElementById('supplierEntryFeedback');
+      if (fb) {
+        fb.className = 'hidden';
+        fb.textContent = '';
+      }
+    }
+
+    function closeSupplierEntryModal() {
+      const modal = document.getElementById('supplierEntryModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function onSupplierItemSelectChange() {
+      const sel = document.getElementById('supplierItemSelect');
+      const custom = document.getElementById('supplierItemCustomInput');
+      const locSel = document.getElementById('supplierLocationSelect');
+      if (!sel || !sel.value) return;
+      const opt = sel.options[sel.selectedIndex];
+      if (custom) custom.value = opt.text.split(' (')[0];
+      if (opt.dataset && opt.dataset.loc && locSel) {
+        locSel.value = opt.dataset.loc;
+      }
+    }
+
+    async function submitSupplierEntry(event) {
+      event.preventDefault();
+      const supplierName = document.getElementById('supplierNameInput').value.trim();
+      const invoiceNumber = document.getElementById('supplierInvoiceInput').value.trim();
+      const sel = document.getElementById('supplierItemSelect');
+      const custom = document.getElementById('supplierItemCustomInput').value.trim();
+      const itemName = custom || (sel ? sel.value : '');
+      const location = document.getElementById('supplierLocationSelect').value;
+      const quantity = parseFloat(document.getElementById('supplierQuantityInput').value);
+      const totalCost = parseFloat(document.getElementById('supplierTotalCostInput').value) || 0;
+      const notes = document.getElementById('supplierNotesInput').value.trim();
+      const fb = document.getElementById('supplierEntryFeedback');
+
+      if (!supplierName || !invoiceNumber || !itemName || !location || !quantity || quantity <= 0) {
+        if (fb) {
+          fb.className = 'p-2 rounded-xl text-xs font-bold bg-red-950/80 text-red-300 border border-red-700 block';
+          fb.textContent = 'Por favor completa todos los campos requeridos correctamente.';
+        }
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/inventory/supplier-entry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            supplier_name: supplierName,
+            invoice_number: invoiceNumber,
+            item_name: itemName,
+            location: location,
+            quantity: quantity,
+            total_cost: totalCost,
+            notes: notes || undefined
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || 'Error al registrar entrada de proveedor');
+        }
+
+        if (fb) {
+          fb.className = 'p-2 rounded-xl text-xs font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-700 block';
+          fb.textContent = `✅ Recepción ${data.entry_code} registrada exitosamente. Nuevo stock: ${data.new_stock}`;
+        }
+
+        setTimeout(() => {
+          const form = document.getElementById('supplierEntryForm');
+          if (form) form.reset();
+          closeSupplierEntryModal();
+          if (typeof loadDailyReconciliation === 'function') loadDailyReconciliation();
+          if (typeof loadDailySummary === 'function') loadDailySummary();
+        }, 1200);
+
+      } catch (err) {
+        if (fb) {
+          fb.className = 'p-2 rounded-xl text-xs font-bold bg-red-950/80 text-red-300 border border-red-700 block';
+          fb.textContent = err.message || 'Error al conectar con el servidor';
+        }
+      }
+    }
+  </script>
+  <script src="/static/js/cash.js?v=20261021_v5"></script>
+</body>
+</html>

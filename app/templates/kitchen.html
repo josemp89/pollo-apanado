@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cocina & Tiempos - Pollo Apanado</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans select-none">
+
+  <!-- BARRA SUPERIOR -->
+  <header class="bg-slate-800/90 border-b border-slate-700 px-4 py-2.5 flex items-center justify-between shadow-md">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-2xl">
+        🍳
+      </div>
+      <div>
+        <h1 class="text-lg font-black tracking-wide text-orange-400 leading-tight">COCINA & PRODUCCIÓN</h1>
+        <p class="text-xs text-slate-400 font-medium">Control de Despiece, Tiempos y Fritura Programada</p>
+      </div>
+    </div>
+
+    <!-- Navegación -->
+    <nav class="flex items-center space-x-1.5 bg-slate-900/80 p-1 rounded-xl border border-slate-700/80">
+      <a href="/" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition">
+        🛒 Mostrador
+      </a>
+      <a href="/cocina" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-orange-500 text-slate-950 shadow-sm transition">
+        🍳 Cocina & Tiempos
+      </a>
+      <a href="/caja" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition">
+        💰 Caja & Socios
+      </a>
+      <a href="/tutorial" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white transition flex items-center space-x-1">
+        <span>🎬</span>
+        <span>Tutorial</span>
+      </a>
+    </nav>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 p-4 max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-4 overflow-y-auto">
+    
+    <!-- COLUMNA 1: DESPIECE MATUTINO (SANTIAGO) -->
+    <div class="bg-slate-850 bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-4">
+      <div class="flex items-center space-x-2 border-b border-slate-700 pb-3">
+        <span class="text-2xl">🔪</span>
+        <div>
+          <h2 class="text-sm font-black text-slate-100 uppercase tracking-wide">Registro de Despiece</h2>
+          <p class="text-[11px] text-slate-400">Conversión de pollos enteros a presas y caldo</p>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">¿Cuántos pollos enteros se despresaron hoy?</label>
+          <input type="number" id="inputWholeChickens" min="1" max="100" value="10" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-2xl font-black text-amber-400 text-center focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-700/60 space-y-1.5 text-xs">
+          <div class="font-bold text-slate-300 border-b border-slate-800 pb-1">Rendimiento Estándar Generado:</div>
+          <div class="flex justify-between text-blue-400 font-semibold"><span>Pechugas:</span> <span id="prevPechugas" class="font-bold">20</span></div>
+          <div class="flex justify-between text-orange-400 font-semibold"><span>Muslos:</span> <span id="prevMuslos" class="font-bold">20</span></div>
+          <div class="flex justify-between text-amber-400 font-semibold"><span>Contramuslos:</span> <span id="prevContramuslos" class="font-bold">20</span></div>
+          <div class="flex justify-between text-yellow-400 font-semibold"><span>Alas:</span> <span id="prevAlas" class="font-bold">20</span></div>
+          <div class="flex justify-between text-teal-400 font-semibold border-t border-slate-800 pt-1"><span>Bases de Caldo (Huacales):</span> <span id="prevCaldo" class="font-bold">20 porciones</span></div>
+        </div>
+
+        <button id="btnSubmitDespiece" onclick="submitDespiece()" class="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 active:scale-95 text-white font-black text-xs shadow-lg transition">
+          CONFIRMAR ENTRADA DE DESPIECE
+        </button>
+      </div>
+    </div>
+
+    <!-- COLUMNA 2: CRONÓMETROS DE SALMUERA, ADOBO Y FRITURA -->
+    <div class="bg-slate-850 bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-4">
+      <div class="flex items-center space-x-2 border-b border-slate-700 pb-3">
+        <span class="text-2xl">⏱️</span>
+        <div>
+          <h2 class="text-sm font-black text-slate-100 uppercase tracking-wide">Cronómetros de Proceso</h2>
+          <p class="text-[11px] text-slate-400">Control de horas de salmuera, adobo y freído</p>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div class="grid grid-cols-3 gap-2">
+          <button id="btnStartSalmueraBatch" onclick="startBatch('salmuera')" class="py-2.5 px-2 rounded-xl bg-blue-600/80 hover:bg-blue-600 active:scale-95 text-white font-black text-xs flex flex-col items-center justify-center space-y-0.5">
+            <span class="text-lg">🧂</span>
+            <span>SALMUERA</span>
+            <span class="text-[10px] text-blue-200 font-normal">6 Horas</span>
+          </button>
+          <button id="btnStartAdoboBatch" onclick="startBatch('adobo')" class="py-2.5 px-2 rounded-xl bg-amber-600/80 hover:bg-amber-600 active:scale-95 text-white font-black text-xs flex flex-col items-center justify-center space-y-0.5">
+            <span class="text-lg">🧄</span>
+            <span>ADOBO</span>
+            <span class="text-[10px] text-amber-200 font-normal">4 Horas</span>
+          </button>
+          <button id="btnStartFrituraBatch" onclick="startBatch('fritura')" class="py-2.5 px-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 active:scale-95 text-white font-black text-xs flex flex-col items-center justify-center space-y-0.5">
+            <span class="text-lg">🔥</span>
+            <span>FRITURA</span>
+            <span class="text-[10px] text-rose-200 font-normal">14 Mins</span>
+          </button>
+        </div>
+
+        <!-- Lista de Lotes Activos -->
+        <div class="space-y-2">
+          <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Lotes en Proceso:</div>
+          <div id="batchesList" class="space-y-2 max-h-72 overflow-y-auto">
+            <!-- Cargado vía JS -->
+            <div class="text-xs text-slate-500 text-center py-4">No hay lotes en temporizador</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLUMNA 3: RECOMENDADOR DE FRITURA POR HORAS PICO -->
+    <div class="bg-slate-850 bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-4">
+      <div class="flex items-center space-x-2 border-b border-slate-700 pb-3">
+        <span class="text-2xl">🔥</span>
+        <div>
+          <h2 class="text-sm font-black text-slate-100 uppercase tracking-wide">Ritmo y Predicción de Fritura</h2>
+          <p class="text-[11px] text-slate-400">Anticipación a la hora pico con 15m de ventaja</p>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        
+        <!-- Tarjeta de Recomendación Predictiva en Vivo -->
+        <div id="recommendationCard" class="bg-amber-500/15 border border-amber-500/40 rounded-xl p-3 text-xs space-y-2">
+          <div class="font-black text-amber-300 flex items-center justify-between">
+            <span class="flex items-center space-x-1">
+              <span>💡</span>
+              <span>Recomendación para la Próxima Hora</span>
+            </span>
+            <span id="recTimeBadge" class="bg-amber-500/30 px-2 py-0.5 rounded text-[10px]">--:--</span>
+          </div>
+          <p id="recStatusMessage" class="text-slate-200 text-xs font-medium leading-relaxed">
+            Analizando curva de demanda...
+          </p>
+          <div id="recPresasGrid" class="grid grid-cols-4 gap-1 text-[11px] text-center pt-1 font-bold">
+            <div class="bg-slate-900/80 p-1 rounded text-blue-400">P: <span id="recPechugas">0</span></div>
+            <div class="bg-slate-900/80 p-1 rounded text-orange-400">M: <span id="recMuslos">0</span></div>
+            <div class="bg-slate-900/80 p-1 rounded text-amber-400">C: <span id="recContra">0</span></div>
+            <div class="bg-slate-900/80 p-1 rounded text-yellow-400">A: <span id="recAlas">0</span></div>
+          </div>
+        </div>
+
+        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Demanda Real por Horas:</div>
+        <div id="hourlyChart" class="space-y-1.5 max-h-56 overflow-y-auto text-xs">
+          <div class="text-center text-slate-500 py-4">Cargando flujo de ventas...</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // Actualizar preview de despiece en vivo
+    const inputChickens = document.getElementById('inputWholeChickens');
+    inputChickens.addEventListener('input', () => {
+      const n = parseInt(inputChickens.value) || 0;
+      document.getElementById('prevPechugas').textContent = n * 2;
+      document.getElementById('prevMuslos').textContent = n * 2;
+      document.getElementById('prevContramuslos').textContent = n * 2;
+      document.getElementById('prevAlas').textContent = n * 2;
+      document.getElementById('prevCaldo').textContent = (n * 2) + " porciones";
+    });
+
+    async function submitDespiece() {
+      const n = parseInt(inputChickens.value) || 0;
+      if (n <= 0) {
+        alert("Ingresa una cantidad válida de pollos.");
+        return;
+      }
+      try {
+        const res = await fetch('/api/kitchen/despiece', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ whole_chickens: n, operator: 'Santiago' })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error en despiece");
+        alert("✅ " + data.message + "\nSe sumaron " + data.yields.total_presas + " presas a cocina y " + data.yields.caldo_raciones + " raciones para caldo.");
+        loadHourlyDemand();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function startBatch(stage) {
+      const defaultPresas = stage === 'fritura' ? '16' : '24';
+      const presas = prompt(`¿Cuántas presas entran a ${stage.toUpperCase()}?`, defaultPresas);
+      if (!presas) return;
+      try {
+        const res = await fetch('/api/kitchen/batch-timer', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ stage: stage, total_presas: parseInt(presas) || 16 })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error al iniciar lote");
+        alert(`✅ Lote ${data.batch_code} iniciado.\nEstará listo a las: ${data.target_finished_at}`);
+        loadBatches();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function advanceBatch(batchId) {
+      try {
+        const res = await fetch(`/api/kitchen/advance-batch/${batchId}`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "No se pudo avanzar el lote");
+        alert(`✅ Lote #${batchId} avanzó de ${data.previous_stage.toUpperCase()} ➔ ${data.new_stage.toUpperCase()}.`);
+        loadBatches();
+        loadHourlyDemand();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function loadBatches() {
+      try {
+        const res = await fetch('/api/kitchen/batch-timers');
+        const list = await res.json();
+        const container = document.getElementById('batchesList');
+        if (list.length === 0) {
+          container.innerHTML = '<div class="text-xs text-slate-500 text-center py-4">No hay lotes en temporizador</div>';
+          return;
+        }
+        container.innerHTML = '';
+        list.forEach(b => {
+          const div = document.createElement('div');
+          div.className = "bg-slate-900 border border-slate-700/80 rounded-xl p-2.5 text-xs flex justify-between items-center space-x-2";
+          
+          let nextActionLabel = 'Avanzar a Adobo ➔';
+          if (b.stage === 'adobo') nextActionLabel = 'Avanzar a Fritura ➔';
+          if (b.stage === 'fritura') nextActionLabel = 'Marcar Frito (a Vitrina) ✅';
+
+          div.innerHTML = `
+            <div class="flex-1">
+              <div class="font-bold text-slate-200 flex items-center space-x-1.5">
+                <span>${b.batch_code}</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full uppercase font-bold ${b.stage === 'salmuera' ? 'bg-blue-500/20 text-blue-300' : (b.stage === 'adobo' ? 'bg-amber-500/20 text-amber-300' : 'bg-rose-500/20 text-rose-300')}">${b.stage}</span>
+              </div>
+              <div class="text-[10px] text-slate-400 mt-0.5">
+                ${b.total_presas} presas • Listo aprox: <span class="text-amber-400 font-bold">${b.target_finished_at.slice(11, 16)}</span>
+              </div>
+            </div>
+            <button onclick="advanceBatch(${b.id})" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-[11px] border border-slate-700 active:scale-95 transition">
+              ${nextActionLabel}
+            </button>
+          `;
+          container.appendChild(div);
+        });
+      } catch (err) {}
+    }
+
+    async function loadHourlyDemand() {
+      try {
+        const res = await fetch('/api/kitchen/hourly-demand');
+        const data = await res.json();
+        
+        // 1. Recomendador Predictivo
+        const rec = data.fryer_recommendation;
+        if (rec) {
+          document.getElementById('recTimeBadge').textContent = rec.fry_start_recommended_at || '--:--';
+          document.getElementById('recStatusMessage').textContent = rec.status_message;
+          document.getElementById('recPechugas').textContent = rec.suggested_to_fry.pechugas || 0;
+          document.getElementById('recMuslos').textContent = rec.suggested_to_fry.muslos || 0;
+          document.getElementById('recContra').textContent = rec.suggested_to_fry.contramuslos || 0;
+          document.getElementById('recAlas').textContent = rec.suggested_to_fry.alas || 0;
+        }
+
+        // 2. Gráfico por Horas
+        const container = document.getElementById('hourlyChart');
+        if (!data.hourly_data || data.hourly_data.length === 0) {
+          container.innerHTML = '<div class="text-center text-slate-500 py-4">Aún no se registran ventas hoy para calcular flujo.</div>';
+          return;
+        }
+
+        container.innerHTML = '';
+        data.hourly_data.forEach(h => {
+          const formatHour = `${h.hour_of_day}:00 - ${h.hour_of_day + 1}:00`;
+          const row = document.createElement('div');
+          row.className = "bg-slate-900/80 p-2 rounded-xl border border-slate-800 space-y-1";
+          row.innerHTML = `
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-slate-300">${formatHour}</span>
+              <span class="text-amber-400 font-black">${h.total_items} ítems</span>
+            </div>
+            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden">
+              <div class="bg-amber-500 h-full rounded-full" style="width: ${Math.min(100, h.total_items * 10)}%"></div>
+            </div>
+            <div class="flex justify-between text-[10px] text-slate-400">
+              <span>P: ${h.pechugas_count}</span>
+              <span>M: ${h.muslos_count}</span>
+              <span>C: ${h.contramuslos_count}</span>
+              <span>A: ${h.alas_count}</span>
+            </div>
+          `;
+          container.appendChild(row);
+        });
+      } catch (err) {}
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadBatches();
+      loadHourlyDemand();
+    });
+  </script>
+</body>
+</html>
