@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query, HTTPException, Header
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import json
@@ -17,9 +17,33 @@ class OpenShiftRequest(BaseModel):
     base_inicial: int = Field(..., ge=0, description="Base inicial de efectivo en pesos COP")
     notes: Optional[str] = None
 
+class PhysicalCountItem(BaseModel):
+    item_key: str = Field(..., description="Clave única del ítem en inventario")
+    physical_count: Optional[float] = Field(None, ge=0, description="Conteo físico real al cierre")
+    physical_stock: Optional[float] = Field(None, ge=0, description="Conteo físico real al cierre")
+    item_name: Optional[str] = None
+    zone: Optional[str] = None
+    expected_stock: Optional[float] = None
+    unit: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_physical_val(cls, values):
+        if isinstance(values, dict):
+            val = values.get("physical_count")
+            if val is None:
+                val = values.get("physical_stock")
+            if val is not None:
+                values["physical_count"] = val
+                values["physical_stock"] = val
+        return values
+
 class CloseShiftRequest(BaseModel):
     shift_id: Optional[int] = None
     actual_cash: int = Field(..., ge=0, description="Conteo físico real de efectivo en el cajón")
+    inventory_counts: Optional[List[PhysicalCountItem]] = None
+    physical_counts: Optional[List[PhysicalCountItem]] = None
+    adjust_inventory_to_physical: Optional[bool] = False
     notes: Optional[str] = None
 
 class CreateExpenseRequest(BaseModel):
@@ -51,6 +75,288 @@ def get_next_shift_code(cursor, now: datetime) -> str:
     """, (counter_name,))
     seq = cursor.fetchone()[0]
     return f"TURNO-{date_code}-{seq:04d}"
+
+def get_next_closing_receipt_code(cursor, now: datetime) -> str:
+    date_code = now.strftime("%y%m%d")
+    counter_name = f"closing_receipt_{now.strftime('%Y-%m-%d')}"
+    cursor.execute("""
+        INSERT INTO order_counters (counter_name, last_value)
+        VALUES (?, 1)
+        ON CONFLICT(counter_name) DO UPDATE SET last_value = order_counters.last_value + 1
+        RETURNING last_value;
+    """, (counter_name,))
+    seq = cursor.fetchone()[0]
+    return f"REC-CIERRE-{date_code}-{seq:04d}"
+
+# Especificación oficial de las 4 zonas de conteo de inventario al cierre (R3)
+CLOSING_ZONES_SPEC = {
+    "vitrina": [
+        "pechuga_vitrina",
+        "muslo_vitrina",
+        "contramuslo_vitrina",
+        "ala_vitrina"
+    ],
+    "nevera": [
+        "GAS-COL-400",
+        "GAS-MAN-400",
+        "GAS-COC-400",
+        "GAS-ZER-400",
+        "GAS-QUA-400",
+        "GAS-COL-15L",
+        "GAS-MAN-15L",
+        "GAS-COC-15L"
+    ],
+    "bodega": [
+        "pollo_entero_crudo",
+        "harina_apanar_kg",
+        "aceite_fritura_lt"
+    ],
+    "insumos": [
+        "papas_raciones",
+        "arepas_unidades",
+        "arroz_raciones",
+        "frijoles_raciones",
+        "caldo_raciones"
+    ]
+}
+
+ITEM_TO_PRODUCT_SKU = {
+    "pechuga_vitrina": "POL-PEC",
+    "muslo_vitrina": "POL-MUS",
+    "contramuslo_vitrina": "POL-CON",
+    "ala_vitrina": "POL-ALA",
+    "GAS-COL-400": "GAS-COL-400",
+    "GAS-MAN-400": "GAS-MAN-400",
+    "GAS-COC-400": "GAS-COC-400",
+    "GAS-ZER-400": "GAS-ZER-400",
+    "GAS-QUA-400": "GAS-QUA-400",
+    "GAS-COL-15L": "GAS-COL-15L",
+    "GAS-MAN-15L": "GAS-MAN-15L",
+    "GAS-COC-15L": "GAS-COC-15L",
+    "pollo_entero_crudo": "POL-ENT",
+    "papas_raciones": "POR-PAPAS",
+    "arepas_unidades": "POR-AREP",
+    "arroz_raciones": "POR-ARROZ",
+    "frijoles_raciones": "POR-FRIJ",
+    "caldo_raciones": "POR-CALD"
+}
+
+DEFAULT_ITEM_VALUATION = {
+    "harina_apanar_kg": {"price": 5000, "cost": 3500},
+    "aceite_fritura_lt": {"price": 10000, "cost": 8000}
+}
+
+def build_closing_inventory_sheet(conn, target_date: str) -> Dict[str, Any]:
+    """
+    R3: Cálculo en tiempo real del inventario esperado al cierre para las 4 zonas:
+    Stock Físico Esperado = Stock Inicial + Entradas Proveedores + Producción Interna - Ventas/Consumo
+    """
+    prod_rows = conn.execute("SELECT sku, price, cost FROM products WHERE active = 1").fetchall()
+    prod_map = {r["sku"]: {"price": int(r["price"]), "cost": int(r["cost"])} for r in prod_rows}
+
+    init_rows = conn.execute("""
+        SELECT item_name, location, quantity 
+        FROM daily_initial_inventory 
+        WHERE date = ?
+    """, (target_date,)).fetchall()
+    initial_map = {}
+    for r in init_rows:
+        initial_map[(r["item_name"], r["location"])] = float(r["quantity"])
+        initial_map[(r["item_name"].lower(), r["location"].lower())] = float(r["quantity"])
+
+    entries_rows = conn.execute("""
+        SELECT item_name, location, SUM(quantity) as total_qty
+        FROM merchandise_entries
+        WHERE date = ?
+        GROUP BY item_name, location
+    """, (target_date,)).fetchall()
+    entries_map = {}
+    for r in entries_rows:
+        entries_map[(r["item_name"], r["location"])] = float(r["total_qty"])
+        entries_map[(r["item_name"].lower(), r["location"].lower())] = float(r["total_qty"])
+
+    butch_row = conn.execute("""
+        SELECT SUM(whole_chickens) as total_chickens
+        FROM butchering_logs
+        WHERE date(timestamp) = ?
+    """, (target_date,)).fetchone()
+    chickens_butchered = float(butch_row["total_chickens"] or 0) if butch_row else 0.0
+
+    sales_items = conn.execute("""
+        SELECT si.chosen_presa, si.quantity, p.sku, p.category
+        FROM sale_items si
+        JOIN sales s ON si.sale_id = s.id
+        JOIN products p ON si.product_id = p.id
+        WHERE s.date_str = ? AND s.status = 'completada'
+    """, (target_date,)).fetchall()
+
+    consumed_by_key = {}
+    def add_consumed(k: str, q: float):
+        consumed_by_key[k] = consumed_by_key.get(k, 0.0) + float(q)
+
+    for row in sales_items:
+        sku = row["sku"]
+        qty = float(row["quantity"])
+        cat = row["category"]
+        chosen = row["chosen_presa"]
+
+        if sku == 'POL-PEC':
+            add_consumed('pechuga_vitrina', qty)
+        elif sku == 'POL-MUS':
+            add_consumed('muslo_vitrina', qty)
+        elif sku == 'POL-CON':
+            add_consumed('contramuslo_vitrina', qty)
+        elif sku == 'POL-ALA':
+            add_consumed('ala_vitrina', qty)
+        elif sku == 'POL-14':
+            add_consumed('muslo_vitrina', qty)
+            add_consumed('contramuslo_vitrina', qty)
+            add_consumed('papas_raciones', qty)
+        elif sku == 'POL-12':
+            add_consumed('pechuga_vitrina', qty)
+            add_consumed('ala_vitrina', qty)
+            add_consumed('muslo_vitrina', qty)
+            add_consumed('contramuslo_vitrina', qty)
+            add_consumed('papas_raciones', qty)
+        elif sku == 'POL-ENT':
+            add_consumed('pechuga_vitrina', 2.0 * qty)
+            add_consumed('ala_vitrina', 2.0 * qty)
+            add_consumed('muslo_vitrina', 2.0 * qty)
+            add_consumed('contramuslo_vitrina', 2.0 * qty)
+            add_consumed('papas_raciones', 2.0 * qty)
+        elif sku == 'ALM-COMP':
+            if chosen:
+                presa_key = f"{chosen.strip().lower()}_vitrina"
+                add_consumed(presa_key, qty)
+            add_consumed('caldo_raciones', qty)
+            add_consumed('arroz_raciones', qty)
+            add_consumed('frijoles_raciones', qty)
+        elif sku == 'POR-CALD':
+            add_consumed('caldo_raciones', qty)
+        elif sku == 'POR-FRIJ':
+            add_consumed('frijoles_raciones', qty)
+        elif sku == 'POR-ARROZ':
+            add_consumed('arroz_raciones', qty)
+        elif sku == 'POR-PAPAS':
+            add_consumed('papas_raciones', qty)
+        elif sku == 'POR-AREP':
+            add_consumed('arepas_unidades', qty)
+        elif cat == 'gaseosas':
+            add_consumed(sku, qty)
+
+    try:
+        harina_row = conn.execute("""
+            SELECT SUM(total_presas * 0.025) FROM cooking_batches 
+            WHERE date(started_at) = ? AND stage IN ('fritura', 'terminado')
+        """, (target_date,)).fetchone()
+        if harina_row and harina_row[0]:
+            add_consumed('harina_apanar_kg', float(harina_row[0]))
+
+        aceite_row = conn.execute("""
+            SELECT SUM(total_presas * 0.020) FROM cooking_batches 
+            WHERE date(started_at) = ? AND stage IN ('fritura', 'terminado')
+        """, (target_date,)).fetchone()
+        if aceite_row and aceite_row[0]:
+            add_consumed('aceite_fritura_lt', float(aceite_row[0]))
+    except Exception:
+        pass
+
+    inv_rows = conn.execute("SELECT * FROM inventory").fetchall()
+    inv_by_key = {r["item_key"]: dict(r) for r in inv_rows}
+
+    result_zones = {
+        "vitrina": [],
+        "nevera": [],
+        "bodega": [],
+        "insumos": []
+    }
+    total_items = 0
+
+    for zone_name, key_list in CLOSING_ZONES_SPEC.items():
+        for key in key_list:
+            inv = inv_by_key.get(key)
+            if not inv:
+                continue
+
+            raw_name = inv.get("item_name") or inv.get("name") or key
+            raw_loc = inv.get("location") or zone_name.capitalize()
+            current_stock = float(inv.get("stock", 0.0))
+            unit = inv.get("unit") or "unidad"
+
+            supplier_in = (
+                entries_map.get((raw_name, raw_loc)) or
+                entries_map.get((raw_name.lower(), raw_loc.lower())) or
+                entries_map.get((key, raw_loc)) or
+                entries_map.get((key.lower(), raw_loc.lower())) or
+                0.0
+            )
+
+            internal_in = 0.0
+            if key in ('pechuga_vitrina', 'muslo_vitrina', 'contramuslo_vitrina', 'ala_vitrina', 'caldo_raciones'):
+                internal_in = 2.0 * chickens_butchered
+
+            if key == 'pollo_entero_crudo':
+                sales_out = chickens_butchered
+            else:
+                sales_out = consumed_by_key.get(key, 0.0)
+
+            initial_val = (
+                initial_map.get((raw_name, raw_loc)) or
+                initial_map.get((raw_name.lower(), raw_loc.lower())) or
+                initial_map.get((key, raw_loc)) or
+                initial_map.get((key.lower(), raw_loc.lower())) or
+                initial_map.get((inv["name"], raw_loc)) or
+                initial_map.get((inv["name"].lower(), raw_loc.lower()))
+            )
+
+            if initial_val is not None:
+                initial_stock = initial_val
+            else:
+                initial_stock = max(0.0, current_stock - supplier_in - internal_in + sales_out)
+
+            expected_stock = round(initial_stock + supplier_in + internal_in - sales_out, 4)
+
+            sku = ITEM_TO_PRODUCT_SKU.get(key)
+            if sku and sku in prod_map:
+                u_price = prod_map[sku]["price"]
+                u_cost = prod_map[sku]["cost"]
+            elif key in DEFAULT_ITEM_VALUATION:
+                u_price = DEFAULT_ITEM_VALUATION[key]["price"]
+                u_cost = DEFAULT_ITEM_VALUATION[key]["cost"]
+            else:
+                u_price = 0
+                u_cost = 0
+
+            item_obj = {
+                "item_key": key,
+                "name": raw_name,
+                "location": raw_loc,
+                "unit": unit,
+                "initial_stock": round(initial_stock, 2),
+                "supplier_entries": round(supplier_in, 2),
+                "internal_production": round(internal_in, 2),
+                "sales_dispatches": round(sales_out, 2),
+                "expected_stock": round(expected_stock, 2),
+                "current_stock": round(current_stock, 2),
+                "unit_price": u_price,
+                "unit_cost": u_cost
+            }
+            item_obj["zone"] = zone_name
+            result_zones[zone_name].append(item_obj)
+            total_items += 1
+
+    flat_items = []
+    for z_name, it_list in result_zones.items():
+        for it in it_list:
+            flat_items.append(it)
+
+    return {
+        "date": target_date,
+        "zones": result_zones,
+        "items": flat_items,
+        "total_items": total_items,
+        "total_tracked_items": total_items
+    }
 
 # ==================== ENDPOINTS DE CICLO DE CAJA (R1) ====================
 
@@ -185,6 +491,113 @@ def close_shift(payload: CloseShiftRequest):
 
         closing_notes = payload.notes or shift["closing_notes"]
 
+        # Si se proporcionó inventory_counts o physical_counts, realizamos la conciliación cruzada completa (R3, R4)
+        counts = payload.inventory_counts if payload.inventory_counts is not None else payload.physical_counts
+        receipt_code = None
+        cross_status = "cuadrada_total"
+        total_missing_units = 0.0
+        total_shortage_economic = 0
+        total_shortage_cost = 0
+        inventory_breakdown = []
+        cash_status = "cuadrada" if difference == 0 else ("faltante" if difference < 0 else "sobrante")
+
+        if counts is not None:
+            sheet_data = build_closing_inventory_sheet(conn, date_str)
+            all_sheet_items = {}
+            for zone_items in sheet_data["zones"].values():
+                for it in zone_items:
+                    all_sheet_items[it["item_key"]] = it
+
+            for count_item in counts:
+                key = count_item.item_key
+                phys = float(count_item.physical_count)
+                it_info = all_sheet_items.get(key)
+
+                if it_info:
+                    exp = float(it_info["expected_stock"])
+                    u_price = int(it_info["unit_price"])
+                    u_cost = int(it_info["unit_cost"])
+                    it_name = it_info["name"]
+                    it_loc = it_info["location"]
+                    it_unit = it_info["unit"]
+                else:
+                    inv_row = cursor.execute("SELECT name, stock, unit, location FROM inventory WHERE item_key = ?", (key,)).fetchone()
+                    exp = float(inv_row["stock"]) if inv_row else 0.0
+                    u_price = 0
+                    u_cost = 0
+                    it_name = inv_row["name"] if inv_row else key
+                    it_loc = inv_row["location"] if inv_row else "Bodega"
+                    it_unit = inv_row["unit"] if inv_row else "unidad"
+
+                diff = round(phys - exp, 4)
+                if diff < 0:
+                    missing_u = abs(diff)
+                    econ_impact = int(round(missing_u * u_price))
+                    cost_impact = int(round(missing_u * u_cost))
+                    total_missing_units += missing_u
+                    total_shortage_economic += econ_impact
+                    total_shortage_cost += cost_impact
+                else:
+                    missing_u = 0.0
+                    econ_impact = 0
+                    cost_impact = 0
+
+                item_rec = {
+                    "item_key": key,
+                    "name": it_name,
+                    "location": it_loc,
+                    "unit": it_unit,
+                    "expected_stock": exp,
+                    "physical_count": phys,
+                    "difference": diff,
+                    "unit_price": u_price,
+                    "unit_cost": u_cost,
+                    "shortage_units": round(missing_u, 2),
+                    "shortage_economic_impact_cop": econ_impact,
+                    "shortage_cost_impact_cop": cost_impact,
+                    "has_shortage": diff < 0
+                }
+                inventory_breakdown.append(item_rec)
+
+                # Si adjust_inventory_to_physical es True, actualizar stock en DB
+                if payload.adjust_inventory_to_physical:
+                    cursor.execute("""
+                        UPDATE inventory SET stock = ?, updated_at = ? WHERE item_key = ?
+                    """, (phys, now_str, key))
+
+            # Clasificación de la conciliación cruzada (R4)
+            has_cash_shortage = difference < 0
+            has_inv_shortage = total_missing_units > 0.0001 or total_shortage_economic > 0
+
+            if not has_cash_shortage and not has_inv_shortage:
+                cross_status = "cuadrada_total"
+            elif has_cash_shortage and not has_inv_shortage:
+                cross_status = "faltante_efectivo"
+            elif not has_cash_shortage and has_inv_shortage:
+                cross_status = "merma_inventario"
+            else:
+                cross_status = "descuadre_mixto"
+
+            receipt_code = get_next_closing_receipt_code(cursor, now)
+            breakdown_json = json.dumps(inventory_breakdown, ensure_ascii=False)
+
+            cursor.execute("""
+                INSERT INTO daily_closing_receipts (
+                    receipt_code, shift_id, date_str, closed_at, cashier_name,
+                    base_inicial, total_sales, cash_sales, digital_sales, datafono_sales, total_expenses,
+                    expected_cash, actual_cash, cash_difference, cash_status,
+                    total_items_counted, total_missing_units, shortage_economic_impact_cop, shortage_cost_impact_cop,
+                    inventory_breakdown_json, cross_reconciliation_status, notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                receipt_code, shift_id, date_str, now_str, shift["cashier_name"],
+                base_inicial, total_sales, cash_sales, digital_sales, datafono_sales, total_expenses,
+                expected_cash, actual_cash, difference, cash_status,
+                len(counts), round(total_missing_units, 2),
+                total_shortage_economic, total_shortage_cost,
+                breakdown_json, cross_status, closing_notes
+            ))
+
         cursor.execute("""
             UPDATE cash_shifts SET
                 closed_at = ?,
@@ -207,7 +620,7 @@ def close_shift(payload: CloseShiftRequest):
         conn.commit()
 
         updated_shift = cursor.execute("SELECT * FROM cash_shifts WHERE id = ?", (shift_id,)).fetchone()
-        return {
+        res_data = {
             "success": True,
             "message": f"Turno {shift['shift_code']} cerrado correctamente.",
             "shift": dict(updated_shift),
@@ -220,15 +633,164 @@ def close_shift(payload: CloseShiftRequest):
                 "difference": difference,
                 "digital_sales": digital_sales,
                 "datafono_sales": datafono_sales,
-                "total_sales": total_sales
+                "total_sales": total_sales,
+                "cash_status": cash_status
             }
         }
+
+        if counts is not None:
+            res_data.update({
+                "receipt_code": receipt_code,
+                "shift_id": shift_id,
+                "cash_reconciliation": {
+                    "expected_cash": expected_cash,
+                    "actual_cash": actual_cash,
+                    "difference": difference,
+                    "status": cash_status
+                },
+                "inventory_reconciliation": {
+                    "total_items_counted": len(counts),
+                    "total_missing_units": round(total_missing_units, 2),
+                    "shortage_economic_impact_cop": total_shortage_economic,
+                    "shortage_cost_impact_cop": total_shortage_cost,
+                    "status": "cuadrada_total" if total_missing_units == 0 else "con_faltante",
+                    "breakdown": inventory_breakdown
+                },
+                "cross_reconciliation_status": cross_status,
+                "receipt": {
+                    "receipt_code": receipt_code,
+                    "shift_id": shift_id,
+                    "date_str": date_str,
+                    "closed_at": now_str,
+                    "cashier_name": shift["cashier_name"],
+                    "cash_status": cash_status,
+                    "cross_reconciliation_status": cross_status,
+                    "reconciliation_status": cross_status,
+                    "base_inicial": base_inicial,
+                    "total_sales": total_sales,
+                    "gran_total_sales": total_sales,
+                    "cash_sales": cash_sales,
+                    "digital_sales": digital_sales,
+                    "nequi_daviplata": digital_sales,
+                    "datafono_sales": datafono_sales,
+                    "datafono": datafono_sales,
+                    "total_expenses": total_expenses,
+                    "expected_cash": expected_cash,
+                    "actual_cash": actual_cash,
+                    "cash_difference": difference,
+                    "total_items_counted": len(counts),
+                    "total_missing_units": round(total_missing_units, 2),
+                    "missing_inventory_units": round(total_missing_units, 2),
+                    "shortage_economic_impact_cop": total_shortage_economic,
+                    "inventory_shortage_cop": total_shortage_economic,
+                    "shortage_cost_impact_cop": total_shortage_cost,
+                    "cost_shortage_cop": total_shortage_cost,
+                    "inventory_breakdown": inventory_breakdown,
+                    "inventory_snapshot": inventory_breakdown,
+                    "notes": closing_notes
+                }
+            })
+
+        return res_data
     except HTTPException:
         conn.rollback()
         raise
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+# ==================== ENDPOINTS DE CIERRE DE INVENTARIO Y COMPROBANTES (R3, R4) ====================
+
+@router.get("/closing-inventory-sheet")
+def get_closing_inventory_sheet(date: Optional[str] = Query(None, description="Fecha YYYY-MM-DD")):
+    """
+    R3: Planilla interactiva de conteo físico al cierre con stock esperado calculado y valorización.
+    """
+    conn = get_db_connection()
+    try:
+        target_date = date or datetime.now().strftime("%Y-%m-%d")
+        sheet = build_closing_inventory_sheet(conn, target_date)
+        return sheet
+    finally:
+        conn.close()
+
+@router.get("/closing-receipt/{receipt_id_or_code}")
+def get_closing_receipt(receipt_id_or_code: str):
+    """
+    R4: Consulta y recuperación del comprobante digital de cierre auditable por ID o código de recibo.
+    """
+    conn = get_db_connection()
+    try:
+        if receipt_id_or_code.isdigit():
+            row = conn.execute("""
+                SELECT * FROM daily_closing_receipts WHERE id = ? OR receipt_code = ?
+            """, (int(receipt_id_or_code), receipt_id_or_code)).fetchone()
+        else:
+            row = conn.execute("""
+                SELECT * FROM daily_closing_receipts WHERE receipt_code = ?
+            """, (receipt_id_or_code,)).fetchone()
+
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Comprobante de cierre '{receipt_id_or_code}' no encontrado.")
+
+        rec_dict = dict(row)
+        try:
+            rec_dict["inventory_breakdown"] = json.loads(rec_dict["inventory_breakdown_json"])
+        except Exception:
+            rec_dict["inventory_breakdown"] = []
+
+        rec_dict["reconciliation_status"] = rec_dict.get("cross_reconciliation_status")
+        rec_dict["missing_inventory_units"] = rec_dict.get("total_missing_units", 0)
+        rec_dict["inventory_shortage_cop"] = rec_dict.get("shortage_economic_impact_cop", 0)
+        rec_dict["cost_shortage_cop"] = rec_dict.get("shortage_cost_impact_cop", 0)
+        rec_dict["inventory_snapshot"] = rec_dict.get("inventory_breakdown", [])
+        rec_dict["gran_total_sales"] = rec_dict.get("total_sales", 0)
+        rec_dict["nequi_daviplata"] = rec_dict.get("digital_sales", 0)
+        rec_dict["datafono"] = rec_dict.get("datafono_sales", 0)
+
+        res = dict(rec_dict)
+        res["success"] = True
+        res["receipt"] = rec_dict
+        return res
+    finally:
+        conn.close()
+
+@router.get("/closing-receipts")
+def list_closing_receipts(date: Optional[str] = None, limit: int = 50):
+    """
+    R4: Listado histórico de comprobantes de cierre con auditoría completa.
+    """
+    conn = get_db_connection()
+    try:
+        if date:
+            rows = conn.execute("""
+                SELECT * FROM daily_closing_receipts WHERE date_str = ? ORDER BY id DESC LIMIT ?
+            """, (date, limit)).fetchall()
+        else:
+            rows = conn.execute("""
+                SELECT * FROM daily_closing_receipts ORDER BY id DESC LIMIT ?
+            """, (limit,)).fetchall()
+
+        receipts = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d["inventory_breakdown"] = json.loads(d["inventory_breakdown_json"])
+            except Exception:
+                d["inventory_breakdown"] = []
+            d["reconciliation_status"] = d.get("cross_reconciliation_status")
+            d["missing_inventory_units"] = d.get("total_missing_units", 0)
+            d["inventory_shortage_cop"] = d.get("shortage_economic_impact_cop", 0)
+            d["cost_shortage_cop"] = d.get("shortage_cost_impact_cop", 0)
+            d["inventory_snapshot"] = d.get("inventory_breakdown", [])
+            d["gran_total_sales"] = d.get("total_sales", 0)
+            d["nequi_daviplata"] = d.get("digital_sales", 0)
+            d["datafono"] = d.get("datafono_sales", 0)
+            receipts.append(d)
+
+        return {"success": True, "receipts": receipts, "count": len(receipts)}
     finally:
         conn.close()
 

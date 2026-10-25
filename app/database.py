@@ -292,6 +292,44 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_merchandise_entries_date ON merchandise_entries(date);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_daily_initial_inventory_date ON daily_initial_inventory(date);")
 
+    # 16. Tabla de Comprobantes de Cierre Diario y Conciliación Cruzada (R4)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS daily_closing_receipts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        receipt_code TEXT UNIQUE NOT NULL,
+        shift_id INTEGER NOT NULL REFERENCES cash_shifts(id),
+        date_str TEXT NOT NULL,
+        closed_at TEXT NOT NULL,
+        cashier_name TEXT NOT NULL,
+        
+        -- Bloque Financiero de Efectivo
+        base_inicial INTEGER NOT NULL,
+        total_sales INTEGER NOT NULL,
+        cash_sales INTEGER NOT NULL,
+        digital_sales INTEGER NOT NULL,
+        datafono_sales INTEGER NOT NULL,
+        total_expenses INTEGER NOT NULL,
+        expected_cash INTEGER NOT NULL,
+        actual_cash INTEGER NOT NULL,
+        cash_difference INTEGER NOT NULL,
+        cash_status TEXT NOT NULL, -- 'cuadrada', 'faltante', 'sobrante'
+        
+        -- Bloque de Conciliación Cruzada de Inventario
+        total_items_counted INTEGER NOT NULL DEFAULT 0,
+        total_missing_units REAL NOT NULL DEFAULT 0.0,
+        shortage_economic_impact_cop INTEGER NOT NULL DEFAULT 0,
+        shortage_cost_impact_cop INTEGER NOT NULL DEFAULT 0,
+        inventory_breakdown_json TEXT NOT NULL,
+        cross_reconciliation_status TEXT NOT NULL, -- 'cuadrada_total', 'faltante_efectivo', 'merma_inventario', 'descuadre_mixto'
+        
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_closing_receipts_date ON daily_closing_receipts(date_str);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_closing_receipts_shift ON daily_closing_receipts(shift_id);")
+
     # Migración idempotente: asegurar columnas location e item_name en la tabla inventory
     inv_cols = [r["name"] for r in cursor.execute("PRAGMA table_info(inventory);").fetchall()]
     if "location" not in inv_cols:

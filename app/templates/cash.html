@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Caja & Socios - Pollo Apanado</title>
+  <title>Cuadre de Caja - Pollo Apanado</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="/static/img/icon-192.png">
   <link rel="apple-touch-icon" href="/static/img/icon-192.png">
@@ -23,7 +23,7 @@
         💰
       </div>
       <div>
-        <h1 class="text-lg font-black tracking-wide text-emerald-400 leading-tight">CUADRE DE CAJA & CONTROL DE SOCIOS</h1>
+        <h1 class="text-lg font-black tracking-wide text-emerald-400 leading-tight">CUADRE DE CAJA & ARQUEO INTEGRAL</h1>
         <p class="text-xs text-slate-400 font-medium">Arqueo Explícito, Seguridad Antifraude, Vitrina & Desglose 100%</p>
       </div>
     </div>
@@ -33,11 +33,8 @@
       <a href="/" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition">
         🛒 Mostrador
       </a>
-      <a href="/cocina" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition">
-        🍳 Cocina & Tiempos
-      </a>
       <a href="/caja" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-slate-950 shadow-sm transition">
-        💰 Caja & Turnos
+        💰 Caja
       </a>
       <button onclick="openSetInitialStockModal()" class="px-3.5 py-1.5 rounded-lg text-xs font-black bg-cyan-700 hover:bg-cyan-600 text-white flex items-center space-x-1.5 transition active:scale-95 shadow-md border border-cyan-500" title="Establecer existencias iniciales con las que arranca el negocio">
         <span>📦</span>
@@ -47,7 +44,7 @@
         <span>🏷️</span>
         <span>Precios Menú</span>
       </button>
-      <button onclick="openSupplierEntryModal()" class="px-3.5 py-1.5 rounded-lg text-xs font-black bg-blue-600 hover:bg-blue-500 text-white flex items-center space-x-1.5 transition active:scale-95 shadow-md border border-blue-400" title="Registrar recepción de mercancía y proveedores">
+      <button id="btnOpenSupplierEntry" onclick="openSupplierEntryModal()" class="px-3.5 py-1.5 rounded-lg text-xs font-black bg-blue-600 hover:bg-blue-500 text-white flex items-center space-x-1.5 transition active:scale-95 shadow-md border border-blue-400" title="Registrar recepción de mercancía y proveedores">
         <span>🚚</span>
         <span>+ Proveedores</span>
       </button>
@@ -55,10 +52,6 @@
         <span>📲</span>
         <span>Instalar App</span>
       </button>
-      <a href="/tutorial" class="px-3.5 py-1.5 rounded-lg text-xs font-black bg-purple-600 hover:bg-purple-500 text-white flex items-center space-x-1.5 transition shadow-md border border-purple-400" title="Ver Video Tutorial de Uso del Sistema">
-        <span>🎬</span>
-        <span>Tutorial</span>
-      </a>
     </nav>
   </header>
 
@@ -80,13 +73,9 @@
 
       <!-- Botones de Acción de Turno y Configuración -->
       <div class="flex items-center flex-wrap gap-2 w-full md:w-auto justify-end">
-        <button id="btnSetInitialStockTop" onclick="openSetInitialStockModal()" class="h-11 px-3.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 active:scale-95 text-white font-black text-xs shadow-lg transition flex items-center space-x-1.5 select-none" title="Establecer existencias iniciales con las que arranca el negocio">
-          <span>📦</span>
-          <span>STOCK INICIAL</span>
-        </button>
-        <button id="btnPriceEditorTop" onclick="openPriceEditorModal()" class="h-11 px-3.5 rounded-xl bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex items-center space-x-1.5 select-none" title="Modificar precios de venta del mostrador">
-          <span>🏷️</span>
-          <span>PRECIOS</span>
+        <button id="btnHistoryReceipts" onclick="openClosingReceiptsHistoryModal()" class="h-11 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-bold text-xs border border-slate-700 transition flex items-center space-x-1.5 select-none" title="Ver historial de comprobantes de cierre emitidos">
+          <span>📜</span>
+          <span>HISTORIAL CIERRES</span>
         </button>
         <button id="btnOpenShift" onclick="openShiftModal()" class="h-11 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex items-center space-x-1.5 select-none">
           <span>🟢</span>
@@ -106,24 +95,14 @@
       </div>
     </div>
 
-    <!-- 2. TARJETAS SUPERIORES DE TOTALES (5 Columnas) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+    <!-- 2. TARJETAS SUPERIORES DE TOTALES (4 Columnas) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       
       <!-- Total Venta Diaria -->
       <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
         <span class="text-xs font-bold uppercase text-slate-400">Total Ingresos Brutos</span>
         <div id="statTotalSales" class="text-2xl font-black text-amber-400 tabular-nums my-1">$ 0</div>
         <span id="statTicketsCount" class="text-[11px] text-slate-400">0 ventas registradas</span>
-      </div>
-
-      <!-- Margen Bruto de Ganancia -->
-      <div class="bg-slate-800/70 border border-emerald-500/40 rounded-2xl p-4 shadow-lg flex flex-col justify-between bg-emerald-950/20">
-        <span class="text-xs font-bold uppercase text-emerald-400 flex items-center space-x-1">
-          <span>📈</span>
-          <span>Margen Bruto Real</span>
-        </span>
-        <div id="statEstimatedMargin" class="text-2xl font-black text-emerald-400 tabular-nums my-1">$ 0</div>
-        <span class="text-[11px] text-emerald-300/80">Ingresos menos costo insumos</span>
       </div>
 
       <!-- Efectivo Esperado en Mano -->
@@ -379,27 +358,7 @@
       </div>
     </div>
 
-    <!-- 7. TERMÓMETRO DEL PUNTO DE EQUILIBRIO DIARIO -->
-    <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-2">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-        <div>
-          <h3 class="text-sm font-black text-slate-100 uppercase tracking-wide flex items-center space-x-2">
-            <span>🎯</span>
-            <span>Punto de Equilibrio Diario: $258.462 COP (Margen de Contribución)</span>
-          </h3>
-          <p class="text-[11px] text-slate-400">
-            Cubre arriendo ($1.4M), nómina, servicios y créditos de compraventa en 26 días/mes
-          </p>
-        </div>
-        <div class="text-right">
-          <span id="breakevenPercentText" class="text-lg font-black text-amber-400">0%</span>
-          <span id="breakevenStatusBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-700 text-slate-300 ml-2">En proceso</span>
-        </div>
-      </div>
-      <div class="w-full bg-slate-950 h-3.5 rounded-full overflow-hidden border border-slate-700/60 p-0.5">
-        <div id="breakevenBar" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
-      </div>
-    </div>
+
 
     <!-- 9. ALERTAS DE COMPRAS A PROVEEDORES -->
     <div class="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-3">
@@ -553,43 +512,324 @@
     </div>
   </div>
 
-  <!-- MODAL: CERRAR TURNO & ARQUEO DE CAJA -->
-  <div id="closeShiftModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-amber-500/60 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-        <h3 class="font-black text-base text-amber-400 flex items-center space-x-2">
-          <span>🏁</span>
-          <span>Cierre de Turno & Arqueo</span>
-        </h3>
-        <button onclick="closeModal('closeShiftModal')" class="text-slate-400 hover:text-white font-bold text-lg select-none">&times;</button>
+  <!-- MODAL: CIERRE DIARIO DE TURNO & ARQUEO INTEGRAL (3 PASOS) -->
+  <div id="closeShiftModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-slate-900 border-2 border-amber-500/70 rounded-2xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col my-auto">
+      
+      <!-- Encabezado con Indicador de Pasos -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-2 flex-shrink-0">
+        <div>
+          <h3 class="font-black text-lg text-amber-400 flex items-center space-x-2">
+            <span>🏁</span>
+            <span>Cierre Diario de Turno & Conciliación Cruzada</span>
+          </h3>
+          <p class="text-xs text-slate-400 font-medium">Flujo Guiado de 3 Pasos: Arqueo Financiero ➔ Conteo Físico (4 Zonas) ➔ Dictamen y Comprobante</p>
+        </div>
+        <button onclick="closeModal('closeShiftModal')" class="text-slate-400 hover:text-white font-bold text-2xl self-end sm:self-auto select-none">&times;</button>
       </div>
 
-      <div class="space-y-3 text-xs">
-        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-          <div class="text-slate-400 font-bold mb-1">Efectivo Esperado Según Sistema:</div>
-          <div id="closeModalExpectedCash" class="text-xl font-black text-emerald-400 tabular-nums">$ 0</div>
-          <div class="text-[10px] text-slate-500">Base Inicial + Ventas Efectivo - Gastos Menores</div>
+      <!-- Barra de Pasos Interactiva -->
+      <div class="grid grid-cols-3 gap-2 flex-shrink-0">
+        <button id="stepTabBtn1" onclick="goToClosingStep(1)" class="py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-1.5 border bg-amber-500 text-slate-950 border-amber-400 shadow-md">
+          <span>1. 💵</span>
+          <span class="truncate">Arqueo Efectivo</span>
+        </button>
+        <button id="stepTabBtn2" onclick="goToClosingStep(2)" class="py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-1.5 border bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200">
+          <span>2. 📦</span>
+          <span class="truncate">Conteo Físico (4 Zonas)</span>
+        </button>
+        <button id="stepTabBtn3" onclick="goToClosingStep(3)" class="py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-1.5 border bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200">
+          <span>3. 📊</span>
+          <span class="truncate">Conciliación Cruzada</span>
+        </button>
+      </div>
+
+      <!-- CUERPO PRINCIPAL CON SCROLL -->
+      <div class="flex-1 overflow-y-auto pr-1 space-y-4">
+
+        <!-- ==================== PASO 1: ARQUEO DE EFECTIVO ==================== -->
+        <div id="closingStepContainer1" class="space-y-4">
+          <!-- Tarjetas de Arqueo -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+              <span class="text-slate-400 font-bold block text-[11px] uppercase">(+) Base Inicial:</span>
+              <span id="closeStep1BaseInicial" class="text-lg font-black text-white tabular-nums">$ 0</span>
+              <span class="text-[10px] text-slate-500 block">Fondo de cambio</span>
+            </div>
+            <div class="bg-slate-950 p-3 rounded-xl border border-emerald-500/30">
+              <span class="text-emerald-400 font-bold block text-[11px] uppercase">(+) Ventas Efectivo:</span>
+              <span id="closeStep1CashSales" class="text-lg font-black text-emerald-400 tabular-nums">$ 0</span>
+              <span class="text-[10px] text-slate-500 block">Cobrado en mostrador</span>
+            </div>
+            <div class="bg-slate-950 p-3 rounded-xl border border-red-500/30">
+              <span class="text-red-400 font-bold block text-[11px] uppercase">(-) Gastos Menores:</span>
+              <span id="closeStep1TotalExpenses" class="text-lg font-black text-red-400 tabular-nums">-$ 0</span>
+              <span class="text-[10px] text-slate-500 block">Salidas autorizadas</span>
+            </div>
+            <div class="bg-emerald-950/40 p-3 rounded-xl border-2 border-emerald-500/60">
+              <span class="text-emerald-200 font-black block text-[11px] uppercase">(=) Efectivo Esperado:</span>
+              <span id="closeStep1ExpectedCash" class="text-xl font-black text-emerald-300 tabular-nums">$ 0</span>
+              <span class="text-[10px] text-emerald-300/80 block">Base + Ventas - Gastos</span>
+            </div>
+          </div>
+
+          <!-- Input Grande de Efectivo Físico -->
+          <div class="bg-slate-950/90 p-5 rounded-2xl border border-slate-800 space-y-3">
+            <label class="block text-center text-sm font-black text-amber-300 uppercase tracking-wide">
+              💵 Ingresa el Monto Total en Efectivo Físico Contado en Caja ($ COP):
+            </label>
+            <div class="max-w-md mx-auto">
+              <input type="number" id="closeActualCash" step="1000" min="0" placeholder="Ej: 520000" oninput="calculateClosingDiffPreview()" class="w-full bg-slate-900 border-2 border-amber-500 rounded-2xl px-4 py-3 text-center font-black text-3xl text-amber-400 focus:outline-none focus:ring-4 focus:ring-amber-500/30 tabular-nums shadow-inner">
+            </div>
+
+            <!-- Accesos Rápidos -->
+            <div class="flex items-center justify-center flex-wrap gap-2 pt-1">
+              <button type="button" onclick="quickFillActualCash('expected')" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-xs shadow transition active:scale-95">
+                ⚡ Copiar Esperado
+              </button>
+              <button type="button" onclick="quickAddActualCash(10000)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition active:scale-95">
+                +10.000
+              </button>
+              <button type="button" onclick="quickAddActualCash(50000)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition active:scale-95">
+                +50.000
+              </button>
+              <button type="button" onclick="quickAddActualCash(100000)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition active:scale-95">
+                +100.000
+              </button>
+              <button type="button" onclick="quickFillActualCash(0)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold text-xs border border-slate-700 transition active:scale-95">
+                Limpiar
+              </button>
+            </div>
+
+            <!-- Semáforo / Estado en Vivo -->
+            <div id="closeStep1StatusIndicator" class="p-3.5 rounded-xl border-2 text-center text-sm font-black transition-all duration-300 bg-slate-900 border-slate-700 text-slate-300">
+              <span id="closeStep1StatusText">Ingresa el monto contado para verificar el cuadre</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== PASO 2: CONTEO FÍSICO (4 ZONAS) ==================== -->
+        <div id="closingStepContainer2" class="space-y-4 hidden">
+          <!-- Barra Superior del Paso 2 -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+            <div>
+              <div class="text-xs font-black text-slate-200">Panel de Conteo Físico por Zonas Operativas</div>
+              <div class="text-[11px] text-slate-400">Verifica existencias en Vitrina, Nevera, Bodega e Insumos</div>
+            </div>
+            <button type="button" onclick="copyAllExpectedToPhysical()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex items-center space-x-1.5 self-start sm:self-auto select-none" title="Rellena todos los campos con lo esperado si el negocio no presenta mermas ni faltantes">
+              <span>⚡</span>
+              <span>Copiar Todo lo Esperado al Físico</span>
+            </button>
+          </div>
+
+          <!-- Filtro de Zonas -->
+          <div class="flex items-center flex-wrap gap-1.5 text-xs">
+            <button id="zoneFilterBtn_all" onclick="filterClosingZone('all')" class="px-3 py-1.5 rounded-lg font-bold border transition bg-amber-500 text-slate-950 border-amber-400">
+              Todas (20)
+            </button>
+            <button id="zoneFilterBtn_vitrina" onclick="filterClosingZone('vitrina')" class="px-3 py-1.5 rounded-lg font-bold border transition bg-slate-800 text-slate-300 border-slate-700 hover:text-white">
+              🍗 Vitrina Caliente (4)
+            </button>
+            <button id="zoneFilterBtn_nevera" onclick="filterClosingZone('nevera')" class="px-3 py-1.5 rounded-lg font-bold border transition bg-slate-800 text-slate-300 border-slate-700 hover:text-white">
+              🥤 Nevera Bebidas (8)
+            </button>
+            <button id="zoneFilterBtn_bodega" onclick="filterClosingZone('bodega')" class="px-3 py-1.5 rounded-lg font-bold border transition bg-slate-800 text-slate-300 border-slate-700 hover:text-white">
+              📦 Bodega (3)
+            </button>
+            <button id="zoneFilterBtn_insumos" onclick="filterClosingZone('insumos')" class="px-3 py-1.5 rounded-lg font-bold border transition bg-slate-800 text-slate-300 border-slate-700 hover:text-white">
+              🥣 Insumos Principales (5)
+            </button>
+          </div>
+
+          <!-- Contenedor Dinámico de Ítems por Zona -->
+          <div id="closingZoneItemsContainer" class="space-y-3">
+            <div class="p-6 text-center text-slate-400 text-xs">Cargando planilla de inventario al cierre...</div>
+          </div>
+
+          <!-- Resumen Inferior de Mermas en Vivo -->
+          <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs gap-2">
+            <div class="flex items-center space-x-4">
+              <div>
+                <span class="text-slate-400">Ítems Auditados:</span>
+                <span id="closeStep2CountedSummary" class="font-black text-white ml-1">0 / 20</span>
+              </div>
+              <div>
+                <span class="text-slate-400">Unidades Faltantes:</span>
+                <span id="closeStep2MissingUnits" class="font-black text-red-400 ml-1">0 unds</span>
+              </div>
+            </div>
+            <div>
+              <span class="text-slate-400">Impacto Económico del Faltante:</span>
+              <span id="closeStep2ShortageImpact" class="font-black text-red-400 ml-1 text-sm tabular-nums">$ 0 COP</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== PASO 3: CONCILIACIÓN CRUZADA & COMPROBANTE ==================== -->
+        <div id="closingStepContainer3" class="space-y-4 hidden">
+          <!-- Resumen Ejecutivo -->
+          <div class="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
+            <h4 class="font-black text-sm text-slate-200 uppercase tracking-wide border-b border-slate-800 pb-2 flex items-center space-x-2">
+              <span>📊</span>
+              <span>Resumen Ejecutivo de Conciliación Cruzada (Caja vs Ventas vs Inventario)</span>
+            </h4>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-1">
+                <span class="text-slate-400 font-bold">Total Ventas Facturadas:</span>
+                <div id="closeStep3TotalSales" class="text-lg font-black text-amber-400 tabular-nums">$ 0</div>
+                <span class="text-[10px] text-slate-500">100% de ingresos registrados</span>
+              </div>
+              <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-1">
+                <span class="text-slate-400 font-bold">Total Efectivo Físico Entregado:</span>
+                <div id="closeStep3ActualCash" class="text-lg font-black text-emerald-400 tabular-nums">$ 0</div>
+                <span class="text-[10px] text-slate-500">Contado en mano por cajero</span>
+              </div>
+              <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-1">
+                <span class="text-slate-400 font-bold">Diferencia Neta de Caja:</span>
+                <div id="closeStep3CashDiff" class="text-lg font-black text-white tabular-nums">$ 0</div>
+                <span id="closeStep3CashDiffSub" class="text-[10px] font-bold text-slate-400">Cuadrada</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-1">
+                <span class="text-slate-400 font-bold">Balance de Inventario Físico:</span>
+                <div id="closeStep3InvStatus" class="text-base font-black text-slate-200">20 ítems cuadrados</div>
+                <span id="closeStep3InvStatusSub" class="text-[10px] text-slate-400">Cero unidades faltantes</span>
+              </div>
+              <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-1">
+                <span class="text-slate-400 font-bold">Valorización de Pérdida / Merma:</span>
+                <div id="closeStep3ShortageImpact" class="text-base font-black text-emerald-400 tabular-nums">$ 0 COP</div>
+                <span id="closeStep3CostImpactSub" class="text-[10px] text-slate-400">Costo de reposición: $ 0 COP</span>
+              </div>
+            </div>
+
+            <!-- Dictamen de Conciliación -->
+            <div id="closeStep3VerdictCard" class="p-4 rounded-xl border-2 text-xs font-bold transition bg-emerald-950/40 border-emerald-500/80 text-emerald-300">
+              <div id="closeStep3VerdictTitle" class="text-sm font-black mb-1">Evaluando conciliación cruzada...</div>
+              <p id="closeStep3VerdictDesc" class="font-normal text-slate-300">Cruzando movimientos de efectivo con existencias físicas de inventario.</p>
+            </div>
+
+            <!-- Opciones y Observaciones -->
+            <div class="space-y-3 pt-2 text-xs">
+              <div class="flex items-center space-x-2.5 p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                <input type="checkbox" id="closeAdjustInventory" checked class="w-4 h-4 rounded text-amber-500 bg-slate-950 border-slate-700 cursor-pointer">
+                <label for="closeAdjustInventory" class="text-slate-300 font-bold cursor-pointer select-none">
+                  Actualizar inventario teórico al conteo físico real (calibra stock del sistema para el siguiente turno)
+                </label>
+              </div>
+
+              <div>
+                <label class="block font-bold text-slate-300 mb-1">Observaciones / Novedades de Cierre (Opcional):</label>
+                <input type="text" id="closeNotes" placeholder="Ej. Cierre de turno tarde verificado, todo cuadrado sin novedades." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 font-medium text-slate-200 focus:outline-none focus:border-amber-500">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- FOOTER DE NAVEGACIÓN ENTRE PASOS -->
+      <div class="border-t border-slate-800 pt-3 flex items-center justify-between gap-2 flex-shrink-0">
+        <div>
+          <button id="btnClosingPrev" type="button" onclick="onClosingPrevClick()" class="h-11 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition active:scale-95 hidden select-none">
+            ⬅️ Anterior
+          </button>
+          <button id="btnClosingCancel" type="button" onclick="closeModal('closeShiftModal')" class="h-11 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold text-xs transition active:scale-95 select-none">
+            Cancelar
+          </button>
         </div>
 
         <div>
-          <label class="block font-bold text-slate-300 mb-1">Efectivo Físico Real Contado en Cajón ($ COP):</label>
-          <input type="number" id="closeActualCash" placeholder="Ingresa monto total contado" step="1000" min="0" oninput="calculateClosingDiffPreview()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 font-black text-lg text-white focus:outline-none focus:border-amber-500 tabular-nums">
+          <button id="btnClosingNext" type="button" onclick="onClosingNextClick()" class="h-11 px-5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-lg transition active:scale-95 flex items-center space-x-1.5 select-none">
+            <span>Siguiente: Conteo Físico</span>
+            <span>➡️</span>
+          </button>
+          <button id="btnClosingSubmit" type="button" onclick="submitCompleteClosing()" class="h-11 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-xl transition active:scale-95 hidden flex items-center space-x-2 select-none">
+            <span>🏁</span>
+            <span>FINALIZAR CIERRE Y EMITIR COMPROBANTE</span>
+          </button>
         </div>
+      </div>
 
-        <div id="closeDiffPreviewBox" class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center hidden">
-          <span class="text-slate-400 font-bold">Diferencia Prevista:</span>
-          <span id="closeDiffPreviewText" class="font-black text-sm tabular-nums">$ 0</span>
-        </div>
+    </div>
+  </div>
 
-        <div>
-          <label class="block font-bold text-slate-300 mb-1">Observaciones de Cierre (Opcional):</label>
-          <input type="text" id="closeNotes" placeholder="Ej. Cuadre exacto, todo conforme" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-medium text-slate-200 focus:outline-none focus:border-amber-500">
+  <!-- MODAL: COMPROBANTE DIGITAL OFICIAL DE CIERRE DE TURNO -->
+  <div id="digitalClosingReceiptModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-slate-900 border-2 border-emerald-500/80 rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col my-auto text-slate-100">
+      
+      <!-- Encabezado del Recibo -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl">🧾</span>
+          <div>
+            <h3 class="font-black text-base text-emerald-400">COMPROBANTE DIGITAL DE CIERRE</h3>
+            <p id="receiptCodeHeader" class="text-xs font-mono text-slate-400 font-bold">REC-CIERRE-XXXX</p>
+          </div>
         </div>
+        <button onclick="closeModal('digitalClosingReceiptModal')" class="text-slate-400 hover:text-white font-bold text-2xl select-none">&times;</button>
+      </div>
 
-        <div class="flex space-x-2 pt-2">
-          <button onclick="closeModal('closeShiftModal')" class="w-1/3 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold select-none">Cancelar</button>
-          <button onclick="submitCloseShift()" class="flex-1 h-11 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-black shadow-lg select-none">CERRAR TURNO</button>
+      <!-- Contenedor del Comprobante (Imprimible) -->
+      <div id="printableReceiptArea" class="flex-1 overflow-y-auto pr-1 space-y-3 text-xs bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono">
+        <!-- Render dinámico del ticket -->
+      </div>
+
+      <!-- Acciones de Comprobante -->
+      <div class="flex space-x-2 pt-2 border-t border-slate-800 flex-shrink-0">
+        <button type="button" onclick="printClosingReceipt()" class="flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-xs shadow-lg transition flex items-center justify-center space-x-1.5 select-none">
+          <span>🖨️</span>
+          <span>IMPRIMIR COMPROBANTE</span>
+        </button>
+        <button type="button" onclick="closeModal('digitalClosingReceiptModal')" class="w-1/3 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs select-none">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: HISTORIAL DE COMPROBANTES DE CIERRE -->
+  <div id="closingReceiptsHistoryModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col my-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl">📜</span>
+          <div>
+            <h3 class="font-black text-base text-slate-100 uppercase">Historial de Comprobantes de Cierre</h3>
+            <p class="text-xs text-slate-400">Auditoría inmutable de arqueos y conciliaciones emitidas</p>
+          </div>
         </div>
+        <button onclick="closeModal('closingReceiptsHistoryModal')" class="text-slate-400 hover:text-white font-bold text-2xl select-none">&times;</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto pr-1">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] font-bold border-b border-slate-800">
+            <tr>
+              <th class="py-2.5 px-3">Código</th>
+              <th class="py-2.5 px-3">Fecha / Hora</th>
+              <th class="py-2.5 px-3">Cajero</th>
+              <th class="py-2.5 px-3 text-right">Ventas Totales</th>
+              <th class="py-2.5 px-3 text-right">Dif. Efectivo</th>
+              <th class="py-2.5 px-3 text-center">Inv. Faltante</th>
+              <th class="py-2.5 px-3 text-center">Estado</th>
+              <th class="py-2.5 px-3 text-center">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="closingReceiptsHistoryTableBody" class="divide-y divide-slate-800 font-medium">
+            <tr>
+              <td colspan="8" class="py-4 text-center text-slate-400">Cargando comprobantes...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pt-2 border-t border-slate-800 flex justify-end">
+        <button type="button" onclick="closeModal('closingReceiptsHistoryModal')" class="px-5 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs select-none">
+          Cerrar
+        </button>
       </div>
     </div>
   </div>
@@ -763,11 +1003,856 @@
       openModal('expenseModal');
     }
 
-    function openCloseShiftModal() {
-      if (currentDailyData && currentDailyData.cash_reconciliation) {
-        document.getElementById('closeModalExpectedCash').textContent = formatCOP(currentDailyData.cash_reconciliation.expected_cash);
+    // ==================== FLUJO DE CIERRE DIARIO (3 PASOS) ====================
+    let currentClosingStep = 1;
+    let closingSheetData = null;
+    let physicalInventoryState = {};
+    let activeZoneFilter = 'all';
+
+    async function openCloseShiftModal() {
+      currentClosingStep = 1;
+      const rec = currentDailyData?.cash_reconciliation || {};
+      const baseInicial = rec.base_inicial || 0;
+      const cashSales = rec.cash_sales || 0;
+      const totalExpenses = rec.total_expenses || 0;
+      const expectedCash = rec.expected_cash || 0;
+
+      const elBase = document.getElementById('closeStep1BaseInicial');
+      const elSales = document.getElementById('closeStep1CashSales');
+      const elExp = document.getElementById('closeStep1TotalExpenses');
+      const elExpCash = document.getElementById('closeStep1ExpectedCash');
+      if (elBase) elBase.textContent = formatCOP(baseInicial);
+      if (elSales) elSales.textContent = formatCOP(cashSales);
+      if (elExp) elExp.textContent = `-${formatCOP(totalExpenses)}`;
+      if (elExpCash) elExpCash.textContent = formatCOP(expectedCash);
+
+      // Pre-fill or keep existing actual cash
+      const actualInput = document.getElementById('closeActualCash');
+      if (actualInput && !actualInput.value) {
+        actualInput.value = expectedCash > 0 ? expectedCash : '';
       }
+      calculateClosingDiffPreview();
+
+      // Show step 1 UI
+      goToClosingStep(1);
+
+      // Load closing inventory sheet asynchronously
+      loadClosingInventorySheet();
+
       openModal('closeShiftModal');
+    }
+
+    function quickFillActualCash(val) {
+      const input = document.getElementById('closeActualCash');
+      if (!input) return;
+      if (val === 'expected') {
+        const expected = currentDailyData?.cash_reconciliation?.expected_cash || 0;
+        input.value = expected;
+      } else {
+        input.value = val;
+      }
+      calculateClosingDiffPreview();
+    }
+
+    function quickAddActualCash(delta) {
+      const input = document.getElementById('closeActualCash');
+      if (!input) return;
+      const current = parseInt(input.value || 0, 10);
+      input.value = Math.max(0, current + delta);
+      calculateClosingDiffPreview();
+    }
+
+    function calculateClosingDiffPreview() {
+      const actualRaw = document.getElementById('closeActualCash')?.value;
+      const actual = actualRaw !== '' && !isNaN(actualRaw) ? parseInt(actualRaw, 10) : null;
+      const expected = currentDailyData?.cash_reconciliation?.expected_cash || 0;
+      const indicator = document.getElementById('closeStep1StatusIndicator');
+      const statusText = document.getElementById('closeStep1StatusText');
+      if (!indicator || !statusText) return;
+
+      if (actual === null) {
+        indicator.className = 'p-3.5 rounded-xl border-2 text-center text-sm font-black transition-all duration-300 bg-slate-900 border-slate-700 text-slate-300';
+        statusText.textContent = 'Ingresa el monto contado para verificar el cuadre';
+        return;
+      }
+
+      const diff = actual - expected;
+      if (diff === 0) {
+        indicator.className = 'p-4 rounded-2xl border-2 text-center text-sm font-black transition-all duration-300 bg-emerald-950/80 border-emerald-500 text-emerald-300 shadow-xl shadow-emerald-500/20';
+        statusText.innerHTML = `✅ CAJA CUADRADA EXACTA ($ ${diff.toLocaleString('es-CO')}) &mdash; Cero faltante, fondo conciliado al 100%.`;
+      } else if (diff < 0) {
+        indicator.className = 'p-4 rounded-2xl border-2 text-center text-sm font-black transition-all duration-300 bg-red-950/80 border-red-500 text-red-300 shadow-xl shadow-red-500/20 animate-pulse';
+        statusText.innerHTML = `🔴 FALTANTE EN CAJA: -${formatCOP(Math.abs(diff))} &mdash; Falta dinero respecto a ventas registradas.`;
+      } else {
+        indicator.className = 'p-4 rounded-2xl border-2 text-center text-sm font-black transition-all duration-300 bg-amber-950/80 border-amber-500 text-amber-300 shadow-xl shadow-amber-500/20';
+        statusText.innerHTML = `🟡 SOBRANTE EN CAJA: +${formatCOP(diff)} &mdash; Excedente de efectivo en cajón físico.`;
+      }
+    }
+
+    async function loadClosingInventorySheet() {
+      const container = document.getElementById('closingZoneItemsContainer');
+      try {
+        const res = await fetch('/api/cash/closing-inventory-sheet');
+        if (!res.ok) throw new Error('Error al consultar planilla de inventario');
+        const rawData = await res.json();
+
+        // Extraer y aplanar ítems de las 4 zonas: vitrina, nevera, bodega, insumos
+        const allItems = [];
+        if (rawData.zones) {
+          Object.entries(rawData.zones).forEach(([zKey, zItems]) => {
+            zItems.forEach(it => {
+              it.zone = zKey;
+              allItems.push(it);
+            });
+          });
+        }
+        closingSheetData = {
+          date: rawData.date,
+          zones: rawData.zones,
+          items: allItems,
+          total_tracked_items: rawData.total_tracked_items || allItems.length
+        };
+
+        // Initialize physical counts from theoretical if not yet initialized
+        allItems.forEach(it => {
+          if (physicalInventoryState[it.item_key] === undefined) {
+            physicalInventoryState[it.item_key] = it.expected_stock;
+          }
+        });
+
+        renderClosingSheetItems(activeZoneFilter);
+        updateStep2Summaries();
+      } catch (err) {
+        if (container) {
+          container.innerHTML = `<div class="p-4 text-center text-red-400 font-bold">Error cargando planilla de inventario: ${err.message}</div>`;
+        }
+      }
+    }
+
+    function stepItemPhysicalCount(itemKey, delta) {
+      if (!closingSheetData) return;
+      const it = (closingSheetData.items || []).find(x => x.item_key === itemKey);
+      if (!it) return;
+      const current = physicalInventoryState[itemKey] !== undefined ? physicalInventoryState[itemKey] : it.expected_stock;
+      const step = (it.unit === 'kg' || it.unit === 'lt') ? (delta * 0.5) : delta;
+      const nextVal = Math.max(0, Math.round((current + step) * 100) / 100);
+      physicalInventoryState[itemKey] = nextVal;
+      const inp = document.getElementById(`phys_input_${itemKey}`);
+      if (inp) inp.value = nextVal;
+      onPhysicalCountChange(itemKey, nextVal);
+    }
+
+    function filterClosingZone(zone) {
+      activeZoneFilter = zone;
+      const zones = ['all', 'vitrina', 'nevera', 'bodega', 'insumos'];
+      zones.forEach(z => {
+        const btn = document.getElementById(`zoneFilterBtn_${z}`);
+        if (!btn) return;
+        if (z === zone) {
+          btn.className = 'px-3 py-1.5 rounded-lg font-bold border transition bg-amber-500 text-slate-950 border-amber-400 shadow-sm';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-lg font-bold border transition bg-slate-800 text-slate-300 border-slate-700 hover:text-white';
+        }
+      });
+      renderClosingSheetItems(zone);
+    }
+
+    function renderClosingSheetItems(zoneFilter = 'all') {
+      const container = document.getElementById('closingZoneItemsContainer');
+      if (!container || !closingSheetData) return;
+
+      const items = (closingSheetData.items || []).filter(it => zoneFilter === 'all' || it.zone === zoneFilter);
+
+      if (items.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs">No hay ítems en esta zona.</div>`;
+        return;
+      }
+
+      container.innerHTML = '';
+
+      const zoneNames = {
+        'vitrina': '🍗 Vitrina Caliente (Presas Listas)',
+        'nevera': '🥤 Nevera Bebidas (Gaseosas)',
+        'bodega': '📦 Bodega (Frío / Seco)',
+        'insumos': '🥣 Insumos Principales (Cocina)'
+      };
+
+      let currentGroup = '';
+      items.forEach(it => {
+        if (zoneFilter === 'all' && it.zone !== currentGroup) {
+          currentGroup = it.zone;
+          const groupHeader = document.createElement('div');
+          groupHeader.className = 'text-xs font-black text-amber-400 uppercase tracking-wider pt-2 border-b border-slate-800 pb-1 flex items-center space-x-1.5';
+          groupHeader.innerHTML = `<span>${zoneNames[it.zone] || it.zone}</span>`;
+          container.appendChild(groupHeader);
+        }
+
+        const currentPhysical = physicalInventoryState[it.item_key] !== undefined ? physicalInventoryState[it.item_key] : it.expected_stock;
+        const diff = Math.round((currentPhysical - it.expected_stock) * 100) / 100;
+
+        let badgeHtml = '';
+        let shortageCop = 0;
+        if (diff === 0) {
+          badgeHtml = `<span id="phys_badge_${it.item_key}" class="px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-950/80 text-emerald-400 border border-emerald-700/60 shadow-sm">✅ 0 Cuadrado</span>`;
+        } else if (diff < 0) {
+          shortageCop = Math.abs(diff) * (it.unit_price || 0);
+          badgeHtml = `<span id="phys_badge_${it.item_key}" class="px-2.5 py-1 rounded-lg text-[10px] font-black bg-red-950/80 text-red-400 border border-red-700/60 animate-pulse shadow-sm">🔴 ${diff} Faltante</span>`;
+        } else {
+          badgeHtml = `<span id="phys_badge_${it.item_key}" class="px-2.5 py-1 rounded-lg text-[10px] font-black bg-amber-950/80 text-amber-400 border border-amber-700/60 shadow-sm">🟡 +${diff} Sobrante</span>`;
+        }
+
+        const row = document.createElement('div');
+        row.className = 'bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 hover:border-slate-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs';
+        row.innerHTML = `
+          <div class="flex-1 min-w-[200px]">
+            <div class="flex items-center space-x-2">
+              <span class="font-bold text-white text-sm">${it.name}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-900 text-slate-400 border border-slate-800">${it.unit}</span>
+            </div>
+            <div class="text-[11px] text-slate-400 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span>Esperado Teórico: <strong class="text-amber-300 font-black tabular-nums">${it.expected_stock}</strong></span>
+              <span>P. Venta: <strong class="text-slate-200 tabular-nums">${formatCOP(it.unit_price)}</strong></span>
+              <span id="phys_shortage_${it.item_key}" class="${diff < 0 ? 'text-red-400 font-black' : 'text-slate-500'}">
+                ${diff < 0 ? `Pérdida venta: -${formatCOP(shortageCop)}` : ''}
+              </span>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-3 self-end sm:self-auto select-none">
+            <div class="text-right">
+              ${badgeHtml}
+            </div>
+
+            <!-- Controles Táctiles para Tablet -->
+            <div class="flex items-center space-x-1 bg-slate-900 p-1 rounded-xl border border-slate-700">
+              <button type="button" onclick="stepItemPhysicalCount('${it.item_key}', -1)" class="w-10 h-10 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-black text-lg flex items-center justify-center transition shadow-sm" title="Restar 1">&minus;</button>
+              <input type="number" id="phys_input_${it.item_key}" step="${it.unit === 'kg' || it.unit === 'lt' ? '0.1' : '1'}" min="0" value="${currentPhysical}" oninput="onPhysicalCountChange('${it.item_key}', this.value)" class="w-20 h-10 bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-lg text-center font-black text-amber-400 text-base tabular-nums focus:outline-none shadow-inner">
+              <button type="button" onclick="stepItemPhysicalCount('${it.item_key}', 1)" class="w-10 h-10 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-black text-lg flex items-center justify-center transition shadow-sm" title="Sumar 1">&plus;</button>
+              <button type="button" onclick="copySingleItemExpected('${it.item_key}')" class="h-10 px-3 rounded-xl bg-cyan-700 hover:bg-cyan-600 active:scale-95 text-white font-black text-xs border border-cyan-500 transition shadow flex items-center space-x-1" title="Cuadrar con valor esperado">
+                <span>⚡</span>
+                <span class="text-[11px] font-bold">Cuadrar</span>
+              </button>
+            </div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function onPhysicalCountChange(itemKey, val) {
+      const num = val !== '' && !isNaN(val) ? parseFloat(val) : 0;
+      physicalInventoryState[itemKey] = num;
+
+      if (!closingSheetData) return;
+      const it = (closingSheetData.items || []).find(x => x.item_key === itemKey);
+      if (!it) return;
+
+      const diff = Math.round((num - it.expected_stock) * 100) / 100;
+      const badge = document.getElementById(`phys_badge_${itemKey}`);
+      const shortageEl = document.getElementById(`phys_shortage_${itemKey}`);
+
+      if (badge) {
+        if (diff === 0) {
+          badge.className = 'px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-950/80 text-emerald-400 border border-emerald-700/60 shadow-sm';
+          badge.innerHTML = '✅ 0 Cuadrado';
+        } else if (diff < 0) {
+          badge.className = 'px-2.5 py-1 rounded-lg text-[10px] font-black bg-red-950/80 text-red-400 border border-red-700/60 animate-pulse shadow-sm';
+          badge.innerHTML = `🔴 ${diff} Faltante`;
+        } else {
+          badge.className = 'px-2.5 py-1 rounded-lg text-[10px] font-black bg-amber-950/80 text-amber-400 border border-amber-700/60 shadow-sm';
+          badge.innerHTML = `🟡 +${diff} Sobrante`;
+        }
+      }
+
+      if (shortageEl) {
+        if (diff < 0) {
+          const shortageCop = Math.abs(diff) * (it.unit_price || 0);
+          shortageEl.className = 'text-red-400 font-black';
+          shortageEl.textContent = `Pérdida venta: -${formatCOP(shortageCop)}`;
+        } else {
+          shortageEl.className = 'text-slate-500';
+          shortageEl.textContent = '';
+        }
+      }
+
+      updateStep2Summaries();
+    }
+
+    function copySingleItemExpected(itemKey) {
+      if (!closingSheetData) return;
+      const it = (closingSheetData.items || []).find(x => x.item_key === itemKey);
+      if (!it) return;
+      physicalInventoryState[itemKey] = it.expected_stock;
+      const inp = document.getElementById(`phys_input_${itemKey}`);
+      if (inp) inp.value = it.expected_stock;
+      onPhysicalCountChange(itemKey, it.expected_stock);
+    }
+
+    function copyAllExpectedToPhysical() {
+      if (!closingSheetData) return;
+      (closingSheetData.items || []).forEach(it => {
+        physicalInventoryState[it.item_key] = it.expected_stock;
+        const inp = document.getElementById(`phys_input_${it.item_key}`);
+        if (inp) inp.value = it.expected_stock;
+      });
+      renderClosingSheetItems(activeZoneFilter);
+      updateStep2Summaries();
+    }
+
+    function updateStep2Summaries() {
+      if (!closingSheetData) return;
+      const items = closingSheetData.items || [];
+      let countedCount = 0;
+      let missingUnits = 0;
+      let totalShortagePrice = 0;
+      let totalCostImpact = 0;
+
+      items.forEach(it => {
+        const val = physicalInventoryState[it.item_key];
+        if (val !== undefined) countedCount++;
+        const phys = val !== undefined ? val : it.expected_stock;
+        const diff = phys - it.expected_stock;
+        if (diff < 0) {
+          const missing = Math.abs(diff);
+          missingUnits += missing;
+          totalShortagePrice += missing * (it.unit_price || 0);
+          totalCostImpact += missing * (it.cost_unit || 0);
+        }
+      });
+
+      const elCounted = document.getElementById('closeStep2CountedSummary');
+      const elMissing = document.getElementById('closeStep2MissingUnits');
+      const elShortage = document.getElementById('closeStep2ShortageImpact');
+
+      if (elCounted) elCounted.textContent = `${countedCount} / ${items.length}`;
+      if (elMissing) elMissing.textContent = `${missingUnits % 1 === 0 ? missingUnits : missingUnits.toFixed(1)} unds`;
+      if (elShortage) elShortage.textContent = formatCOP(totalShortagePrice) + ' COP';
+    }
+
+    function goToClosingStep(step) {
+      if (step === 2 && currentClosingStep === 1) {
+        const actualInput = document.getElementById('closeActualCash');
+        const val = actualInput ? actualInput.value.trim() : '';
+        if (val === '' || isNaN(val) || parseInt(val, 10) < 0) {
+          alert('Por favor ingresa un monto válido de efectivo físico contado en cajón.');
+          if (actualInput) actualInput.focus();
+          return;
+        }
+      }
+
+      if (step === 3) {
+        compileStep3ExecutiveSummary();
+      }
+
+      currentClosingStep = step;
+
+      const c1 = document.getElementById('closingStepContainer1');
+      const c2 = document.getElementById('closingStepContainer2');
+      const c3 = document.getElementById('closingStepContainer3');
+      if (c1) c1.classList.toggle('hidden', step !== 1);
+      if (c2) c2.classList.toggle('hidden', step !== 2);
+      if (c3) c3.classList.toggle('hidden', step !== 3);
+
+      for (let s = 1; s <= 3; s++) {
+        const tab = document.getElementById(`stepTabBtn${s}`);
+        if (!tab) continue;
+        if (s === step) {
+          tab.className = 'py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-1.5 border bg-amber-500 text-slate-950 border-amber-400 shadow-md';
+        } else if (s < step) {
+          tab.className = 'py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-1.5 border bg-emerald-950/80 text-emerald-400 border-emerald-600/60';
+        } else {
+          tab.className = 'py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center space-x-1.5 border bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200';
+        }
+      }
+
+      const btnPrev = document.getElementById('btnClosingPrev');
+      const btnCancel = document.getElementById('btnClosingCancel');
+      const btnNext = document.getElementById('btnClosingNext');
+      const btnSubmit = document.getElementById('btnClosingSubmit');
+
+      if (step === 1) {
+        if (btnPrev) btnPrev.classList.add('hidden');
+        if (btnCancel) btnCancel.classList.remove('hidden');
+        if (btnNext) {
+          btnNext.classList.remove('hidden');
+          btnNext.innerHTML = `<span>Siguiente: Conteo Físico</span><span>➡️</span>`;
+        }
+        if (btnSubmit) btnSubmit.classList.add('hidden');
+      } else if (step === 2) {
+        if (btnPrev) btnPrev.classList.remove('hidden');
+        if (btnCancel) btnCancel.classList.add('hidden');
+        if (btnNext) {
+          btnNext.classList.remove('hidden');
+          btnNext.innerHTML = `<span>Siguiente: Conciliación Cruzada</span><span>➡️</span>`;
+        }
+        if (btnSubmit) btnSubmit.classList.add('hidden');
+      } else if (step === 3) {
+        if (btnPrev) btnPrev.classList.remove('hidden');
+        if (btnCancel) btnCancel.classList.add('hidden');
+        if (btnNext) btnNext.classList.add('hidden');
+        if (btnSubmit) btnSubmit.classList.remove('hidden');
+      }
+    }
+
+    function onClosingPrevClick() {
+      if (currentClosingStep > 1) {
+        goToClosingStep(currentClosingStep - 1);
+      }
+    }
+
+    function onClosingNextClick() {
+      if (currentClosingStep < 3) {
+        goToClosingStep(currentClosingStep + 1);
+      }
+    }
+
+    function compileStep3ExecutiveSummary() {
+      const actualCash = parseInt(document.getElementById('closeActualCash')?.value || 0, 10);
+      const expectedCash = currentDailyData?.cash_reconciliation?.expected_cash || 0;
+      const cashDiff = actualCash - expectedCash;
+      const totalSales = currentDailyData?.cash_summary?.gran_total || 0;
+
+      const items = closingSheetData?.items || [];
+      let missingUnits = 0;
+      let totalShortagePrice = 0;
+      let totalCostImpact = 0;
+      let balancedCount = 0;
+
+      items.forEach(it => {
+        const phys = physicalInventoryState[it.item_key] !== undefined ? physicalInventoryState[it.item_key] : it.expected_stock;
+        const diff = phys - it.expected_stock;
+        if (diff < 0) {
+          const m = Math.abs(diff);
+          missingUnits += m;
+          totalShortagePrice += m * (it.unit_price || 0);
+          totalCostImpact += m * (it.cost_unit || 0);
+        } else if (diff === 0) {
+          balancedCount++;
+        }
+      });
+
+      const elSales = document.getElementById('closeStep3TotalSales');
+      const elActual = document.getElementById('closeStep3ActualCash');
+      const elDiff = document.getElementById('closeStep3CashDiff');
+      const elDiffSub = document.getElementById('closeStep3CashDiffSub');
+
+      if (elSales) elSales.textContent = formatCOP(totalSales);
+      if (elActual) elActual.textContent = formatCOP(actualCash);
+      if (elDiff) {
+        elDiff.textContent = (cashDiff >= 0 ? '+' : '-') + formatCOP(Math.abs(cashDiff));
+        elDiff.className = `text-lg font-black tabular-nums ${cashDiff === 0 ? 'text-emerald-400' : (cashDiff < 0 ? 'text-red-400' : 'text-sky-400')}`;
+      }
+      if (elDiffSub) {
+        elDiffSub.textContent = cashDiff === 0 ? 'Cuadrada Exacta' : (cashDiff < 0 ? 'Faltante en cajón' : 'Sobrante en cajón');
+        elDiffSub.className = `text-[10px] font-bold ${cashDiff === 0 ? 'text-emerald-400' : (cashDiff < 0 ? 'text-red-400' : 'text-sky-400')}`;
+      }
+
+      const elInvStatus = document.getElementById('closeStep3InvStatus');
+      const elInvSub = document.getElementById('closeStep3InvStatusSub');
+      const elShortage = document.getElementById('closeStep3ShortageImpact');
+      const elCostSub = document.getElementById('closeStep3CostImpactSub');
+
+      if (elInvStatus) elInvStatus.textContent = `${balancedCount} de ${items.length} ítems cuadrados`;
+      if (elInvSub) elInvSub.textContent = missingUnits === 0 ? 'Cero mermas ni faltantes' : `${missingUnits % 1 === 0 ? missingUnits : missingUnits.toFixed(1)} unidades faltantes`;
+      if (elShortage) {
+        elShortage.textContent = formatCOP(totalShortagePrice) + ' COP';
+        elShortage.className = `text-base font-black tabular-nums ${missingUnits === 0 ? 'text-emerald-400' : 'text-red-400'}`;
+      }
+      if (elCostSub) elCostSub.textContent = `Costo de reposición: ${formatCOP(totalCostImpact)} COP`;
+
+      const card = document.getElementById('closeStep3VerdictCard');
+      const title = document.getElementById('closeStep3VerdictTitle');
+      const desc = document.getElementById('closeStep3VerdictDesc');
+
+      if (card && title && desc) {
+        if (cashDiff === 0 && missingUnits === 0) {
+          card.className = 'p-4 rounded-xl border-2 text-xs font-bold transition bg-emerald-950/60 border-emerald-500 text-emerald-300';
+          title.textContent = '✅ CUADRE TOTAL PERFECTO (100% CONCILIADO)';
+          desc.textContent = 'El efectivo en cajón cuadra con la venta registrada y las 20 existencias físicas coinciden exactamente con la planilla de inventario.';
+        } else if (cashDiff < 0 && missingUnits === 0) {
+          card.className = 'p-4 rounded-xl border-2 text-xs font-bold transition bg-amber-950/60 border-amber-500 text-amber-300';
+          title.textContent = '⚠️ FALTANTE EN CAJA (INVENTARIO FÍSICO CUADRADO)';
+          desc.textContent = `Se detecta un faltante de efectivo de -${formatCOP(Math.abs(cashDiff))}. Todo el producto está físicamente en el local; verificar posibles errores de cobro o retiros no autorizados.`;
+        } else if (cashDiff === 0 && missingUnits > 0) {
+          card.className = 'p-4 rounded-xl border-2 text-xs font-bold transition bg-orange-950/60 border-orange-500 text-orange-300';
+          title.textContent = '⚠️ MERMA DE INVENTARIO DETECTADA (CAJA CUADRADA)';
+          desc.textContent = `El dinero en caja está exacto, pero faltan ${missingUnits} unds de producto por valor comercial de ${formatCOP(totalShortagePrice)}. Posible consumo interno no registrado o merma en cocina.`;
+        } else if (cashDiff < 0 && missingUnits > 0) {
+          card.className = 'p-4 rounded-xl border-2 text-xs font-bold transition bg-red-950/70 border-red-500 text-red-300 animate-pulse';
+          title.textContent = '🚨 DESCUADRE MIXTO CRÍTICO (FALTANTE DE CAJA Y MERMA)';
+          desc.textContent = `Alerta para socios: Faltan -${formatCOP(Math.abs(cashDiff))} en efectivo y faltan ${missingUnits} unds de producto (${formatCOP(totalShortagePrice)}). Requiere auditoría inmediata de seguridad y turnos.`;
+        } else {
+          card.className = 'p-4 rounded-xl border-2 text-xs font-bold transition bg-sky-950/60 border-sky-500 text-sky-300';
+          title.textContent = '⚠️ SOBRANTE DE CAJA REGISTRADO';
+          desc.textContent = `Se cuenta con un excedente de +${formatCOP(cashDiff)} respecto al sistema.`;
+        }
+      }
+    }
+
+    async function submitCompleteClosing() {
+      const actualCash = parseInt(document.getElementById('closeActualCash')?.value, 10);
+      const notes = document.getElementById('closeNotes')?.value.trim() || '';
+      const adjustInventory = document.getElementById('closeAdjustInventory')?.checked || false;
+
+      if (isNaN(actualCash) || actualCash < 0) {
+        alert('Por favor ingresa un monto válido de efectivo físico en el Paso 1.');
+        goToClosingStep(1);
+        return;
+      }
+
+      const inventory_counts = [];
+      const items = closingSheetData?.items || [];
+      items.forEach(it => {
+        const phys = physicalInventoryState[it.item_key] !== undefined ? physicalInventoryState[it.item_key] : it.expected_stock;
+        inventory_counts.push({
+          item_key: it.item_key,
+          item_name: it.name,
+          zone: it.zone,
+          expected_stock: it.expected_stock,
+          physical_stock: phys,
+          physical_count: phys,
+          unit: it.unit
+        });
+      });
+
+      const btnSubmit = document.getElementById('btnClosingSubmit');
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = `<span>⏳</span><span>EMITIENDO COMPROBANTE...</span>`;
+      }
+
+      try {
+        const res = await fetch('/api/cash/close-shift', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            actual_cash: actualCash,
+            inventory_counts: inventory_counts,
+            adjust_inventory_to_physical: adjustInventory,
+            notes: notes
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Error al cerrar el turno');
+
+        closeModal('closeShiftModal');
+
+        if (data.receipt) {
+          openDigitalReceiptModal(data.receipt);
+        } else {
+          alert('✅ ' + data.message);
+        }
+
+        loadDailySummary();
+        if (typeof loadDailyReconciliation === 'function') {
+          loadDailyReconciliation();
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = `<span>🏁</span><span>FINALIZAR CIERRE Y EMITIR COMPROBANTE</span>`;
+        }
+      }
+    }
+
+    function submitCloseShift() {
+      return submitCompleteClosing();
+    }
+
+    function openDigitalReceiptModal(receipt) {
+      if (!receipt) return;
+      const codeHeader = document.getElementById('receiptCodeHeader');
+      if (codeHeader) codeHeader.textContent = receipt.receipt_code;
+
+      const printable = document.getElementById('printableReceiptArea');
+      if (!printable) return;
+
+      const dateStr = receipt.date_str || '';
+      const closedAt = receipt.closed_at ? receipt.closed_at.replace('T', ' ').slice(0, 19) : '';
+      const diffCash = receipt.cash_difference || 0;
+      const diffSign = diffCash >= 0 ? '+' : '-';
+
+      const crossStatus = receipt.cross_reconciliation_status || receipt.reconciliation_status || 'cuadrada_total';
+      const statusBadges = {
+        'cuadrada_total': '✅ CUADRE TOTAL PERFECTO',
+        'faltante_efectivo': '⚠️ FALTANTE EN CAJA',
+        'merma_inventario': '⚠️ MERMA EN INVENTARIO',
+        'descuadre_mixto': '🚨 DESCUADRE MIXTO CRÍTICO'
+      };
+      const statusTitle = statusBadges[crossStatus] || crossStatus;
+
+      let diffItemsHtml = '';
+      const items = receipt.inventory_breakdown || receipt.inventory_snapshot || [];
+      const discrepant = items.filter(it => {
+        const d = it.difference !== undefined ? it.difference : (it.diff !== undefined ? it.diff : ((it.physical_count !== undefined ? it.physical_count : it.physical_stock) - it.expected_stock));
+        return Math.abs(d) > 0.001;
+      });
+
+      if (discrepant.length === 0) {
+        diffItemsHtml = `<div class="text-emerald-400 text-[11px] py-1">✅ Todas las 20 referencias cuadraron exactamente (0 discrepancias).</div>`;
+      } else {
+        diffItemsHtml = discrepant.map(it => {
+          const d = it.difference !== undefined ? it.difference : (it.diff !== undefined ? it.diff : ((it.physical_count !== undefined ? it.physical_count : it.physical_stock) - it.expected_stock));
+          const shortageVal = it.shortage_economic_impact_cop || it.shortage_cop || (d < 0 ? Math.abs(d) * (it.unit_price || 0) : 0);
+          const physCount = it.physical_count !== undefined ? it.physical_count : (it.physical_stock !== undefined ? it.physical_stock : 0);
+          return `
+            <div class="flex items-center justify-between py-1 border-b border-slate-800 text-[11px]">
+              <div>
+                <span class="text-white font-bold">${it.item_name || it.name || it.item_key}</span>
+                <span class="text-slate-400 block text-[10px]">Esp: ${it.expected_stock} | Fís: ${physCount} (${it.unit || 'und'})</span>
+              </div>
+              <div class="text-right">
+                <span class="${d < 0 ? 'text-red-400 font-black' : 'text-amber-400 font-black'}">${d > 0 ? '+' : ''}${d}</span>
+                ${shortageVal > 0 ? `<span class="block text-[10px] text-red-400 font-bold">-${formatCOP(shortageVal)}</span>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const totalSalesVal = receipt.total_sales !== undefined ? receipt.total_sales : (receipt.gran_total_sales || 0);
+      const digitalSalesVal = receipt.digital_sales !== undefined ? receipt.digital_sales : (receipt.nequi_daviplata || 0);
+      const datafonoSalesVal = receipt.datafono_sales !== undefined ? receipt.datafono_sales : (receipt.datafono || 0);
+      const missingUnitsVal = receipt.total_missing_units !== undefined ? receipt.total_missing_units : (receipt.missing_inventory_units || 0);
+      const shortageCopVal = receipt.shortage_economic_impact_cop !== undefined ? receipt.shortage_economic_impact_cop : (receipt.inventory_shortage_cop || 0);
+      const costCopVal = receipt.shortage_cost_impact_cop !== undefined ? receipt.shortage_cost_impact_cop : (receipt.cost_shortage_cop || 0);
+
+      printable.innerHTML = `
+        <div class="text-center border-b border-slate-700 pb-3 space-y-1">
+          <div class="text-lg font-black text-amber-400 tracking-wider">POLLO APANADO</div>
+          <div class="text-[11px] text-slate-300 font-bold">COMPROBANTE OFICIAL DE CIERRE DIARIO</div>
+          <div class="text-xs text-emerald-400 font-black tracking-widest">${receipt.receipt_code}</div>
+          <div class="text-[10px] text-slate-400">Fecha Cierre: ${closedAt || dateStr}</div>
+          <div class="text-[10px] text-slate-400">Turno: ${receipt.shift_code || ('TURNO-' + (receipt.shift_id || ''))} | Cajero: <strong class="text-white">${receipt.cashier_name || '--'}</strong></div>
+        </div>
+
+        <div class="space-y-1 border-b border-slate-800 pb-2.5 pt-1">
+          <div class="text-[11px] font-black text-amber-300 uppercase">1. ARQUEO FINANCIERO DE EFECTIVO</div>
+          <div class="flex justify-between text-[11px] text-slate-300">
+            <span>(+) Base Inicial:</span>
+            <span class="font-bold tabular-nums">${formatCOP(receipt.base_inicial)}</span>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-300">
+            <span>(+) Ventas Efectivo:</span>
+            <span class="font-bold text-emerald-400 tabular-nums">${formatCOP(receipt.cash_sales)}</span>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-300">
+            <span>(-) Gastos Menores:</span>
+            <span class="font-bold text-red-400 tabular-nums">-${formatCOP(receipt.total_expenses)}</span>
+          </div>
+          <div class="flex justify-between text-xs font-black text-slate-100 border-t border-slate-800 pt-1">
+            <span>(=) Efectivo Esperado:</span>
+            <span class="tabular-nums">${formatCOP(receipt.expected_cash)}</span>
+          </div>
+          <div class="flex justify-between text-xs font-black text-emerald-300">
+            <span>Efectivo Físico Entregado:</span>
+            <span class="tabular-nums">${formatCOP(receipt.actual_cash)}</span>
+          </div>
+          <div class="flex justify-between text-xs font-black ${diffCash === 0 ? 'text-emerald-400' : (diffCash < 0 ? 'text-red-400' : 'text-amber-400')} pt-1 border-t border-dashed border-slate-800">
+            <span>Diferencia Neta Caja:</span>
+            <span class="tabular-nums">${diffSign}${formatCOP(Math.abs(diffCash))}</span>
+          </div>
+        </div>
+
+        <div class="space-y-1 border-b border-slate-800 pb-2.5">
+          <div class="text-[11px] font-black text-amber-300 uppercase">2. VENTAS TOTALES POR MÉTODO DE PAGO</div>
+          <div class="flex justify-between text-[11px] text-slate-300">
+            <span>Efectivo en Caja:</span>
+            <span class="tabular-nums">${formatCOP(receipt.cash_sales)}</span>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-300">
+            <span>Nequi / Daviplata:</span>
+            <span class="tabular-nums">${formatCOP(digitalSalesVal)}</span>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-300">
+            <span>Datáfono / Tarjetas:</span>
+            <span class="tabular-nums">${formatCOP(datafonoSalesVal)}</span>
+          </div>
+          <div class="flex justify-between text-xs font-black text-amber-400 border-t border-slate-800 pt-1">
+            <span>GRAN TOTAL FACTURADO:</span>
+            <span class="tabular-nums">${formatCOP(totalSalesVal)}</span>
+          </div>
+        </div>
+
+        <div class="space-y-1 border-b border-slate-800 pb-2.5">
+          <div class="text-[11px] font-black text-amber-300 uppercase">3. AUDITORÍA FÍSICA DE INVENTARIO (4 ZONAS)</div>
+          <div class="flex justify-between text-[11px] text-slate-300">
+            <span>Ítems Auditados:</span>
+            <span class="font-bold text-white">${receipt.total_items_counted || 20} referencias</span>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-300">
+            <span>Unidades Faltantes:</span>
+            <span class="font-bold ${missingUnitsVal > 0 ? 'text-red-400' : 'text-emerald-400'}">${missingUnitsVal || 0} unds</span>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-300">
+            <span>Impacto en Ventas de la Merma:</span>
+            <span class="font-bold text-red-400 tabular-nums">${formatCOP(shortageCopVal)} COP</span>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-300">
+            <span>Costo de Reposición (Insumos):</span>
+            <span class="font-bold text-slate-300 tabular-nums">${formatCOP(costCopVal)} COP</span>
+          </div>
+          <div class="pt-1.5 space-y-1">
+            <div class="text-[10px] uppercase font-bold text-slate-400">Discrepancias detectadas:</div>
+            ${diffItemsHtml}
+          </div>
+        </div>
+
+        <div class="space-y-1 pt-1">
+          <div class="p-2.5 rounded-lg border text-center ${crossStatus === 'cuadrada_total' ? 'bg-emerald-950/60 border-emerald-500 text-emerald-300' : (crossStatus === 'descuadre_mixto' ? 'bg-red-950/80 border-red-500 text-red-300' : 'bg-amber-950/60 border-amber-500 text-amber-300')}">
+            <div class="text-xs font-black uppercase">${statusTitle}</div>
+            <div class="text-[10px] text-slate-300 mt-0.5">Inventario del sistema ${receipt.adjusted_inventory || receipt.adjust_inventory_to_physical ? 'calibrado a existencias físicas' : 'mantenido sin calibrar'}.</div>
+          </div>
+          ${receipt.notes ? `<div class="text-[10px] text-slate-400 italic pt-1">Notas: "${receipt.notes}"</div>` : ''}
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 pt-6 text-center text-[10px] text-slate-400">
+          <div class="border-t border-slate-700 pt-1">
+            <span class="font-bold text-slate-200 block">${receipt.cashier_name || 'Cajero'}</span>
+            <span>Cajero Responsable</span>
+          </div>
+          <div class="border-t border-slate-700 pt-1">
+            <span class="font-bold text-slate-200 block">Administración</span>
+            <span>Auditor / Socio</span>
+          </div>
+        </div>
+      `;
+
+      openModal('digitalClosingReceiptModal');
+    }
+
+    function printClosingReceipt() {
+      const printable = document.getElementById('printableReceiptArea');
+      if (!printable) return;
+      const printWin = window.open('', '_blank', 'width=450,height=650');
+      if (printWin) {
+        printWin.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Comprobante de Cierre</title>
+            <style>
+              body { font-family: monospace; font-size: 11px; padding: 15px; color: #000; background: #fff; margin: 0; }
+              .text-center { text-align: center; }
+              .flex { display: flex; }
+              .justify-between { justify-content: space-between; }
+              .font-bold { font-weight: bold; }
+              .font-black { font-weight: 900; }
+              .text-xs { font-size: 11px; }
+              .text-[10px] { font-size: 10px; }
+              .border-b { border-bottom: 1px dashed #666; }
+              .border-t { border-top: 1px dashed #666; }
+              .pb-2 { padding-bottom: 8px; }
+              .pt-2 { padding-top: 8px; }
+              .space-y-1 > * + * { margin-top: 4px; }
+              .grid { display: grid; }
+              .grid-cols-2 { grid-template-columns: 1fr 1fr; }
+              .gap-4 { gap: 16px; }
+            </style>
+          </head>
+          <body>
+            ${printable.innerHTML}
+          </body>
+          </html>
+        `);
+        printWin.document.close();
+        printWin.focus();
+        setTimeout(() => {
+          printWin.print();
+          printWin.close();
+        }, 250);
+      } else {
+        window.print();
+      }
+    }
+
+    async function openClosingReceiptsHistoryModal() {
+      const tbody = document.getElementById('closingReceiptsHistoryTableBody');
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="8" class="py-4 text-center text-slate-400">Consultando historial de comprobantes...</td></tr>`;
+      }
+      openModal('closingReceiptsHistoryModal');
+
+      try {
+        const res = await fetch('/api/cash/closing-receipts');
+        if (!res.ok) throw new Error('Error al cargar comprobantes');
+        const data = await res.json();
+        const receipts = data.receipts || (Array.isArray(data) ? data : []);
+
+        if (!tbody) return;
+        if (!receipts || receipts.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" class="py-4 text-center text-slate-400">No hay comprobantes de cierre registrados todavía.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = '';
+        receipts.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-800/40 transition';
+
+          const diffVal = r.cash_difference || 0;
+          let diffClass = 'text-emerald-400';
+          let diffText = '$ 0';
+          if (diffVal < 0) {
+            diffClass = 'text-red-400 font-bold';
+            diffText = `-${formatCOP(Math.abs(diffVal))}`;
+          } else if (diffVal > 0) {
+            diffClass = 'text-amber-400 font-bold';
+            diffText = `+${formatCOP(diffVal)}`;
+          }
+
+          const crossStatus = r.cross_reconciliation_status || r.reconciliation_status;
+          let statusBadge = '';
+          if (crossStatus === 'cuadrada_total') {
+            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">✅ Cuadrada</span>`;
+          } else if (crossStatus === 'faltante_efectivo') {
+            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/40">⚠️ Falt. Efectivo</span>`;
+          } else if (crossStatus === 'merma_inventario') {
+            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-500/20 text-orange-400 border border-orange-500/40">⚠️ Merma Inv.</span>`;
+          } else {
+            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-500/20 text-red-400 border border-red-500/40">🚨 Descuadre Mixto</span>`;
+          }
+
+          const missingUnits = r.total_missing_units !== undefined ? r.total_missing_units : (r.missing_inventory_units || 0);
+          const invText = missingUnits > 0 ? `<span class="text-red-400 font-bold">🔴 -${missingUnits} unds</span>` : `<span class="text-emerald-400">✅ 0</span>`;
+          const totalSalesVal = r.total_sales !== undefined ? r.total_sales : (r.gran_total_sales || 0);
+
+          tr.innerHTML = `
+            <td class="py-2.5 px-3 font-mono font-black text-amber-400 text-xs">${r.receipt_code}</td>
+            <td class="py-2.5 px-3 text-slate-300 text-xs">${(r.closed_at || r.date_str || '').slice(0, 16).replace('T', ' ')}</td>
+            <td class="py-2.5 px-3 text-white font-bold text-xs">${r.cashier_name}</td>
+            <td class="py-2.5 px-3 text-right font-bold text-amber-300 text-xs tabular-nums">${formatCOP(totalSalesVal)}</td>
+            <td class="py-2.5 px-3 text-right ${diffClass} text-xs tabular-nums">${diffText}</td>
+            <td class="py-2.5 px-3 text-center text-xs">${invText}</td>
+            <td class="py-2.5 px-3 text-center">${statusBadge}</td>
+            <td class="py-2.5 px-3 text-center">
+              <button onclick="loadAndShowReceipt('${r.receipt_code}')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-[11px] transition shadow">
+                Ver 🧾
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        if (tbody) {
+          tbody.innerHTML = `<tr><td colspan="8" class="py-4 text-center text-red-400">Error: ${err.message}</td></tr>`;
+        }
+      }
+    }
+
+    async function loadAndShowReceipt(codeOrId) {
+      try {
+        const res = await fetch(`/api/cash/closing-receipt/${codeOrId}`);
+        if (!res.ok) throw new Error('Error al cargar comprobante');
+        const data = await res.json();
+        const receipt = data.receipt || data;
+        openDigitalReceiptModal(receipt);
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
     }
 
     async function openVitrinaAuditModal() {
@@ -784,27 +1869,6 @@
         console.error(e);
       }
       openModal('vitrinaAuditModal');
-    }
-
-    function calculateClosingDiffPreview() {
-      const actual = parseInt(document.getElementById('closeActualCash').value || 0, 10);
-      const expected = currentDailyData?.cash_reconciliation?.expected_cash || 0;
-      const diff = actual - expected;
-
-      const previewBox = document.getElementById('closeDiffPreviewBox');
-      const previewText = document.getElementById('closeDiffPreviewText');
-      previewBox.classList.remove('hidden');
-
-      if (diff === 0) {
-        previewText.textContent = '✅ $ 0 (Caja Cuadrada Exacta)';
-        previewText.className = 'font-black text-sm text-emerald-400 tabular-nums';
-      } else if (diff < 0) {
-        previewText.textContent = `🚨 Faltante: -${formatCOP(Math.abs(diff))}`;
-        previewText.className = 'font-black text-sm text-red-400 tabular-nums';
-      } else {
-        previewText.textContent = `⚠️ Sobrante: +${formatCOP(diff)}`;
-        previewText.className = 'font-black text-sm text-sky-400 tabular-nums';
-      }
     }
 
     async function submitOpenShift() {
@@ -855,32 +1919,6 @@
         if (!res.ok) throw new Error(data.detail || "Error al registrar gasto");
 
         closeModal('expenseModal');
-        alert("✅ " + data.message);
-        loadDailySummary();
-      } catch (err) {
-        alert("Error: " + err.message);
-      }
-    }
-
-    async function submitCloseShift() {
-      const actual_cash = parseInt(document.getElementById('closeActualCash').value, 10);
-      const notes = document.getElementById('closeNotes').value.trim();
-
-      if (isNaN(actual_cash) || actual_cash < 0) {
-        alert("Por favor ingresa el monto total de efectivo contado en cajón.");
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/cash/close-shift', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ actual_cash, notes })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "Error al cerrar turno");
-
-        closeModal('closeShiftModal');
         alert("✅ " + data.message);
         loadDailySummary();
       } catch (err) {
@@ -966,7 +2004,6 @@
 
         // 2. Tarjetas superiores
         document.getElementById('statTotalSales').textContent = formatCOP(data.cash_summary.gran_total);
-        document.getElementById('statEstimatedMargin').textContent = formatCOP(data.estimated_margin);
         document.getElementById('statTicketsCount').textContent = `${data.cash_summary.total_tickets} ventas registradas hoy`;
         document.getElementById('statEfectivo').textContent = formatCOP(data.cash_reconciliation.expected_cash);
         document.getElementById('statNequi').textContent = formatCOP(data.cash_summary.nequi_daviplata);
@@ -999,8 +2036,8 @@
             reconcilBadge.textContent = '🚨 Descuadre (Faltante)';
           } else {
             diffEl.textContent = `⚠️ Sobrante: +${formatCOP(rec.difference)}`;
-            diffEl.className = 'font-black text-sm text-sky-400 tabular-nums';
-            reconcilBadge.className = 'text-xs font-black px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40 uppercase';
+            diffEl.className = 'font-black text-sm text-amber-400 tabular-nums';
+            reconcilBadge.className = 'text-xs font-black px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase';
             reconcilBadge.textContent = '⚠️ Sobrante';
           }
         } else {
@@ -1019,31 +2056,7 @@
         // 6. Renderizar Desglose Exhaustivo de Productos (R2)
         renderProductBreakdown(data.product_breakdown, data.cash_summary.gran_total);
 
-        // 7. Termómetro Punto de Equilibrio
-        const pct = data.breakeven_percentage;
-        document.getElementById('breakevenPercentText').textContent = `${pct}%`;
-        const bar = document.getElementById('breakevenBar');
-        bar.style.width = `${Math.min(100, pct)}%`;
-        const beBadge = document.getElementById('breakevenStatusBadge');
-        if (pct >= 100) {
-          beBadge.className = "text-xs font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 ml-2";
-          beBadge.textContent = "¡META CUBIERTA!";
-          bar.className = "bg-emerald-500 h-full rounded-full transition-all duration-500";
-        } else {
-          beBadge.className = "text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 ml-2";
-          const pending = Math.max(0, data.daily_breakeven_target - data.estimated_margin);
-          beBadge.textContent = `Faltan ${formatCOP(pending)} de margen`;
-          bar.className = "bg-amber-500 h-full rounded-full transition-all duration-500";
-        }
 
-        // 8. Reparto de Socios (oculto en vista de caja)
-        const part = data.partner_distribution || {};
-        if (document.getElementById('partner1Share')) {
-          document.getElementById('partner1Share').textContent = formatCOP(part.partner_1_capital_40pct || 0);
-          document.getElementById('partner2Share').textContent = formatCOP(part.partner_2_capital_40pct || 0);
-          document.getElementById('partnerSantiagoShare').textContent = formatCOP(part.partner_santiago_operativo_20pct || 0);
-          document.getElementById('reserveFundShare').textContent = formatCOP(part.reserve_fund_5pct || 0);
-        }
 
         // 9. Alertas de Stock Bajo
         const alertsCont = document.getElementById('alertsContainer');
@@ -1113,7 +2126,7 @@
                 ALERTA ROJA DE SEGURIDAD ANTIFRAUDE: ${audit.total_cancelled_count} VENTA(S) ANULADA(S)
               </h3>
               <p class="text-xs text-red-200/90 font-medium">
-                ⚠️ ATENCIÓN SOCIOS: Se devolvió un total de <strong>${formatCOP(audit.total_refunded_cop)}</strong>. Verifiquen de inmediato que este dinero no haya sido sustraído del cajón y que las presas reingresadas estén físicamente en la vitrina.
+                ⚠️ ALERTA DE SEGURIDAD ANTIFRAUDE: Se devolvió un total de <strong>${formatCOP(audit.total_refunded_cop)}</strong>. Verifiquen de inmediato que este dinero no haya sido sustraído del cajón y que las presas reingresadas estén físicamente en la vitrina.
               </p>
             </div>
           </div>

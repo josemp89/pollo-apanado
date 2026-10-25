@@ -229,7 +229,7 @@ def set_initial_stock(payload: SetInitialStockRequest):
 
             loc = item.location
             inv_match = cursor.execute("""
-                SELECT item_key, name, item_name, location, category FROM inventory 
+                SELECT id, item_key, name, item_name, location, category FROM inventory 
                 WHERE (
                     item_name = ? OR name = ? OR item_key = ? 
                     OR LOWER(item_name) = LOWER(?) OR LOWER(name) = LOWER(?) OR LOWER(item_key) = LOWER(?)

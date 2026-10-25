@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, RedirectResponse
 from app.database import init_db
 from app.routers import pos, kitchen, cash, inventory
 
@@ -60,9 +60,9 @@ def health_check():
 def get_pos_view(request: Request):
     return templates.TemplateResponse(request=request, name="index.html", context={"view": "pos"})
 
-@app.get("/cocina", response_class=HTMLResponse)
-def get_kitchen_view(request: Request):
-    return templates.TemplateResponse(request=request, name="kitchen.html", context={"view": "kitchen"})
+@app.get("/cocina")
+def get_kitchen_view(request: Request = None):
+    return RedirectResponse(url="/", status_code=307)
 
 @app.get("/caja", response_class=HTMLResponse)
 def get_cash_view(request: Request):
