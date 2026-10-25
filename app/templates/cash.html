@@ -440,224 +440,163 @@
 
   <!-- ==================== MODALES OPERATIVOS ==================== -->
 
-  <!-- MODAL: SACAR POLLO DE BODEGA A VITRINA (DESPIECE / SURTIDO) -->
+  <!-- MODAL: PASAR PRESAS DE NEVERA A VITRINA CALIENTE (DESDE CAJA) -->
   <div id="modalSacarPolloCash" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
     <div class="bg-slate-900 border border-amber-500/50 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4 animate-scale-up my-auto">
       <div class="flex items-center justify-between border-b border-slate-800 pb-2">
         <h3 class="font-black text-base text-amber-400 flex items-center space-x-2">
           <span>🍗</span>
-          <span>Surtir Pollo a Vitrina Caliente</span>
+          <span>Pasar Presas a Vitrina Caliente</span>
         </h3>
         <button onclick="closeSacarPolloCashModal()" class="text-slate-400 hover:text-white font-bold text-xl select-none">&times;</button>
       </div>
 
-      <!-- Selector de Modo / Pestañas -->
-      <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
-        <button type="button" id="tabBtnSurtirCashPollos" onclick="switchSurtirCashTab('pollos')" class="py-2 px-3 rounded-lg text-xs font-black transition border bg-amber-500 text-slate-950 border-amber-400 shadow-sm flex items-center justify-center space-x-1.5">
-          <span>🍗</span>
-          <span>Pollos Enteros (Mañana)</span>
+      <p class="text-xs text-slate-300">
+        Saca presas de las <strong>4 canecas adobadas en nevera</strong> para freír y abastecer la vitrina caliente. Se descuentan automáticamente de Nevera y se suman a Vitrina.
+      </p>
+
+      <!-- Estado en tiempo real de las 4 Canecas en Nevera -->
+      <div class="grid grid-cols-4 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-center text-xs">
+        <div class="space-y-0.5">
+          <span class="text-[10px] text-blue-400 font-bold block">Pechugas</span>
+          <span id="stockNeveraCashPechuga" class="text-sm font-black text-white">60</span>
+          <span class="text-[9px] text-slate-500 block">en caneca</span>
+        </div>
+        <div class="space-y-0.5">
+          <span class="text-[10px] text-amber-400 font-bold block">Contramuslos</span>
+          <span id="stockNeveraCashContramuslo" class="text-sm font-black text-white">60</span>
+          <span class="text-[9px] text-slate-500 block">en caneca</span>
+        </div>
+        <div class="space-y-0.5">
+          <span class="text-[10px] text-orange-400 font-bold block">Muslos</span>
+          <span id="stockNeveraCashMuslo" class="text-sm font-black text-white">60</span>
+          <span class="text-[9px] text-slate-500 block">en caneca</span>
+        </div>
+        <div class="space-y-0.5">
+          <span class="text-[10px] text-yellow-400 font-bold block">Alas</span>
+          <span id="stockNeveraCashAla" class="text-sm font-black text-white">60</span>
+          <span class="text-[9px] text-slate-500 block">en caneca</span>
+        </div>
+      </div>
+
+      <!-- Presets de tandas rápidas -->
+      <div class="flex space-x-2">
+        <button type="button" onclick="setTandaCashPreset(10)" class="flex-1 py-1.5 px-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-black transition active:scale-95">
+          ⚡ Fritada Completa (+10 c/u)
         </button>
-        <button type="button" id="tabBtnSurtirCashPresas" onclick="switchSurtirCashTab('presas')" class="py-2 px-3 rounded-lg text-xs font-bold transition border bg-slate-800 text-slate-300 border-slate-700 hover:text-white flex items-center justify-center space-x-1.5">
-          <span>🥣</span>
-          <span>Presas Sueltas (Refuerzo Tarde)</span>
+        <button type="button" onclick="setTandaCashPreset(5)" class="flex-1 py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-bold transition active:scale-95">
+          ⚡ Media Tanda (+5 c/u)
+        </button>
+        <button type="button" onclick="clearSurtirCashPresas()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 text-[11px] font-bold transition">
+          🧹 0
         </button>
       </div>
 
-      <!-- VISTA 1: POLLOS ENTEROS -->
-      <div id="panelSurtirCashPollos" class="space-y-4">
-        <p class="text-xs text-slate-300">
-          Pasa pollos enteros del congelador a la vitrina. El sistema descontará los pollos de <strong>Bodega</strong> y sumará automáticamente las presas correspondientes a <strong>Vitrina</strong>.
-        </p>
-
-        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
+      <!-- Selector de Presas Sueltas en 4 Cajas Táctiles -->
+      <div class="grid grid-cols-2 gap-2.5 text-xs">
+        <!-- Pechugas -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-blue-400">🍗 Pechugas</span>
+            <span class="text-[10px] text-slate-500">$6.500 c/u</span>
+          </div>
           <div class="flex items-center space-x-2">
-            <span class="text-lg">🧊</span>
-            <span class="text-xs text-slate-400">Disponibles en Bodega:</span>
+            <button type="button" onclick="adjustSurtirCashPresaQty('pechuga', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
+            <input type="number" id="surtir_cash_pechuga" min="0" value="10" oninput="updateSurtirCashPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-blue-500">
+            <button type="button" onclick="adjustSurtirCashPresaQty('pechuga', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
           </div>
-          <div class="text-sm font-black text-amber-300">
-            <span id="modalBodegaStockCountCash">30</span> pollos enteros
-          </div>
-        </div>
-
-        <div class="space-y-2">
-          <label class="text-xs font-bold text-slate-300 block">¿Cuántos pollos vas a sacar para freír?</label>
-          
-          <div class="grid grid-cols-4 gap-2">
-            <button type="button" onclick="setSacarPolloCashQty(1)" class="py-2 rounded-lg bg-slate-800 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500 text-xs font-black text-white transition active:scale-95">
-              +1 Pollo
-            </button>
-            <button type="button" onclick="setSacarPolloCashQty(2)" class="py-2 rounded-lg bg-slate-800 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500 text-xs font-black text-white transition active:scale-95">
-              +2 Pollos
-            </button>
-            <button type="button" onclick="setSacarPolloCashQty(3)" class="py-2 rounded-lg bg-slate-800 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500 text-xs font-black text-white transition active:scale-95">
-              +3 Pollos
-            </button>
-            <button type="button" onclick="setSacarPolloCashQty(5)" class="py-2 rounded-lg bg-slate-800 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500 text-xs font-black text-white transition active:scale-95">
-              +5 Pollos
-            </button>
-          </div>
-
-          <div class="flex items-center space-x-3 pt-1">
-            <button type="button" onclick="adjustSacarPolloCashQty(-1)" class="w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-xl font-black text-white border border-slate-700 flex items-center justify-center select-none shadow">
-              -
-            </button>
-            <input type="number" id="inputSacarPolloCashQty" min="1" max="100" value="5" oninput="updateSacarPolloCashPreview()" class="flex-1 h-12 bg-slate-950 border border-slate-700 rounded-xl text-center text-xl font-black text-amber-400 focus:border-amber-500 focus:outline-none">
-            <button type="button" onclick="adjustSacarPolloCashQty(1)" class="w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-xl font-black text-white border border-slate-700 flex items-center justify-center select-none shadow">
-              +
-            </button>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setSurtirCashPresaQty('pechuga', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-blue-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
+            <button type="button" onclick="setSurtirCashPresaQty('pechuga', 5)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-blue-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+5</button>
+            <button type="button" onclick="setSurtirCashPresaQty('pechuga', 10)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-blue-600/30 text-[10px] text-blue-400 font-bold border border-slate-800">+10</button>
           </div>
         </div>
 
-        <div class="bg-amber-950/20 border border-amber-500/30 rounded-xl p-3 space-y-2 text-xs">
-          <div class="font-bold text-amber-300 flex items-center space-x-1.5">
-            <span>⚡</span>
-            <span>Presas listas que ingresarán a Vitrina:</span>
+        <!-- Contramuslos -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-amber-400">🍗 Contramuslos</span>
+            <span class="text-[10px] text-slate-500">$4.500 c/u</span>
           </div>
-          <div class="grid grid-cols-2 gap-2 text-slate-200">
-            <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 flex justify-between">
-              <span class="text-blue-300">Pechugas:</span>
-              <span id="previewYieldPechugasCash" class="font-black text-white">+10</span>
-            </div>
-            <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 flex justify-between">
-              <span class="text-amber-300">Contramuslos:</span>
-              <span id="previewYieldContramuslosCash" class="font-black text-white">+10</span>
-            </div>
-            <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 flex justify-between">
-              <span class="text-orange-300">Muslos:</span>
-              <span id="previewYieldMuslosCash" class="font-black text-white">+10</span>
-            </div>
-            <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 flex justify-between">
-              <span class="text-yellow-300">Alas:</span>
-              <span id="previewYieldAlasCash" class="font-black text-white">+10</span>
-            </div>
+          <div class="flex items-center space-x-2">
+            <button type="button" onclick="adjustSurtirCashPresaQty('contramuslo', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
+            <input type="number" id="surtir_cash_contramuslo" min="0" value="10" oninput="updateSurtirCashPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-amber-500">
+            <button type="button" onclick="adjustSurtirCashPresaQty('contramuslo', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
           </div>
-          <div class="flex justify-between items-center text-[11px] text-slate-400 pt-1 border-t border-slate-800">
-            <span>Total presas: <strong id="previewYieldTotalCash" class="text-emerald-400 font-black">+40</strong></span>
-            <span>Quedarán en bodega: <strong id="previewRemainingBodegaCash" class="text-amber-400 font-black">25</strong></span>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setSurtirCashPresaQty('contramuslo', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-amber-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
+            <button type="button" onclick="setSurtirCashPresaQty('contramuslo', 5)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-amber-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+5</button>
+            <button type="button" onclick="setSurtirCashPresaQty('contramuslo', 10)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-amber-600/30 text-[10px] text-amber-400 font-bold border border-slate-800">+10</button>
           </div>
         </div>
 
+        <!-- Muslos -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-orange-400">🍗 Muslos</span>
+            <span class="text-[10px] text-slate-500">$4.500 c/u</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button type="button" onclick="adjustSurtirCashPresaQty('muslo', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
+            <input type="number" id="surtir_cash_muslo" min="0" value="10" oninput="updateSurtirCashPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-orange-500">
+            <button type="button" onclick="adjustSurtirCashPresaQty('muslo', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
+          </div>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setSurtirCashPresaQty('muslo', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-orange-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
+            <button type="button" onclick="setSurtirCashPresaQty('muslo', 5)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-orange-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+5</button>
+            <button type="button" onclick="setSurtirCashPresaQty('muslo', 10)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-orange-600/30 text-[10px] text-orange-400 font-bold border border-slate-800">+10</button>
+          </div>
+        </div>
+
+        <!-- Alas -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-yellow-400">🍗 Alas</span>
+            <span class="text-[10px] text-slate-500">$3.500 c/u</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button type="button" onclick="adjustSurtirCashPresaQty('ala', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
+            <input type="number" id="surtir_cash_ala" min="0" value="10" oninput="updateSurtirCashPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-yellow-500">
+            <button type="button" onclick="adjustSurtirCashPresaQty('ala', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
+          </div>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setSurtirCashPresaQty('ala', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-yellow-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
+            <button type="button" onclick="setSurtirCashPresaQty('ala', 5)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-yellow-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+5</button>
+            <button type="button" onclick="setSurtirCashPresaQty('ala', 10)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-yellow-600/30 text-[10px] text-yellow-400 font-bold border border-slate-800">+10</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumen de presas a surtir -->
+      <div class="bg-amber-950/20 border border-amber-500/30 rounded-xl p-3 flex justify-between items-center text-xs">
         <div>
-          <label class="text-[11px] font-bold text-slate-400 block mb-1">Momento / Tanda del día:</label>
-          <select id="selectSacarPolloCashTanda" class="w-full h-10 bg-slate-950 border border-slate-700 rounded-xl px-3 text-xs text-white focus:border-amber-500 focus:outline-none">
-            <option value="Tanda Mañana (Apertura)">🌅 Tanda Mañana (Apertura)</option>
-            <option value="Tanda Almuerzo (Refuerzo)">☀️ Tanda Almuerzo (Refuerzo mediodía)</option>
-            <option value="Tanda Tarde / Noche">🌙 Tanda Tarde / Noche</option>
-          </select>
+          <span class="text-slate-400 block text-[11px]">Ingresarán a Vitrina Caliente:</span>
+          <span id="previewSurtirCashPresasSummary" class="font-black text-amber-300">10 Pechugas, 10 Contramuslos, 10 Muslos, 10 Alas</span>
         </div>
-
-        <div class="flex space-x-2 pt-2">
-          <button type="button" onclick="closeSacarPolloCashModal()" class="flex-1 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
-            Cancelar
-          </button>
-          <button type="button" id="btnConfirmSacarPolloCash" onclick="confirmSacarPolloCash()" class="flex-1 h-11 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg transition active:scale-95 flex items-center justify-center space-x-1.5">
-            <span>✅</span>
-            <span>Confirmar y Surtir Pollos</span>
-          </button>
+        <div class="text-right">
+          <span class="text-slate-400 block text-[11px]">Total Presas:</span>
+          <span id="previewSurtirCashPresasTotal" class="font-black text-emerald-400 text-sm mono">+40 presas</span>
         </div>
       </div>
 
-      <!-- VISTA 2: PRESAS SUELTAS (REFUERZO TARDE) -->
-      <div id="panelSurtirCashPresas" class="space-y-4 hidden">
-        <p class="text-xs text-slate-300">
-          Saca <strong>presas específicas</strong> de la caneca abierta en nevera para freír y surtir la vitrina caliente sin desarmar pollos enteros ni alterar los muslos o alas.
-        </p>
-
-        <!-- Selector de Presas Sueltas en 4 Cajas Táctiles -->
-        <div class="grid grid-cols-2 gap-2.5 text-xs">
-          <!-- Pechugas -->
-          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-blue-400">🍗 Pechugas</span>
-              <span class="text-[10px] text-slate-500">$6.500 c/u</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button type="button" onclick="adjustSurtirCashPresaQty('pechuga', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
-              <input type="number" id="surtir_cash_pechuga" min="0" value="4" oninput="updateSurtirCashPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-blue-500">
-              <button type="button" onclick="adjustSurtirCashPresaQty('pechuga', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
-            </div>
-            <div class="flex space-x-1">
-              <button type="button" onclick="setSurtirCashPresaQty('pechuga', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-blue-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
-              <button type="button" onclick="setSurtirCashPresaQty('pechuga', 4)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-blue-600/30 text-[10px] text-blue-400 font-bold border border-slate-800">+4</button>
-              <button type="button" onclick="setSurtirCashPresaQty('pechuga', 6)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-blue-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+6</button>
-            </div>
-          </div>
-
-          <!-- Contramuslos -->
-          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-amber-400">🍗 Contramuslos</span>
-              <span class="text-[10px] text-slate-500">$4.500 c/u</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button type="button" onclick="adjustSurtirCashPresaQty('contramuslo', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
-              <input type="number" id="surtir_cash_contramuslo" min="0" value="0" oninput="updateSurtirCashPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-amber-500">
-              <button type="button" onclick="adjustSurtirCashPresaQty('contramuslo', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
-            </div>
-            <div class="flex space-x-1">
-              <button type="button" onclick="setSurtirCashPresaQty('contramuslo', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-amber-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
-              <button type="button" onclick="setSurtirCashPresaQty('contramuslo', 4)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-amber-600/30 text-[10px] text-amber-400 font-bold border border-slate-800">+4</button>
-            </div>
-          </div>
-
-          <!-- Muslos -->
-          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-orange-400">🍗 Muslos</span>
-              <span class="text-[10px] text-slate-500">$4.500 c/u</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button type="button" onclick="adjustSurtirCashPresaQty('muslo', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
-              <input type="number" id="surtir_cash_muslo" min="0" value="0" oninput="updateSurtirCashPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-orange-500">
-              <button type="button" onclick="adjustSurtirCashPresaQty('muslo', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
-            </div>
-            <div class="flex space-x-1">
-              <button type="button" onclick="setSurtirCashPresaQty('muslo', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-orange-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
-              <button type="button" onclick="setSurtirCashPresaQty('muslo', 4)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-orange-600/30 text-[10px] text-orange-400 font-bold border border-slate-800">+4</button>
-            </div>
-          </div>
-
-          <!-- Alas -->
-          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-yellow-400">🍗 Alas</span>
-              <span class="text-[10px] text-slate-500">$3.500 c/u</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button type="button" onclick="adjustSurtirCashPresaQty('ala', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
-              <input type="number" id="surtir_cash_ala" min="0" value="0" oninput="updateSurtirCashPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-yellow-500">
-              <button type="button" onclick="adjustSurtirCashPresaQty('ala', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
-            </div>
-            <div class="flex space-x-1">
-              <button type="button" onclick="setSurtirCashPresaQty('ala', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-yellow-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
-              <button type="button" onclick="setSurtirCashPresaQty('ala', 4)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-yellow-600/30 text-[10px] text-yellow-400 font-bold border border-slate-800">+4</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Resumen de presas a surtir -->
-        <div class="bg-amber-950/20 border border-amber-500/30 rounded-xl p-3 flex justify-between items-center text-xs">
-          <div>
-            <span class="text-slate-400 block text-[11px]">Ingresarán a Vitrina Caliente:</span>
-            <span id="previewSurtirCashPresasSummary" class="font-black text-amber-300">4 Pechugas</span>
-          </div>
-          <div class="text-right">
-            <span class="text-slate-400 block text-[11px]">Total Presas:</span>
-            <span id="previewSurtirCashPresasTotal" class="font-black text-emerald-400 text-sm mono">+4 presas</span>
-          </div>
-        </div>
-
-        <!-- Botón de Acción Presas -->
-        <div class="flex space-x-2 pt-1">
-          <button type="button" onclick="closeSacarPolloCashModal()" class="flex-1 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
-            Cancelar
-          </button>
-          <button type="button" id="btnConfirmSurtirCashPresas" onclick="confirmSurtirCashPresas()" class="flex-1 h-11 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg transition active:scale-95 flex items-center justify-center space-x-1.5">
-            <span>✅</span>
-            <span>Surtir Presas a Vitrina</span>
-          </button>
-        </div>
+      <!-- Compatibilidad oculta para scripts legacy -->
+      <div class="hidden">
+        <span id="modalBodegaStockCountCash">30</span>
+        <input type="number" id="inputSacarPolloCashQty" value="5">
       </div>
+
+      <!-- Botón de Acción Presas -->
+      <div class="flex space-x-2 pt-1">
+        <button type="button" onclick="closeSacarPolloCashModal()" class="flex-1 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
+          Cancelar
+        </button>
+        <button type="button" id="btnConfirmSurtirCashPresas" onclick="confirmSurtirCashPresas()" class="flex-1 h-11 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg transition active:scale-95 flex items-center justify-center space-x-1.5">
+          <span>✅</span>
+          <span>Confirmar y Surtir a Vitrina</span>
+        </button>
+      </div>
+    </div>
+  </div>
     </div>
   </div>
 
@@ -893,59 +832,46 @@
             </div>
 
             <div id="santiagoAssistantContent" class="space-y-3 text-xs">
-              <!-- SECCIÓN 1: CANECAS SELLADAS -->
-              <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="flex items-center space-x-3">
-                  <span class="text-2xl">🧊</span>
-                  <div>
-                    <div class="font-bold text-slate-200">1. Canecas Selladas en Nevera (10 pollos c/u)</div>
-                    <div class="text-[11px] text-slate-400">Cada caneca cerrada = 20 pechugas, 20 contramuslos, 20 muslos, 20 alas</div>
-                  </div>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <button type="button" onclick="setCanecasCerradas(0)" class="btn-caneca-opt px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-amber-600/30 border border-slate-700 font-bold text-xs">0</button>
-                  <button type="button" onclick="setCanecasCerradas(1)" class="btn-caneca-opt px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-amber-600/30 border border-slate-700 font-bold text-xs">1 (10p)</button>
-                  <button type="button" onclick="setCanecasCerradas(2)" class="btn-caneca-opt px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 border border-amber-400 font-black text-xs shadow-sm">2 (20p)</button>
-                  <button type="button" onclick="setCanecasCerradas(3)" class="btn-caneca-opt px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-amber-600/30 border border-slate-700 font-bold text-xs">3 (30p)</button>
-                  <input type="number" id="inputCanecasCerradas" value="2" min="0" max="10" oninput="calculateSantiagoTotals()" class="w-16 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-amber-400 text-sm">
-                </div>
-              </div>
-
-              <!-- SECCIÓN 2: CANECA ABIERTA (EN USO) -->
+              <!-- SECCIÓN 1: LAS 4 CANECAS EN NEVERA (PRESAS CRUDAS ADOBADAS) -->
               <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-2">
                 <div class="flex items-center justify-between">
                   <div class="font-bold text-slate-200 flex items-center space-x-1.5">
-                    <span>🥣</span>
-                    <span>2. Caneca Abierta en Nevera (Presas Crudas Adobadas restantes)</span>
+                    <span>🧊</span>
+                    <span>1. Nevera / 4 Canecas de Presas Crudas Adobadas (Restantes en frío)</span>
                   </div>
-                  <span class="text-[11px] text-slate-400">Presas contadas en la caneca en uso</span>
+                  <span class="text-[11px] text-slate-400">Presas contadas en cada caneca</span>
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 text-center">
                     <label class="text-[10px] font-bold text-blue-400 block mb-1">Pechugas Crudas</label>
-                    <input type="number" id="sc_crudo_pechuga" min="0" value="0" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-white text-sm focus:border-blue-500">
+                    <input type="number" id="sc_crudo_pechuga" min="0" value="50" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-white text-sm focus:border-blue-500">
                   </div>
                   <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 text-center">
                     <label class="text-[10px] font-bold text-amber-400 block mb-1">Contramuslos Crudos</label>
-                    <input type="number" id="sc_crudo_contramuslo" min="0" value="0" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-white text-sm focus:border-amber-500">
+                    <input type="number" id="sc_crudo_contramuslo" min="0" value="50" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-white text-sm focus:border-amber-500">
                   </div>
                   <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 text-center">
                     <label class="text-[10px] font-bold text-orange-400 block mb-1">Muslos Crudos</label>
-                    <input type="number" id="sc_crudo_muslo" min="0" value="0" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-white text-sm focus:border-orange-500">
+                    <input type="number" id="sc_crudo_muslo" min="0" value="50" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-white text-sm focus:border-orange-500">
                   </div>
                   <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 text-center">
                     <label class="text-[10px] font-bold text-yellow-400 block mb-1">Alas Crudas</label>
-                    <input type="number" id="sc_crudo_ala" min="0" value="0" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-white text-sm focus:border-yellow-500">
+                    <input type="number" id="sc_crudo_ala" min="0" value="50" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-white text-sm focus:border-yellow-500">
                   </div>
                 </div>
               </div>
 
-              <!-- SECCIÓN 3: POLLO FRITO QUE QUEDA PARA MAÑANA -->
+              <!-- Compatibilidad oculta para scripts legacy -->
+              <div class="hidden">
+                <input type="number" id="inputCanecasCerradas" value="0">
+              </div>
+
+              <!-- SECCIÓN 2: POLLO FRITO QUE QUEDA PARA MAÑANA (VITRINA) -->
               <div class="bg-amber-950/20 p-3 rounded-xl border border-amber-500/30 space-y-2">
                 <div class="flex items-center justify-between">
                   <div class="font-bold text-amber-300 flex items-center space-x-1.5">
                     <span>🍗</span>
-                    <span>3. Vitrina Caliente (Pollo Frito que no se vendió y queda para mañana)</span>
+                    <span>2. Vitrina Caliente (Pollo Frito que no se vendió y queda para mañana)</span>
                   </div>
                   <span class="text-[11px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">Pasa al inventario de mañana</span>
                 </div>
@@ -980,7 +906,7 @@
                     <span>Alas: <strong id="sc_total_ala" class="text-yellow-400 font-mono">0</strong></span>
                   </div>
                   <div class="text-[10px] text-amber-300 font-medium">
-                    Equivalente en stock total: <strong id="sc_equiv_pollos" class="font-black">0.0</strong> pollos enteros &bull; Pollo frito para mañana: <strong id="sc_equiv_frito_total" class="font-black text-white">0</strong> presas
+                    Nevera cruda: <strong id="sc_total_crudo_sum" class="font-black text-white">0</strong> presas &bull; Vitrina frita para mañana: <strong id="sc_equiv_frito_total" class="font-black text-white">0</strong> presas &bull; Eq. total: <strong id="sc_equiv_pollos" class="font-black">0.0</strong> pollos
                   </div>
                 </div>
                 <button type="button" onclick="applySantiagoChickenTotals()" class="h-11 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex items-center justify-center space-x-1.5 select-none self-end sm:self-auto">
@@ -1502,9 +1428,6 @@
     }
 
     function calculateSantiagoTotals() {
-      const canecas = parseInt(document.getElementById('inputCanecasCerradas')?.value || '0', 10);
-      const basePresas = canecas * 20; // Cada caneca cerrada de 10 pollos = 20 pechugas, 20 contramuslos, 20 muslos, 20 alas
-
       const crudoPechuga = parseInt(document.getElementById('sc_crudo_pechuga')?.value || '0', 10);
       const crudoContramuslo = parseInt(document.getElementById('sc_crudo_contramuslo')?.value || '0', 10);
       const crudoMuslo = parseInt(document.getElementById('sc_crudo_muslo')?.value || '0', 10);
@@ -1515,14 +1438,15 @@
       const fritoMuslo = parseInt(document.getElementById('sc_frito_muslo')?.value || '0', 10);
       const fritoAla = parseInt(document.getElementById('sc_frito_ala')?.value || '0', 10);
 
-      const totalPechuga = basePresas + crudoPechuga + fritoPechuga;
-      const totalContramuslo = basePresas + crudoContramuslo + fritoContramuslo;
-      const totalMuslo = basePresas + crudoMuslo + fritoMuslo;
-      const totalAla = basePresas + crudoAla + fritoAla;
+      const totalPechuga = crudoPechuga + fritoPechuga;
+      const totalContramuslo = crudoContramuslo + fritoContramuslo;
+      const totalMuslo = crudoMuslo + fritoMuslo;
+      const totalAla = crudoAla + fritoAla;
 
-      const totalPresas = totalPechuga + totalContramuslo + totalMuslo + totalAla;
-      const equivPollos = (totalPresas / 8).toFixed(1);
+      const totalCrudo = crudoPechuga + crudoContramuslo + crudoMuslo + crudoAla;
       const totalFrito = fritoPechuga + fritoContramuslo + fritoMuslo + fritoAla;
+      const totalPresas = totalCrudo + totalFrito;
+      const equivPollos = (totalPresas / 8).toFixed(1);
 
       const elP = document.getElementById('sc_total_pechuga');
       const elC = document.getElementById('sc_total_contramuslo');
@@ -1530,6 +1454,7 @@
       const elA = document.getElementById('sc_total_ala');
       const elEq = document.getElementById('sc_equiv_pollos');
       const elFritoTot = document.getElementById('sc_equiv_frito_total');
+      const elCrudoTot = document.getElementById('sc_total_crudo_sum');
 
       if (elP) elP.textContent = totalPechuga;
       if (elC) elC.textContent = totalContramuslo;
@@ -1537,63 +1462,55 @@
       if (elA) elA.textContent = totalAla;
       if (elEq) elEq.textContent = equivPollos;
       if (elFritoTot) elFritoTot.textContent = totalFrito;
+      if (elCrudoTot) elCrudoTot.textContent = totalCrudo;
 
       return {
-        pechuga: totalPechuga,
-        contramuslo: totalContramuslo,
-        muslo: totalMuslo,
-        ala: totalAla,
-        frito: {
-          pechuga: fritoPechuga,
-          contramuslo: fritoContramuslo,
-          muslo: fritoMuslo,
-          ala: fritoAla,
-          total: totalFrito
-        },
-        crudo: {
-          canecas: canecas,
-          pechuga: crudoPechuga,
-          contramuslo: crudoContramuslo,
-          muslo: crudoMuslo,
-          ala: crudoAla
-        }
+        crudo: { pechuga: crudoPechuga, contramuslo: crudoContramuslo, muslo: crudoMuslo, ala: crudoAla, total: totalCrudo },
+        frito: { pechuga: fritoPechuga, contramuslo: fritoContramuslo, muslo: fritoMuslo, ala: fritoAla, total: totalFrito },
+        totalPresas: totalPresas
       };
     }
 
     function applySantiagoChickenTotals() {
       const totals = calculateSantiagoTotals();
 
-      // Actualizar estado de inventario físico
-      physicalInventoryState['pechuga_vitrina'] = totals.pechuga;
-      physicalInventoryState['contramuslo_vitrina'] = totals.contramuslo;
-      physicalInventoryState['muslo_vitrina'] = totals.muslo;
-      physicalInventoryState['ala_vitrina'] = totals.ala;
+      // 1. Asignar inventario de Nevera (Presas Crudas en Canecas)
+      physicalInventoryState['pechuga_nevera'] = totals.crudo.pechuga;
+      physicalInventoryState['contramuslo_nevera'] = totals.crudo.contramuslo;
+      physicalInventoryState['muslo_nevera'] = totals.crudo.muslo;
+      physicalInventoryState['ala_nevera'] = totals.crudo.ala;
 
-      // Actualizar inputs en la tabla
-      ['pechuga_vitrina', 'contramuslo_vitrina', 'muslo_vitrina', 'ala_vitrina'].forEach(key => {
+      // 2. Asignar inventario de Vitrina (Pollo Frito que queda para mañana)
+      physicalInventoryState['pechuga_vitrina'] = totals.frito.pechuga;
+      physicalInventoryState['contramuslo_vitrina'] = totals.frito.contramuslo;
+      physicalInventoryState['muslo_vitrina'] = totals.frito.muslo;
+      physicalInventoryState['ala_vitrina'] = totals.frito.ala;
+
+      // 3. Actualizar inputs en la tabla interactiva
+      const allKeys = ['pechuga_nevera', 'contramuslo_nevera', 'muslo_nevera', 'ala_nevera',
+                       'pechuga_vitrina', 'contramuslo_vitrina', 'muslo_vitrina', 'ala_vitrina'];
+      allKeys.forEach(key => {
         const inp = document.getElementById(`phys_input_${key}`);
         if (inp) inp.value = physicalInventoryState[key];
         onPhysicalCountChange(key, physicalInventoryState[key]);
       });
 
-      // Trazabilidad del pollo frito que pasa a mañana en las notas de cierre
+      // Trazabilidad del pollo en las notas de cierre
       const notesEl = document.getElementById('closeClosingNotes');
-      const fritoSummary = `[POLLO FRITO PARA MAÑANA: ${totals.frito.pechuga} pechugas, ${totals.frito.contramuslo} contramuslos, ${totals.frito.muslo} muslos, ${totals.frito.ala} alas (Total: ${totals.frito.total} presas). CRUDA EN NEVERA: ${totals.crudo.canecas} canecas cerradas + caneca abierta].`;
+      const fritoSummary = `[POLLO FRITO VITRINA: ${totals.frito.total} presas (${totals.frito.pechuga}P, ${totals.frito.contramuslo}C, ${totals.frito.muslo}M, ${totals.frito.ala}A). NEVERA CRUDO: ${totals.crudo.total} presas en canecas].`;
       if (notesEl) {
-        if (!notesEl.value.includes('[POLLO FRITO PARA MAÑANA:')) {
+        if (!notesEl.value.includes('[POLLO FRITO VITRINA:')) {
           notesEl.value = (notesEl.value ? notesEl.value + ' ' : '') + fritoSummary;
         } else {
-          notesEl.value = notesEl.value.replace(/\[POLLO FRITO PARA MAÑANA:[^\]]+\]/, fritoSummary);
+          notesEl.value = notesEl.value.replace(/\[POLLO FRITO VITRINA:[^\]]+\]/, fritoSummary);
         }
       }
 
       updateStep2Summaries();
-      alert(`✅ Totales de pollo aplicados exitosamente al arqueo:\n\n` +
-            `🍗 Pechugas: ${totals.pechuga}\n` +
-            `🍗 Contramuslos: ${totals.contramuslo}\n` +
-            `🍗 Muslos: ${totals.muslo}\n` +
-            `🍗 Alas: ${totals.ala}\n\n` +
-            `📦 Pollo frito que queda para mañana: ${totals.frito.total} presas registradas para el inventario de apertura.`);
+      alert(`✅ Conteos de pollo aplicados exitosamente al arqueo:\n\n` +
+            `🧊 Nevera (Canecas crudas): ${totals.crudo.total} presas\n` +
+            `🍗 Vitrina (Frito para mañana): ${totals.frito.total} presas\n\n` +
+            `Ambas zonas quedaron actualizadas en la planilla de cierre.`);
     }
 
     function stepItemPhysicalCount(itemKey, delta) {

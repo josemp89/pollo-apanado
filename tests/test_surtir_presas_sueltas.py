@@ -87,15 +87,15 @@ def test_surtir_presas_reflected_in_closing_sheet(client):
     assert items["contramuslo_vitrina"]["internal_production"] >= 2
 
 def test_templates_contain_surtir_tabs_and_elements(client):
-    """Verificar que ambas plantillas (index.html y cash.html) tienen los selectores de presas sueltas."""
+    """Verificar que ambas plantillas (index.html y cash.html) tienen los selectores de presas y canecas de nevera."""
     res_index = client.get("/")
     assert res_index.status_code == 200
-    assert 'tabBtnSurtirPresas' in res_index.text
     assert 'surtir_pechuga' in res_index.text
-    assert 'panelSurtirPresas' in res_index.text
+    assert 'stockNeveraPechuga' in res_index.text
+    assert 'btnSacarPolloVitrina' in res_index.text
 
     res_cash = client.get("/caja")
     assert res_cash.status_code == 200
-    assert 'tabBtnSurtirCashPresas' in res_cash.text
     assert 'surtir_cash_pechuga' in res_cash.text
-    assert 'panelSurtirCashPresas' in res_cash.text
+    assert 'stockNeveraCashPechuga' in res_cash.text
+    assert 'btnSacarPolloCash' in res_cash.text

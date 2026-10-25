@@ -102,23 +102,24 @@
     <!-- LADO IZQUIERDO: MENÚ TÁCTIL (100% EN MÓVIL, 65% EN ESCRITORIO/TABLET) -->
     <section class="flex-1 flex flex-col border-r border-slate-800 overflow-hidden bg-slate-900/50 min-w-0">
       
-      <!-- BARRA OPERATIVA: ESTADO DE BODEGA Y TRASLADO A VITRINA -->
+      <!-- BARRA OPERATIVA: ESTADO DE NEVERA (CANECAS) Y TRASLADO A VITRINA -->
       <div class="px-3 py-2 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border-b border-slate-800 flex items-center justify-between text-xs flex-shrink-0">
         <div class="flex items-center space-x-2.5">
           <div class="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-sm shadow-inner">
             🧊
           </div>
           <div>
-            <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Bodega / Congelador</div>
-            <div class="text-xs font-black text-amber-300">
-              <span id="bodegaRawChickensDisplay">--</span> pollos enteros
+            <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Nevera / 4 Canecas de Presas Crudas</div>
+            <div class="text-xs font-black text-amber-300 flex items-center space-x-1.5">
+              <span><span id="bodegaRawChickensDisplay">240</span> presas crudas</span>
+              <span id="neveraPresasBreakdown" class="text-[10px] text-slate-400 font-normal hidden sm:inline">(60 P · 60 C · 60 M · 60 A)</span>
             </div>
           </div>
         </div>
 
-        <button id="btnSacarPolloVitrina" onclick="openSacarPolloModal()" class="px-3 py-1.5 rounded-lg text-xs font-black bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:scale-95 text-white flex items-center space-x-1.5 shadow-md transition border border-amber-400/40 select-none" title="Sacar pollos crudos del congelador para despresar y pasar a la vitrina caliente">
+        <button id="btnSacarPolloVitrina" onclick="openSacarPolloModal()" class="px-3 py-1.5 rounded-lg text-xs font-black bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:scale-95 text-white flex items-center space-x-1.5 shadow-md transition border border-amber-400/40 select-none" title="Pasar presas de las canecas adobadas en nevera a la vitrina caliente">
           <span>🍗</span>
-          <span>Sacar Pollo a Vitrina</span>
+          <span>Pasar Presas a Vitrina</span>
         </button>
       </div>
 
@@ -236,222 +237,164 @@
     </aside>
   </main>
 
-  <!-- MODAL DE SACAR POLLO DE BODEGA A VITRINA (DESPIECE / SURTIDO) -->
+  <!-- MODAL: PASAR PRESAS DE NEVERA A VITRINA CALIENTE -->
   <div id="modalSacarPolloVitrina" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
     <div class="bg-slate-900 border border-amber-500/50 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4 animate-scale-up my-auto">
       <!-- Encabezado -->
       <div class="flex items-center justify-between border-b border-slate-800 pb-2">
         <h3 class="font-black text-base text-amber-400 flex items-center space-x-2">
           <span>🍗</span>
-          <span>Surtir Pollo a Vitrina Caliente</span>
+          <span>Pasar Presas a Vitrina Caliente</span>
         </h3>
         <button onclick="closeSacarPolloModal()" class="text-slate-400 hover:text-white font-bold text-xl select-none">&times;</button>
       </div>
 
-      <!-- Selector de Modo / Pestañas -->
-      <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
-        <button type="button" id="tabBtnSurtirPollos" onclick="switchSurtirTab('pollos')" class="py-2 px-3 rounded-lg text-xs font-black transition border bg-amber-500 text-slate-950 border-amber-400 shadow-sm flex items-center justify-center space-x-1.5">
-          <span>🍗</span>
-          <span>Pollos Enteros (Mañana)</span>
+      <p class="text-xs text-slate-300">
+        Saca presas de las <strong>4 canecas adobadas en nevera</strong> para freír y abastecer la vitrina caliente. Se descuentan automáticamente de Nevera y se suman a Vitrina.
+      </p>
+
+      <!-- Estado en tiempo real de las 4 Canecas en Nevera -->
+      <div class="grid grid-cols-4 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-center text-xs">
+        <div class="space-y-0.5">
+          <span class="text-[10px] text-blue-400 font-bold block">Pechugas</span>
+          <span id="stockNeveraPechuga" class="text-sm font-black text-white">60</span>
+          <span class="text-[9px] text-slate-500 block">en caneca</span>
+        </div>
+        <div class="space-y-0.5">
+          <span class="text-[10px] text-amber-400 font-bold block">Contramuslos</span>
+          <span id="stockNeveraContramuslo" class="text-sm font-black text-white">60</span>
+          <span class="text-[9px] text-slate-500 block">en caneca</span>
+        </div>
+        <div class="space-y-0.5">
+          <span class="text-[10px] text-orange-400 font-bold block">Muslos</span>
+          <span id="stockNeveraMuslo" class="text-sm font-black text-white">60</span>
+          <span class="text-[9px] text-slate-500 block">en caneca</span>
+        </div>
+        <div class="space-y-0.5">
+          <span class="text-[10px] text-yellow-400 font-bold block">Alas</span>
+          <span id="stockNeveraAla" class="text-sm font-black text-white">60</span>
+          <span class="text-[9px] text-slate-500 block">en caneca</span>
+        </div>
+      </div>
+
+      <!-- Presets de tandas rápidas -->
+      <div class="flex space-x-2">
+        <button type="button" onclick="setTandaPreset(10)" class="flex-1 py-1.5 px-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-black transition active:scale-95">
+          ⚡ Fritada Completa (+10 c/u)
         </button>
-        <button type="button" id="tabBtnSurtirPresas" onclick="switchSurtirTab('presas')" class="py-2 px-3 rounded-lg text-xs font-bold transition border bg-slate-800 text-slate-300 border-slate-700 hover:text-white flex items-center justify-center space-x-1.5">
-          <span>🥣</span>
-          <span>Presas Sueltas (Refuerzo Tarde)</span>
+        <button type="button" onclick="setTandaPreset(5)" class="flex-1 py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-bold transition active:scale-95">
+          ⚡ Media Tanda (+5 c/u)
+        </button>
+        <button type="button" onclick="clearSurtirPresas()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 text-[11px] font-bold transition">
+          🧹 0
         </button>
       </div>
 
-      <!-- ==================== VISTA 1: POLLOS ENTEROS ==================== -->
-      <div id="panelSurtirPollos" class="space-y-4">
-        <p class="text-xs text-slate-300">
-          Saca pollos enteros del congelador. El sistema descontará los pollos enteros de <strong>Bodega</strong> y sumará automáticamente las 8 presas correspondientes a <strong>Vitrina</strong>.
-        </p>
-
-        <!-- Estado actual de bodega -->
-        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
+      <!-- Selector de Presas en 4 Cajas Táctiles -->
+      <div class="grid grid-cols-2 gap-2.5 text-xs">
+        <!-- Pechugas -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-blue-400">🍗 Pechugas</span>
+            <span class="text-[10px] text-slate-500">$6.500 c/u</span>
+          </div>
           <div class="flex items-center space-x-2">
-            <span class="text-lg">🧊</span>
-            <span class="text-xs text-slate-400">Disponibles en Bodega:</span>
+            <button type="button" onclick="adjustSurtirPresaQty('pechuga', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
+            <input type="number" id="surtir_pechuga" min="0" value="10" oninput="updateSurtirPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-blue-500">
+            <button type="button" onclick="adjustSurtirPresaQty('pechuga', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
           </div>
-          <div class="text-sm font-black text-amber-300">
-            <span id="modalBodegaStockCount">30</span> pollos enteros
-          </div>
-        </div>
-
-        <!-- Selector de cantidad -->
-        <div class="space-y-2">
-          <label class="text-xs font-bold text-slate-300 block">¿Cuántos pollos vas a sacar para freír?</label>
-          
-          <!-- Botones rápidos -->
-          <div class="grid grid-cols-4 gap-2">
-            <button type="button" onclick="setSacarPolloQty(1)" class="btn-quick-pollo py-2 rounded-lg bg-slate-800 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500 text-xs font-black text-white transition active:scale-95">
-              +1 Pollo
-            </button>
-            <button type="button" onclick="setSacarPolloQty(2)" class="btn-quick-pollo py-2 rounded-lg bg-slate-800 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500 text-xs font-black text-white transition active:scale-95">
-              +2 Pollos
-            </button>
-            <button type="button" onclick="setSacarPolloQty(3)" class="btn-quick-pollo py-2 rounded-lg bg-slate-800 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500 text-xs font-black text-white transition active:scale-95">
-              +3 Pollos
-            </button>
-            <button type="button" onclick="setSacarPolloQty(5)" class="btn-quick-pollo py-2 rounded-lg bg-slate-800 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500 text-xs font-black text-white transition active:scale-95">
-              +5 Pollos
-            </button>
-          </div>
-
-          <!-- Stepper táctil numérico -->
-          <div class="flex items-center space-x-3 pt-1">
-            <button type="button" onclick="adjustSacarPolloQty(-1)" class="w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-xl font-black text-white border border-slate-700 flex items-center justify-center select-none shadow">
-              -
-            </button>
-            <input type="number" id="inputSacarPolloQty" min="1" max="100" value="5" oninput="updateSacarPolloPreview()" class="flex-1 h-12 bg-slate-950 border border-slate-700 rounded-xl text-center text-xl font-black text-amber-400 focus:border-amber-500 focus:outline-none">
-            <button type="button" onclick="adjustSacarPolloQty(1)" class="w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-xl font-black text-white border border-slate-700 flex items-center justify-center select-none shadow">
-              +
-            </button>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setSurtirPresaQty('pechuga', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-blue-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
+            <button type="button" onclick="setSurtirPresaQty('pechuga', 5)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-blue-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+5</button>
+            <button type="button" onclick="setSurtirPresaQty('pechuga', 10)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-blue-600/30 text-[10px] text-blue-400 font-bold border border-slate-800">+10</button>
           </div>
         </div>
 
-        <!-- Previsualización de rendimientos -->
-        <div class="bg-amber-950/20 border border-amber-500/30 rounded-xl p-3 space-y-2 text-xs">
-          <div class="font-bold text-amber-300 flex items-center space-x-1.5">
-            <span>⚡</span>
-            <span>Presas listas que ingresarán a Vitrina:</span>
+        <!-- Contramuslos -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-amber-400">🍗 Contramuslos</span>
+            <span class="text-[10px] text-slate-500">$4.500 c/u</span>
           </div>
-          <div class="grid grid-cols-2 gap-2 text-slate-200">
-            <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 flex justify-between">
-              <span class="text-blue-300">Pechugas:</span>
-              <span id="previewYieldPechugas" class="font-black text-white">+10</span>
-            </div>
-            <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 flex justify-between">
-              <span class="text-amber-300">Contramuslos:</span>
-              <span id="previewYieldContramuslos" class="font-black text-white">+10</span>
-            </div>
-            <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 flex justify-between">
-              <span class="text-orange-300">Muslos:</span>
-              <span id="previewYieldMuslos" class="font-black text-white">+10</span>
-            </div>
-            <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 flex justify-between">
-              <span class="text-yellow-300">Alas:</span>
-              <span id="previewYieldAlas" class="font-black text-white">+10</span>
-            </div>
+          <div class="flex items-center space-x-2">
+            <button type="button" onclick="adjustSurtirPresaQty('contramuslo', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
+            <input type="number" id="surtir_contramuslo" min="0" value="10" oninput="updateSurtirPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-amber-500">
+            <button type="button" onclick="adjustSurtirPresaQty('contramuslo', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
           </div>
-          <div class="flex justify-between items-center text-[11px] text-slate-400 pt-1 border-t border-slate-800">
-            <span>Total presas para venta: <strong id="previewYieldTotal" class="text-emerald-400 font-black">+40</strong></span>
-            <span>Quedarán en bodega: <strong id="previewRemainingBodega" class="text-amber-400 font-black">25</strong></span>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setSurtirPresaQty('contramuslo', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-amber-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
+            <button type="button" onclick="setSurtirPresaQty('contramuslo', 5)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-amber-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+5</button>
+            <button type="button" onclick="setSurtirPresaQty('contramuslo', 10)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-amber-600/30 text-[10px] text-amber-400 font-bold border border-slate-800">+10</button>
           </div>
         </div>
 
-        <!-- Botón de Acción Pollos -->
-        <div class="flex space-x-2 pt-1">
-          <button type="button" onclick="closeSacarPolloModal()" class="flex-1 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
-            Cancelar
-          </button>
-          <button type="button" id="btnConfirmSacarPollo" onclick="confirmSacarPollo()" class="flex-1 h-11 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg transition active:scale-95 flex items-center justify-center space-x-1.5">
-            <span>✅</span>
-            <span>Confirmar y Surtir Pollos</span>
-          </button>
+        <!-- Muslos -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-orange-400">🍗 Muslos</span>
+            <span class="text-[10px] text-slate-500">$4.500 c/u</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button type="button" onclick="adjustSurtirPresaQty('muslo', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
+            <input type="number" id="surtir_muslo" min="0" value="10" oninput="updateSurtirPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-orange-500">
+            <button type="button" onclick="adjustSurtirPresaQty('muslo', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
+          </div>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setSurtirPresaQty('muslo', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-orange-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
+            <button type="button" onclick="setSurtirPresaQty('muslo', 5)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-orange-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+5</button>
+            <button type="button" onclick="setSurtirPresaQty('muslo', 10)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-orange-600/30 text-[10px] text-orange-400 font-bold border border-slate-800">+10</button>
+          </div>
+        </div>
+
+        <!-- Alas -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-yellow-400">🍗 Alas</span>
+            <span class="text-[10px] text-slate-500">$3.500 c/u</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button type="button" onclick="adjustSurtirPresaQty('ala', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
+            <input type="number" id="surtir_ala" min="0" value="10" oninput="updateSurtirPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-yellow-500">
+            <button type="button" onclick="adjustSurtirPresaQty('ala', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
+          </div>
+          <div class="flex space-x-1">
+            <button type="button" onclick="setSurtirPresaQty('ala', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-yellow-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
+            <button type="button" onclick="setSurtirPresaQty('ala', 5)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-yellow-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+5</button>
+            <button type="button" onclick="setSurtirPresaQty('ala', 10)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-yellow-600/30 text-[10px] text-yellow-400 font-bold border border-slate-800">+10</button>
+          </div>
         </div>
       </div>
 
-      <!-- ==================== VISTA 2: PRESAS SUELTAS ==================== -->
-      <div id="panelSurtirPresas" class="space-y-4 hidden">
-        <p class="text-xs text-slate-300">
-          Saca <strong>presas específicas</strong> de la caneca abierta en nevera para freír y alimentar la vitrina caliente sin desarmar pollos enteros ni alterar los muslos o alas.
-        </p>
-
-        <!-- Selector de Presas Sueltas en 4 Cajas Táctiles -->
-        <div class="grid grid-cols-2 gap-2.5 text-xs">
-          <!-- Pechugas -->
-          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-blue-400">🍗 Pechugas</span>
-              <span class="text-[10px] text-slate-500">$6.500 c/u</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button type="button" onclick="adjustSurtirPresaQty('pechuga', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
-              <input type="number" id="surtir_pechuga" min="0" value="4" oninput="updateSurtirPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-blue-500">
-              <button type="button" onclick="adjustSurtirPresaQty('pechuga', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
-            </div>
-            <div class="flex space-x-1">
-              <button type="button" onclick="setSurtirPresaQty('pechuga', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-blue-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
-              <button type="button" onclick="setSurtirPresaQty('pechuga', 4)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-blue-600/30 text-[10px] text-blue-400 font-bold border border-slate-800">+4</button>
-              <button type="button" onclick="setSurtirPresaQty('pechuga', 6)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-blue-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+6</button>
-            </div>
-          </div>
-
-          <!-- Contramuslos -->
-          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-amber-400">🍗 Contramuslos</span>
-              <span class="text-[10px] text-slate-500">$4.500 c/u</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button type="button" onclick="adjustSurtirPresaQty('contramuslo', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
-              <input type="number" id="surtir_contramuslo" min="0" value="0" oninput="updateSurtirPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-amber-500">
-              <button type="button" onclick="adjustSurtirPresaQty('contramuslo', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
-            </div>
-            <div class="flex space-x-1">
-              <button type="button" onclick="setSurtirPresaQty('contramuslo', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-amber-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
-              <button type="button" onclick="setSurtirPresaQty('contramuslo', 4)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-amber-600/30 text-[10px] text-amber-400 font-bold border border-slate-800">+4</button>
-            </div>
-          </div>
-
-          <!-- Muslos -->
-          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-orange-400">🍗 Muslos</span>
-              <span class="text-[10px] text-slate-500">$4.500 c/u</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button type="button" onclick="adjustSurtirPresaQty('muslo', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
-              <input type="number" id="surtir_muslo" min="0" value="0" oninput="updateSurtirPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-orange-500">
-              <button type="button" onclick="adjustSurtirPresaQty('muslo', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
-            </div>
-            <div class="flex space-x-1">
-              <button type="button" onclick="setSurtirPresaQty('muslo', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-orange-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
-              <button type="button" onclick="setSurtirPresaQty('muslo', 4)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-orange-600/30 text-[10px] text-orange-400 font-bold border border-slate-800">+4</button>
-            </div>
-          </div>
-
-          <!-- Alas -->
-          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-yellow-400">🍗 Alas</span>
-              <span class="text-[10px] text-slate-500">$3.500 c/u</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button type="button" onclick="adjustSurtirPresaQty('ala', -1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">-</button>
-              <input type="number" id="surtir_ala" min="0" value="0" oninput="updateSurtirPresasPreview()" class="flex-1 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-white text-base focus:border-yellow-500">
-              <button type="button" onclick="adjustSurtirPresaQty('ala', 1)" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black text-base flex items-center justify-center">+</button>
-            </div>
-            <div class="flex space-x-1">
-              <button type="button" onclick="setSurtirPresaQty('ala', 2)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-yellow-600/30 text-[10px] text-slate-300 font-bold border border-slate-800">+2</button>
-              <button type="button" onclick="setSurtirPresaQty('ala', 4)" class="flex-1 py-1 rounded bg-slate-900 hover:bg-yellow-600/30 text-[10px] text-yellow-400 font-bold border border-slate-800">+4</button>
-            </div>
-          </div>
+      <!-- Resumen de presas a pasar a vitrina -->
+      <div class="bg-amber-950/20 border border-amber-500/30 rounded-xl p-3 flex justify-between items-center text-xs">
+        <div>
+          <span class="text-slate-400 block text-[11px]">Ingresarán a Vitrina Caliente:</span>
+          <span id="previewSurtirPresasSummary" class="font-black text-amber-300">10 Pechugas, 10 Contramuslos, 10 Muslos, 10 Alas</span>
         </div>
-
-        <!-- Resumen de presas a surtir -->
-        <div class="bg-amber-950/20 border border-amber-500/30 rounded-xl p-3 flex justify-between items-center text-xs">
-          <div>
-            <span class="text-slate-400 block text-[11px]">Ingresarán a Vitrina Caliente:</span>
-            <span id="previewSurtirPresasSummary" class="font-black text-amber-300">4 Pechugas</span>
-          </div>
-          <div class="text-right">
-            <span class="text-slate-400 block text-[11px]">Total Presas:</span>
-            <span id="previewSurtirPresasTotal" class="font-black text-emerald-400 text-sm mono">+4 presas</span>
-          </div>
-        </div>
-
-        <!-- Botón de Acción Presas -->
-        <div class="flex space-x-2 pt-1">
-          <button type="button" onclick="closeSacarPolloModal()" class="flex-1 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
-            Cancelar
-          </button>
-          <button type="button" id="btnConfirmSurtirPresas" onclick="confirmSurtirPresas()" class="flex-1 h-11 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg transition active:scale-95 flex items-center justify-center space-x-1.5">
-            <span>✅</span>
-            <span>Surtir Presas a Vitrina</span>
-          </button>
+        <div class="text-right">
+          <span class="text-slate-400 block text-[11px]">Total Presas:</span>
+          <span id="previewSurtirPresasTotal" class="font-black text-emerald-400 text-sm mono">+40 presas</span>
         </div>
       </div>
+
+      <!-- Compatibilidad oculta para scripts legacy -->
+      <div class="hidden">
+        <span id="modalBodegaStockCount">30</span>
+        <input type="number" id="inputSacarPolloQty" value="5">
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="flex space-x-2 pt-1">
+        <button type="button" onclick="closeSacarPolloModal()" class="flex-1 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
+          Cancelar
+        </button>
+        <button type="button" id="btnConfirmSurtirPresas" onclick="confirmSurtirPresas()" class="flex-1 h-11 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg transition active:scale-95 flex items-center justify-center space-x-1.5">
+          <span>✅</span>
+          <span>Confirmar y Pasar a Vitrina</span>
+        </button>
+      </div>
+    </div>
+  </div>
     </div>
   </div>
 

@@ -61,10 +61,24 @@ async function loadStockSummary() {
   try {
     const res = await fetch('/api/pos/stock-summary');
     stockSummary = await res.json();
+    const rawP = stockSummary['pechuga_nevera'] ? stockSummary['pechuga_nevera'].stock : 0;
+    const rawC = stockSummary['contramuslo_nevera'] ? stockSummary['contramuslo_nevera'].stock : 0;
+    const rawM = stockSummary['muslo_nevera'] ? stockSummary['muslo_nevera'].stock : 0;
+    const rawA = stockSummary['ala_nevera'] ? stockSummary['ala_nevera'].stock : 0;
+    const totalNeveraPresas = rawP + rawC + rawM + rawA;
+
     const bodegaEl = document.getElementById('bodegaRawChickensDisplay');
     if (bodegaEl) {
-      const rawCount = stockSummary['pollo_entero_crudo'] ? stockSummary['pollo_entero_crudo'].stock : 0;
-      bodegaEl.textContent = Math.floor(rawCount);
+      if (totalNeveraPresas > 0) {
+        bodegaEl.textContent = Math.floor(totalNeveraPresas);
+      } else {
+        const rawCount = stockSummary['pollo_entero_crudo'] ? stockSummary['pollo_entero_crudo'].stock : 0;
+        bodegaEl.textContent = Math.floor(rawCount);
+      }
+    }
+    const breakdownEl = document.getElementById('neveraPresasBreakdown');
+    if (breakdownEl) {
+      breakdownEl.textContent = `(${Math.floor(rawP)} P · ${Math.floor(rawC)} C · ${Math.floor(rawM)} M · ${Math.floor(rawA)} A)`;
     }
     updateStockBadgesInModal();
     renderProducts(); // Re-renderizar para actualizar badges de stock
@@ -1238,20 +1252,28 @@ function triggerPwaInstall() {
   }
 }
 
-// ==================== TRASLADO DE POLLO: BODEGA A VITRINA ====================
+// ==================== TRASLADO DE POLLO: NEVERA (CANECAS) A VITRINA ====================
 function openSacarPolloModal() {
   const modal = document.getElementById('modalSacarPolloVitrina');
   if (!modal) return;
-  const bodegaStock = (stockSummary['pollo_entero_crudo'] && stockSummary['pollo_entero_crudo'].stock) || 0;
-  const countEl = document.getElementById('modalBodegaStockCount');
-  if (countEl) countEl.textContent = Math.floor(bodegaStock);
-  const inputEl = document.getElementById('inputSacarPolloQty');
-  if (inputEl) {
-    const defaultVal = Math.min(5, Math.max(1, Math.floor(bodegaStock)));
-    inputEl.value = defaultVal;
-    inputEl.max = Math.max(1, Math.floor(bodegaStock));
-  }
-  updateSacarPolloPreview();
+  
+  // Actualizar badges de disponibilidad en las 4 canecas de nevera
+  const rawP = stockSummary['pechuga_nevera'] ? stockSummary['pechuga_nevera'].stock : 0;
+  const rawC = stockSummary['contramuslo_nevera'] ? stockSummary['contramuslo_nevera'].stock : 0;
+  const rawM = stockSummary['muslo_nevera'] ? stockSummary['muslo_nevera'].stock : 0;
+  const rawA = stockSummary['ala_nevera'] ? stockSummary['ala_nevera'].stock : 0;
+
+  const elP = document.getElementById('stockNeveraPechuga');
+  const elC = document.getElementById('stockNeveraContramuslo');
+  const elM = document.getElementById('stockNeveraMuslo');
+  const elA = document.getElementById('stockNeveraAla');
+
+  if (elP) elP.textContent = Math.floor(rawP);
+  if (elC) elC.textContent = Math.floor(rawC);
+  if (elM) elM.textContent = Math.floor(rawM);
+  if (elA) elA.textContent = Math.floor(rawA);
+
+  updateSurtirPresasPreview();
   modal.classList.remove('hidden');
 }
 
@@ -1260,105 +1282,37 @@ function closeSacarPolloModal() {
   if (modal) modal.classList.add('hidden');
 }
 
+function setTandaPreset(n) {
+  setSurtirPresaQty('pechuga', n);
+  setSurtirPresaQty('contramuslo', n);
+  setSurtirPresaQty('muslo', n);
+  setSurtirPresaQty('ala', n);
+}
+
+function clearSurtirPresas() {
+  setSurtirPresaQty('pechuga', 0);
+  setSurtirPresaQty('contramuslo', 0);
+  setSurtirPresaQty('muslo', 0);
+  setSurtirPresaQty('ala', 0);
+}
+
 function setSacarPolloQty(n) {
-  const inputEl = document.getElementById('inputSacarPolloQty');
-  if (inputEl) {
-    const bodegaStock = (stockSummary['pollo_entero_crudo'] && stockSummary['pollo_entero_crudo'].stock) || 999;
-    inputEl.value = Math.min(n, Math.max(1, Math.floor(bodegaStock)));
-    updateSacarPolloPreview();
-  }
+  setTandaPreset(2 * n);
 }
 
 function adjustSacarPolloQty(delta) {
-  const inputEl = document.getElementById('inputSacarPolloQty');
-  if (!inputEl) return;
-  let val = parseInt(inputEl.value || '1', 10) + delta;
-  if (val < 1) val = 1;
-  const bodegaStock = (stockSummary['pollo_entero_crudo'] && stockSummary['pollo_entero_crudo'].stock) || 999;
-  if (val > bodegaStock && bodegaStock > 0) val = Math.floor(bodegaStock);
-  inputEl.value = val;
-  updateSacarPolloPreview();
+  adjustSurtirPresaQty('pechuga', 2 * delta);
+  adjustSurtirPresaQty('contramuslo', 2 * delta);
+  adjustSurtirPresaQty('muslo', 2 * delta);
+  adjustSurtirPresaQty('ala', 2 * delta);
 }
 
 function updateSacarPolloPreview() {
-  const inputEl = document.getElementById('inputSacarPolloQty');
-  const n = parseInt(inputEl ? inputEl.value || '1' : '1', 10);
-  const bodegaStock = (stockSummary['pollo_entero_crudo'] && stockSummary['pollo_entero_crudo'].stock) || 0;
-  const yields = 2 * n;
-  
-  const pPechugas = document.getElementById('previewYieldPechugas');
-  const pContramuslos = document.getElementById('previewYieldContramuslos');
-  const pMuslos = document.getElementById('previewYieldMuslos');
-  const pAlas = document.getElementById('previewYieldAlas');
-  const pTotal = document.getElementById('previewYieldTotal');
-  const pRemaining = document.getElementById('previewRemainingBodega');
-  
-  if (pPechugas) pPechugas.textContent = `+${yields}`;
-  if (pContramuslos) pContramuslos.textContent = `+${yields}`;
-  if (pMuslos) pMuslos.textContent = `+${yields}`;
-  if (pAlas) pAlas.textContent = `+${yields}`;
-  if (pTotal) pTotal.textContent = `+${8 * n}`;
-  if (pRemaining) pRemaining.textContent = Math.max(0, Math.floor(bodegaStock - n));
+  updateSurtirPresasPreview();
 }
 
 async function confirmSacarPollo() {
-  const inputEl = document.getElementById('inputSacarPolloQty');
-  const tandaEl = document.getElementById('selectSacarPolloTanda');
-  const btn = document.getElementById('btnConfirmSacarPollo');
-  
-  const n = parseInt(inputEl ? inputEl.value || '1' : '1', 10);
-  const tanda = tandaEl ? tandaEl.value : 'Turno Mostrador';
-  
-  if (isNaN(n) || n <= 0) {
-    alert("Por favor ingresa una cantidad válida de pollos enteros.");
-    return;
-  }
-  
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<span>⏳</span><span>Procesando...</span>';
-  }
-  
-  try {
-    const res = await fetch('/api/kitchen/despiece', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        whole_chickens: n,
-        operator: 'Mostrador',
-        notes: tanda
-      })
-    });
-    
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.detail || 'Error al registrar salida de pollo.');
-    }
-    
-    closeSacarPolloModal();
-    await loadStockSummary();
-    
-    // Mostrar banner de confirmación en pantalla
-    const banner = document.getElementById('lastSaleBanner');
-    const textEl = document.getElementById('lastSaleText');
-    const undoBtn = document.getElementById('btnUndoSale');
-    if (banner && textEl) {
-      textEl.textContent = `¡${n} pollos sacados de bodega a vitrina! (+${data.yields.total_presas} presas listas)`;
-      if (undoBtn) undoBtn.classList.add('hidden');
-      banner.classList.remove('hidden');
-      setTimeout(() => {
-        banner.classList.add('hidden');
-        if (undoBtn) undoBtn.classList.remove('hidden');
-      }, 6000);
-    }
-  } catch (err) {
-    alert(err.message);
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '<span>✅</span><span>Confirmar y Surtir Pollos</span>';
-    }
-  }
+  await confirmSurtirPresas();
 }
 
 // ==================== SURTIDO DE PRESAS SUELTAS (REFUERZO TARDE) ====================

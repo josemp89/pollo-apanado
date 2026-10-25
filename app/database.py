@@ -391,6 +391,23 @@ def init_db():
 
     # Asegurar insumos esenciales en inventario si la base de datos ya existía
     now_str = datetime.now().isoformat()
+    # Las 4 Canecas de Presas Crudas Adobadas en Nevera
+    cursor.execute("""
+        INSERT OR IGNORE INTO inventory (item_key, name, category, stock, unit, min_threshold, updated_at, location, item_name)
+        VALUES ('pechuga_nevera', 'Caneca Pechugas Crudas', 'nevera', 60, 'unidad', 10, ?, 'Nevera', 'Caneca Pechugas Crudas')
+    """, (now_str,))
+    cursor.execute("""
+        INSERT OR IGNORE INTO inventory (item_key, name, category, stock, unit, min_threshold, updated_at, location, item_name)
+        VALUES ('contramuslo_nevera', 'Caneca Contramuslos Crudos', 'nevera', 60, 'unidad', 10, ?, 'Nevera', 'Caneca Contramuslos Crudos')
+    """, (now_str,))
+    cursor.execute("""
+        INSERT OR IGNORE INTO inventory (item_key, name, category, stock, unit, min_threshold, updated_at, location, item_name)
+        VALUES ('muslo_nevera', 'Caneca Muslos Crudos', 'nevera', 60, 'unidad', 10, ?, 'Nevera', 'Caneca Muslos Crudos')
+    """, (now_str,))
+    cursor.execute("""
+        INSERT OR IGNORE INTO inventory (item_key, name, category, stock, unit, min_threshold, updated_at, location, item_name)
+        VALUES ('ala_nevera', 'Caneca Alas Crudas', 'nevera', 60, 'unidad', 10, ?, 'Nevera', 'Caneca Alas Crudas')
+    """, (now_str,))
     cursor.execute("""
         INSERT OR IGNORE INTO inventory (item_key, name, category, stock, unit, min_threshold, updated_at)
         VALUES ('arepas_unidades', 'Arepas Disponibles', 'cocina', 50, 'unidad', 10, ?)
@@ -546,6 +563,12 @@ def seed_initial_data(conn):
             ('muslo_vitrina', 'Muslos en Vitrina', 'vitrina', 14, 'unidad', 4, now_str),
             ('contramuslo_vitrina', 'Contramuslos en Vitrina', 'vitrina', 14, 'unidad', 4, now_str),
             ('ala_vitrina', 'Alas en Vitrina', 'vitrina', 10, 'unidad', 4, now_str),
+
+            # Nevera (4 Canecas de Presas Crudas Adobadas)
+            ('pechuga_nevera', 'Caneca Pechugas Crudas', 'nevera', 60, 'unidad', 10, now_str),
+            ('contramuslo_nevera', 'Caneca Contramuslos Crudos', 'nevera', 60, 'unidad', 10, now_str),
+            ('muslo_nevera', 'Caneca Muslos Crudos', 'nevera', 60, 'unidad', 10, now_str),
+            ('ala_nevera', 'Caneca Alas Crudas', 'nevera', 60, 'unidad', 10, now_str),
 
             # Cocina / Guarniciones listas
             ('caldo_raciones', 'Caldo de Pollo Disponible', 'cocina', 25, 'porcion', 5, now_str),

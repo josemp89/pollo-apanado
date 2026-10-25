@@ -156,13 +156,18 @@ def surtir_presas(payload: SurtirPresasRequest):
         now = datetime.now()
         now_str = now.isoformat()
 
+        # 1. Descontar presas de las canecas crudas en Nevera y sumarlas a Vitrina
         if payload.pechugas > 0:
+            cursor.execute("UPDATE inventory SET stock = MAX(0, stock - ?), updated_at = ? WHERE item_key = 'pechuga_nevera'", (payload.pechugas, now_str))
             cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'pechuga_vitrina'", (payload.pechugas, now_str))
         if payload.muslos > 0:
+            cursor.execute("UPDATE inventory SET stock = MAX(0, stock - ?), updated_at = ? WHERE item_key = 'muslo_nevera'", (payload.muslos, now_str))
             cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'muslo_vitrina'", (payload.muslos, now_str))
         if payload.contramuslos > 0:
+            cursor.execute("UPDATE inventory SET stock = MAX(0, stock - ?), updated_at = ? WHERE item_key = 'contramuslo_nevera'", (payload.contramuslos, now_str))
             cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'contramuslo_vitrina'", (payload.contramuslos, now_str))
         if payload.alas > 0:
+            cursor.execute("UPDATE inventory SET stock = MAX(0, stock - ?), updated_at = ? WHERE item_key = 'ala_nevera'", (payload.alas, now_str))
             cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'ala_vitrina'", (payload.alas, now_str))
 
         cursor.execute("""
@@ -171,13 +176,18 @@ def surtir_presas(payload: SurtirPresasRequest):
                 contramuslos_yield, alas_yield, caldo_bases_yield, notes
             ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)
         """, (
-            now_str, payload.operator, 0, payload.pechugas, payload.muslos, payload.contramuslos, payload.alas, payload.notes or "Refuerzo de presas"
+            now_str, payload.operator, 0, payload.pechugas, payload.muslos, payload.contramuslos, payload.alas, payload.notes or "Pase de caneca en nevera a vitrina"
         ))
 
         conn.commit()
 
-        # Obtener nuevo stock de cada presa
-        rows = cursor.execute("SELECT item_key, stock FROM inventory WHERE item_key IN ('pechuga_vitrina', 'muslo_vitrina', 'contramuslo_vitrina', 'ala_vitrina')").fetchall()
+        # Obtener nuevo stock de cada presa (vitrina y canecas en nevera)
+        rows = cursor.execute("""
+            SELECT item_key, stock 
+            FROM inventory 
+            WHERE item_key IN ('pechuga_vitrina', 'muslo_vitrina', 'contramuslo_vitrina', 'ala_vitrina',
+                               'pechuga_nevera', 'muslo_nevera', 'contramuslo_nevera', 'ala_nevera')
+        """).fetchall()
         stock_map = {r["item_key"]: float(r["stock"]) for r in rows}
 
         return {

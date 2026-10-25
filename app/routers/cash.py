@@ -97,6 +97,11 @@ CLOSING_ZONES_SPEC = {
         "ala_vitrina"
     ],
     "nevera": [
+        # Las 4 Canecas de Presas Crudas Adobadas
+        "pechuga_nevera",
+        "contramuslo_nevera",
+        "muslo_nevera",
+        "ala_nevera",
         # Bebidas Postobón Oficiales (Inventario Inicial de Gaseosas)
         "GAS-TEA-DUR-500",
         "GAS-TEA-LIM-500",
@@ -180,6 +185,10 @@ DEFAULT_ITEM_VALUATION = {
     "contramuslo_vitrina": {"price": 4500, "cost": 1829},
     "muslo_vitrina": {"price": 4500, "cost": 1829},
     "ala_vitrina": {"price": 3500, "cost": 1422},
+    "pechuga_nevera": {"price": 6500, "cost": 2641},
+    "contramuslo_nevera": {"price": 4500, "cost": 1829},
+    "muslo_nevera": {"price": 4500, "cost": 1829},
+    "ala_nevera": {"price": 3500, "cost": 1422},
     "papas_raciones": {"price": 5000, "cost": 850},
     "harina_apanar_kg": {"price": 5000, "cost": 3500},
     "aceite_fritura_lt": {"price": 10000, "cost": 8000},
@@ -370,6 +379,14 @@ def build_closing_inventory_sheet(conn, target_date: str) -> Dict[str, Any]:
 
             if key == 'pollo_entero_crudo':
                 sales_out = chickens_butchered
+            elif key == 'pechuga_nevera':
+                sales_out = yield_pechugas
+            elif key == 'muslo_nevera':
+                sales_out = yield_muslos
+            elif key == 'contramuslo_nevera':
+                sales_out = yield_contramuslos
+            elif key == 'ala_nevera':
+                sales_out = yield_alas
             else:
                 sales_out = consumed_by_key.get(key, 0.0)
 

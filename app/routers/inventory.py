@@ -316,11 +316,22 @@ def get_daily_reconciliation(date: Optional[str] = None):
 
         # 4. Consultar despiece realizado hoy (transformación de pollo crudo en presas y caldo)
         butchering_row = conn.execute("""
-            SELECT SUM(whole_chickens) as total_chickens
+            SELECT 
+                COALESCE(SUM(whole_chickens), 0) as total_chickens,
+                COALESCE(SUM(pechugas_yield), 0) as total_pechugas,
+                COALESCE(SUM(muslos_yield), 0) as total_muslos,
+                COALESCE(SUM(contramuslos_yield), 0) as total_contramuslos,
+                COALESCE(SUM(alas_yield), 0) as total_alas,
+                COALESCE(SUM(caldo_bases_yield), 0) as total_caldo
             FROM butchering_logs
             WHERE date(timestamp) = ?;
         """, (target_date,)).fetchone()
         chickens_butchered = float(butchering_row["total_chickens"] or 0) if butchering_row else 0.0
+        yield_pechugas = float(butchering_row["total_pechugas"] or 0) if butchering_row else 0.0
+        yield_muslos = float(butchering_row["total_muslos"] or 0) if butchering_row else 0.0
+        yield_contramuslos = float(butchering_row["total_contramuslos"] or 0) if butchering_row else 0.0
+        yield_alas = float(butchering_row["total_alas"] or 0) if butchering_row else 0.0
+        yield_caldo = float(butchering_row["total_caldo"] or 0) if butchering_row else 0.0
 
         # 5. Consultar consumo de ventas completadas hoy
         sales_items = conn.execute("""
@@ -403,22 +414,30 @@ def get_daily_reconciliation(date: Optional[str] = None):
                 0.0
             )
 
-            # Entradas internas / producción por despiece
+            # Entradas internas / producción por despiece / surtido de presas
             internal_in = 0.0
             if key == 'pechuga_vitrina':
-                internal_in = 2.0 * chickens_butchered
+                internal_in = yield_pechugas
             elif key == 'muslo_vitrina':
-                internal_in = 2.0 * chickens_butchered
+                internal_in = yield_muslos
             elif key == 'contramuslo_vitrina':
-                internal_in = 2.0 * chickens_butchered
+                internal_in = yield_contramuslos
             elif key == 'ala_vitrina':
-                internal_in = 2.0 * chickens_butchered
+                internal_in = yield_alas
             elif key == 'caldo_raciones':
-                internal_in = 2.0 * chickens_butchered
+                internal_in = yield_caldo
 
             # Consumo / Despachos
             if key == 'pollo_entero_crudo':
                 sales_out = chickens_butchered
+            elif key == 'pechuga_nevera':
+                sales_out = yield_pechugas
+            elif key == 'muslo_nevera':
+                sales_out = yield_muslos
+            elif key == 'contramuslo_nevera':
+                sales_out = yield_contramuslos
+            elif key == 'ala_nevera':
+                sales_out = yield_alas
             else:
                 sales_out = consumed_by_key.get(key, 0.0)
 
