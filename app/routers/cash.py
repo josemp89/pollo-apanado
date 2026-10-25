@@ -234,9 +234,18 @@ def build_closing_inventory_sheet(conn, target_date: str) -> Dict[str, Any]:
         GROUP BY item_name, location
     """, (target_date,)).fetchall()
     entries_map = {}
+    chicken_entries_nevera = 0.0
     for r in entries_rows:
         entries_map[(r["item_name"], r["location"])] = float(r["total_qty"])
         entries_map[(r["item_name"].lower(), r["location"].lower())] = float(r["total_qty"])
+        i_name = (r["item_name"] or "").lower()
+        i_loc = (r["location"] or "").lower()
+        is_chk = (
+            (i_loc == 'nevera' and any(w in i_name for w in ['pollo', 'caneca']) and not any(w in i_name for w in ['pechuga', 'muslo', 'contramuslo', 'ala'])) or
+            i_name in ['pollos_enteros_nevera', 'pollos enteros (despresar a nevera: 8 presas c/u)', 'pollos enteros (nevera)', 'pollo_nevera']
+        )
+        if is_chk:
+            chicken_entries_nevera += float(r["total_qty"])
 
     butch_row = conn.execute("""
         SELECT 
@@ -364,6 +373,10 @@ def build_closing_inventory_sheet(conn, target_date: str) -> Dict[str, Any]:
                 entries_map.get((key.lower(), raw_loc.lower())) or
                 0.0
             )
+
+            # Para las canecas de Nevera, sumar las presas derivadas de pollos enteros recibidos (2 presas por pollo)
+            if key in ('pechuga_nevera', 'contramuslo_nevera', 'muslo_nevera', 'ala_nevera') and chicken_entries_nevera > 0:
+                supplier_in += 2.0 * chicken_entries_nevera
 
             internal_in = 0.0
             if key == 'pechuga_vitrina':

@@ -97,6 +97,53 @@ def register_supplier_entry(payload: SupplierEntryRequest):
         target_name = payload.item_name.strip()
         target_loc = payload.location.strip()
 
+        # Detección de entrada de pollos para Nevera:
+        # Se ingresa la factura en cantidad de pollos enteros, pero se despresa inmediatamente
+        # en 8 presas por pollo cargando las 4 canecas de Nevera (+2 P, +2 C, +2 M, +2 A)
+        is_chicken_nevera = (
+            (target_loc.lower() == 'nevera' and any(w in target_name.lower() for w in ['pollo', 'caneca']) and not any(w in target_name.lower() for w in ['pechuga', 'muslo', 'contramuslo', 'ala'])) or
+            target_name.lower() in ['pollos_enteros_nevera', 'pollos enteros (despresar a nevera: 8 presas c/u)', 'pollos enteros (nevera)', 'pollo_nevera']
+        )
+
+        if is_chicken_nevera:
+            n_chickens = float(payload.quantity)
+            presas_each = round(2.0 * n_chickens, 4)
+            total_presas = round(8.0 * n_chickens, 4)
+
+            # Sumar atómicamente a las 4 canecas de Nevera
+            cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'pechuga_nevera'", (presas_each, now_iso))
+            cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'contramuslo_nevera'", (presas_each, now_iso))
+            cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'muslo_nevera'", (presas_each, now_iso))
+            cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'ala_nevera'", (presas_each, now_iso))
+
+            # Total de presas disponibles en Nevera tras la recepción
+            stocks_res = cursor.execute("""
+                SELECT item_key, stock FROM inventory 
+                WHERE item_key IN ('pechuga_nevera', 'contramuslo_nevera', 'muslo_nevera', 'ala_nevera')
+            """).fetchall()
+            stocks_dict = {r["item_key"]: float(r["stock"]) for r in stocks_res}
+            total_nevera = sum(stocks_dict.values())
+
+            conn.commit()
+
+            msg_qty = int(n_chickens) if n_chickens.is_integer() else n_chickens
+            msg_each = int(presas_each) if presas_each.is_integer() else presas_each
+            msg_tot = int(total_presas) if total_presas.is_integer() else total_presas
+            msg_nev = int(total_nevera) if total_nevera.is_integer() else total_nevera
+
+            return {
+                "success": True,
+                "entry_code": entry_code,
+                "item_name": target_name,
+                "location": "Nevera",
+                "whole_chickens": n_chickens,
+                "presas_added_each": presas_each,
+                "total_presas_added": total_presas,
+                "new_stock": total_nevera,
+                "nevera_stocks": stocks_dict,
+                "message": f"✅ Recepción {entry_code}: {msg_qty} pollos enteros recibidos y despresados en Nevera (+{msg_each} P, +{msg_each} C, +{msg_each} M, +{msg_each} A = +{msg_tot} presas). Total en Nevera: {msg_nev} presas."
+            }
+
         row = cursor.execute("""
             SELECT id, item_key, name, item_name, category, location, stock, unit
             FROM inventory
@@ -310,9 +357,18 @@ def get_daily_reconciliation(date: Optional[str] = None):
         """, (target_date,)).fetchall()
 
         entries_map = {}
+        chicken_entries_nevera = 0.0
         for r in entries_rows:
             entries_map[(r["item_name"], r["location"])] = float(r["total_qty"])
             entries_map[(r["item_name"].lower(), r["location"].lower())] = float(r["total_qty"])
+            i_name = (r["item_name"] or "").lower()
+            i_loc = (r["location"] or "").lower()
+            is_chk = (
+                (i_loc == 'nevera' and any(w in i_name for w in ['pollo', 'caneca']) and not any(w in i_name for w in ['pechuga', 'muslo', 'contramuslo', 'ala'])) or
+                i_name in ['pollos_enteros_nevera', 'pollos enteros (despresar a nevera: 8 presas c/u)', 'pollos enteros (nevera)', 'pollo_nevera']
+            )
+            if is_chk:
+                chicken_entries_nevera += float(r["total_qty"])
 
         # 4. Consultar despiece realizado hoy (transformación de pollo crudo en presas y caldo)
         butchering_row = conn.execute("""
@@ -413,6 +469,9 @@ def get_daily_reconciliation(date: Optional[str] = None):
                 entries_map.get((key.lower(), raw_loc.lower())) or
                 0.0
             )
+            # Para las canecas de Nevera, sumar las presas derivadas de pollos enteros recibidos (2 presas por pollo)
+            if key in ('pechuga_nevera', 'contramuslo_nevera', 'muslo_nevera', 'ala_nevera') and chicken_entries_nevera > 0:
+                supplier_in += 2.0 * chicken_entries_nevera
 
             # Entradas internas / producción por despiece / surtido de presas
             internal_in = 0.0

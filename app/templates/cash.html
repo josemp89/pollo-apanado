@@ -2734,6 +2734,7 @@
           <div class="space-y-1">
             <select id="supplierItemSelect" onchange="onSupplierItemSelectChange()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-100 focus:outline-none focus:border-blue-500">
               <option value="">-- Seleccionar insumo existente o escribir abajo --</option>
+              <option value="pollos_enteros_nevera" data-loc="Nevera" selected>🍗 Pollos Enteros (Recibir y Despresar a Nevera: 8 presas c/u)</option>
               <option value="pollo_entero_crudo" data-loc="Bodega">Pollos Enteros Crudos (Bodega)</option>
               <option value="harina_apanar_kg" data-loc="Bodega">Harina Apanador (Bodega)</option>
               <option value="aceite_fritura_lt" data-loc="Bodega">Aceite para Freidoras (Bodega)</option>
@@ -2754,8 +2755,11 @@
 
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block font-bold text-slate-300 mb-1">Cantidad Ingresada:</label>
-            <input type="number" id="supplierQuantityInput" required min="0.1" step="any" placeholder="Ej. 20" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-black text-amber-400 focus:outline-none focus:border-blue-500 tabular-nums">
+            <label id="supplierQuantityLabel" class="block font-bold text-slate-300 mb-1">Cantidad de Pollos Enteros:</label>
+            <input type="number" id="supplierQuantityInput" oninput="onSupplierQtyChange()" required min="0.1" step="any" placeholder="Ej. 20" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-black text-amber-400 focus:outline-none focus:border-blue-500 tabular-nums">
+            <span id="supplierPresasHelper" class="text-[10px] text-amber-300 font-bold mt-1 block">
+              ⚡ Se despresan en Nevera: 8 presas c/u (2P · 2C · 2M · 2A)
+            </span>
           </div>
           <div>
             <label class="block font-bold text-slate-300 mb-1">Costo Total ($ COP):</label>
@@ -2792,6 +2796,7 @@
         fb.className = 'hidden';
         fb.textContent = '';
       }
+      onSupplierItemSelectChange();
     }
 
     function closeSupplierEntryModal() {
@@ -2803,11 +2808,44 @@
       const sel = document.getElementById('supplierItemSelect');
       const custom = document.getElementById('supplierItemCustomInput');
       const locSel = document.getElementById('supplierLocationSelect');
+      const qLabel = document.getElementById('supplierQuantityLabel');
+      const helper = document.getElementById('supplierPresasHelper');
+
       if (!sel || !sel.value) return;
       const opt = sel.options[sel.selectedIndex];
       if (custom) custom.value = opt.text.split(' (')[0];
       if (opt.dataset && opt.dataset.loc && locSel) {
         locSel.value = opt.dataset.loc;
+      }
+
+      const isChicken = sel.value === 'pollos_enteros_nevera' || (locSel && locSel.value === 'Nevera' && (custom?.value || '').toLowerCase().includes('pollo'));
+      if (isChicken) {
+        if (qLabel) qLabel.textContent = 'Cantidad de Pollos Enteros:';
+        if (helper) helper.classList.remove('hidden');
+      } else {
+        if (qLabel) qLabel.textContent = 'Cantidad Ingresada:';
+        if (helper) helper.classList.add('hidden');
+      }
+      onSupplierQtyChange();
+    }
+
+    function onSupplierQtyChange() {
+      const sel = document.getElementById('supplierItemSelect');
+      const custom = document.getElementById('supplierItemCustomInput');
+      const locSel = document.getElementById('supplierLocationSelect');
+      const helper = document.getElementById('supplierPresasHelper');
+      const qInp = document.getElementById('supplierQuantityInput');
+
+      const isChicken = (sel?.value === 'pollos_enteros_nevera') || (locSel?.value === 'Nevera' && ((custom?.value || '') + (sel?.value || '')).toLowerCase().includes('pollo'));
+      if (!isChicken || !helper) return;
+
+      const qty = parseFloat(qInp?.value || '0');
+      if (qty > 0) {
+        const p = qty * 2;
+        const total = qty * 8;
+        helper.innerHTML = `⚡ <strong>${qty} pollos</strong> = +${total} presas en Nevera (<span class="text-amber-200">+${p} Pechugas, +${p} Contramuslos, +${p} Muslos, +${p} Alas</span>)`;
+      } else {
+        helper.innerHTML = `⚡ Se despresan en Nevera: 8 presas c/u (2P · 2C · 2M · 2A)`;
       }
     }
 
