@@ -488,6 +488,7 @@ def init_db():
         cursor.execute("UPDATE products SET cost = 7721 WHERE sku = 'POL-12'")
         cursor.execute("UPDATE products SET cost = 3860 WHERE sku = 'POL-14'")
         cursor.execute("UPDATE products SET cost = 850 WHERE sku = 'POR-PAPAS'")
+        cursor.execute("UPDATE inventory SET stock = 0 WHERE item_key IN ('arepas_unidades', 'arroz_raciones', 'frijoles_raciones', 'caldo_raciones')")
 
     conn.commit()
     conn.close()
