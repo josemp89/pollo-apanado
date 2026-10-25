@@ -81,3 +81,10 @@ button, a, input, select {
   -webkit-user-select: none;
 }
 
+/* Ocultamiento visual de PIN sin disparar el gestor de contraseñas del navegador */
+.pin-mask-input {
+  -webkit-text-security: disc !important;
+  text-security: disc !important;
+}
+
+

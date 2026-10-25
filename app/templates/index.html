@@ -393,7 +393,7 @@
       <div class="space-y-1">
         <label class="block text-xs font-bold text-slate-300">PIN de Seguridad (4 dígitos):</label>
         <div class="relative">
-          <input type="password" id="adminPinInput" maxlength="8" readonly placeholder="••••" class="w-full text-center tracking-widest text-2xl font-black bg-slate-950 border border-slate-700 rounded-xl py-2 text-amber-400 placeholder-slate-600 focus:outline-none focus:border-red-500">
+          <input type="text" inputmode="none" id="adminPinInput" name="security_pin_admin" maxlength="8" readonly placeholder="••••" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" class="pin-mask-input w-full text-center tracking-widest text-2xl font-black bg-slate-950 border border-slate-700 rounded-xl py-2 text-amber-400 placeholder-slate-600 focus:outline-none focus:border-red-500">
         </div>
       </div>
 
@@ -596,7 +596,7 @@
           <span>🔒</span>
           <span>PIN de Administrador:</span>
         </label>
-        <input type="password" id="priceAdminPinInput" value="4321" placeholder="PIN (ej: 4321)" class="w-36 bg-slate-900 border border-amber-500/50 rounded-lg px-2.5 py-1 text-center font-mono font-black text-amber-400 text-sm focus:outline-none focus:border-amber-400">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" id="priceAdminPinInput" name="security_pin_price" placeholder="4321" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" class="pin-mask-input w-36 bg-slate-900 border border-amber-500/50 rounded-lg px-2.5 py-1 text-center font-mono font-black text-amber-400 text-sm focus:outline-none focus:border-amber-400">
       </div>
 
       <!-- Contenedor de Productos -->
