@@ -176,10 +176,10 @@ ITEM_TO_PRODUCT_SKU = {
 }
 
 DEFAULT_ITEM_VALUATION = {
-    "pechuga_vitrina": {"price": 6500, "cost": 3250},
-    "contramuslo_vitrina": {"price": 4500, "cost": 2250},
-    "muslo_vitrina": {"price": 4500, "cost": 2250},
-    "ala_vitrina": {"price": 3500, "cost": 1750},
+    "pechuga_vitrina": {"price": 6500, "cost": 2641},
+    "contramuslo_vitrina": {"price": 4500, "cost": 1829},
+    "muslo_vitrina": {"price": 4500, "cost": 1829},
+    "ala_vitrina": {"price": 3500, "cost": 1422},
     "harina_apanar_kg": {"price": 5000, "cost": 3500},
     "aceite_fritura_lt": {"price": 10000, "cost": 8000},
     "GAS-TEA-DUR-500": {"price": 3500, "cost": 1125},

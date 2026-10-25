@@ -477,13 +477,16 @@ def init_db():
                 item_name = excluded.item_name;
         """, (inv[0], inv[1], inv[2], inv[3], inv[4], inv[5], now_sync, inv[6], inv[7]))
 
-    # Precios acordados para presas de pollo en producción
+    # Precios y costos acordados para presas de pollo en producción ($463.250 / 30 pollos)
     import os
     if not os.environ.get('PYTEST_CURRENT_TEST'):
-        cursor.execute("UPDATE products SET price = 6500 WHERE sku = 'POL-PEC'")
-        cursor.execute("UPDATE products SET price = 4500 WHERE sku = 'POL-CON'")
-        cursor.execute("UPDATE products SET price = 4500 WHERE sku = 'POL-MUS'")
-        cursor.execute("UPDATE products SET price = 3500 WHERE sku = 'POL-ALA'")
+        cursor.execute("UPDATE products SET price = 6500, cost = 2641 WHERE sku = 'POL-PEC'")
+        cursor.execute("UPDATE products SET price = 4500, cost = 1829 WHERE sku = 'POL-CON'")
+        cursor.execute("UPDATE products SET price = 4500, cost = 1829 WHERE sku = 'POL-MUS'")
+        cursor.execute("UPDATE products SET price = 3500, cost = 1422 WHERE sku = 'POL-ALA'")
+        cursor.execute("UPDATE products SET cost = 15442 WHERE sku = 'POL-ENT'")
+        cursor.execute("UPDATE products SET cost = 7721 WHERE sku = 'POL-12'")
+        cursor.execute("UPDATE products SET cost = 3860 WHERE sku = 'POL-14'")
 
     conn.commit()
     conn.close()
