@@ -94,9 +94,9 @@ def get_products():
 def get_stock_summary():
     conn = get_db_connection()
     rows = conn.execute("""
-        SELECT item_key, name, stock, unit, min_threshold 
+        SELECT item_key, name, stock, unit, min_threshold, category
         FROM inventory 
-        WHERE category IN ('vitrina', 'cocina', 'nevera')
+        WHERE category IN ('vitrina', 'cocina', 'nevera', 'bodega')
     """).fetchall()
     conn.close()
     return {row["item_key"]: dict(row) for row in rows}

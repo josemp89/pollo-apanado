@@ -61,6 +61,11 @@ async function loadStockSummary() {
   try {
     const res = await fetch('/api/pos/stock-summary');
     stockSummary = await res.json();
+    const bodegaEl = document.getElementById('bodegaRawChickensDisplay');
+    if (bodegaEl) {
+      const rawCount = stockSummary['pollo_entero_crudo'] ? stockSummary['pollo_entero_crudo'].stock : 0;
+      bodegaEl.textContent = Math.floor(rawCount);
+    }
     updateStockBadgesInModal();
     renderProducts(); // Re-renderizar para actualizar badges de stock
   } catch (err) {
@@ -1230,5 +1235,128 @@ function triggerPwaInstall() {
   } else {
     const modal = document.getElementById('pwaInstructionsModal');
     if (modal) modal.classList.remove('hidden');
+  }
+}
+
+// ==================== TRASLADO DE POLLO: BODEGA A VITRINA ====================
+function openSacarPolloModal() {
+  const modal = document.getElementById('modalSacarPolloVitrina');
+  if (!modal) return;
+  const bodegaStock = (stockSummary['pollo_entero_crudo'] && stockSummary['pollo_entero_crudo'].stock) || 0;
+  const countEl = document.getElementById('modalBodegaStockCount');
+  if (countEl) countEl.textContent = Math.floor(bodegaStock);
+  const inputEl = document.getElementById('inputSacarPolloQty');
+  if (inputEl) {
+    const defaultVal = Math.min(5, Math.max(1, Math.floor(bodegaStock)));
+    inputEl.value = defaultVal;
+    inputEl.max = Math.max(1, Math.floor(bodegaStock));
+  }
+  updateSacarPolloPreview();
+  modal.classList.remove('hidden');
+}
+
+function closeSacarPolloModal() {
+  const modal = document.getElementById('modalSacarPolloVitrina');
+  if (modal) modal.classList.add('hidden');
+}
+
+function setSacarPolloQty(n) {
+  const inputEl = document.getElementById('inputSacarPolloQty');
+  if (inputEl) {
+    const bodegaStock = (stockSummary['pollo_entero_crudo'] && stockSummary['pollo_entero_crudo'].stock) || 999;
+    inputEl.value = Math.min(n, Math.max(1, Math.floor(bodegaStock)));
+    updateSacarPolloPreview();
+  }
+}
+
+function adjustSacarPolloQty(delta) {
+  const inputEl = document.getElementById('inputSacarPolloQty');
+  if (!inputEl) return;
+  let val = parseInt(inputEl.value || '1', 10) + delta;
+  if (val < 1) val = 1;
+  const bodegaStock = (stockSummary['pollo_entero_crudo'] && stockSummary['pollo_entero_crudo'].stock) || 999;
+  if (val > bodegaStock && bodegaStock > 0) val = Math.floor(bodegaStock);
+  inputEl.value = val;
+  updateSacarPolloPreview();
+}
+
+function updateSacarPolloPreview() {
+  const inputEl = document.getElementById('inputSacarPolloQty');
+  const n = parseInt(inputEl ? inputEl.value || '1' : '1', 10);
+  const bodegaStock = (stockSummary['pollo_entero_crudo'] && stockSummary['pollo_entero_crudo'].stock) || 0;
+  const yields = 2 * n;
+  
+  const pPechugas = document.getElementById('previewYieldPechugas');
+  const pContramuslos = document.getElementById('previewYieldContramuslos');
+  const pMuslos = document.getElementById('previewYieldMuslos');
+  const pAlas = document.getElementById('previewYieldAlas');
+  const pTotal = document.getElementById('previewYieldTotal');
+  const pRemaining = document.getElementById('previewRemainingBodega');
+  
+  if (pPechugas) pPechugas.textContent = `+${yields}`;
+  if (pContramuslos) pContramuslos.textContent = `+${yields}`;
+  if (pMuslos) pMuslos.textContent = `+${yields}`;
+  if (pAlas) pAlas.textContent = `+${yields}`;
+  if (pTotal) pTotal.textContent = `+${8 * n}`;
+  if (pRemaining) pRemaining.textContent = Math.max(0, Math.floor(bodegaStock - n));
+}
+
+async function confirmSacarPollo() {
+  const inputEl = document.getElementById('inputSacarPolloQty');
+  const tandaEl = document.getElementById('selectSacarPolloTanda');
+  const btn = document.getElementById('btnConfirmSacarPollo');
+  
+  const n = parseInt(inputEl ? inputEl.value || '1' : '1', 10);
+  const tanda = tandaEl ? tandaEl.value : 'Turno Mostrador';
+  
+  if (isNaN(n) || n <= 0) {
+    alert("Por favor ingresa una cantidad válida de pollos enteros.");
+    return;
+  }
+  
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span><span>Procesando...</span>';
+  }
+  
+  try {
+    const res = await fetch('/api/kitchen/despiece', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        whole_chickens: n,
+        operator: 'Mostrador',
+        notes: tanda
+      })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Error al registrar salida de pollo.');
+    }
+    
+    closeSacarPolloModal();
+    await loadStockSummary();
+    
+    // Mostrar banner de confirmación en pantalla
+    const banner = document.getElementById('lastSaleBanner');
+    const textEl = document.getElementById('lastSaleText');
+    const undoBtn = document.getElementById('btnUndoSale');
+    if (banner && textEl) {
+      textEl.textContent = `¡${n} pollos sacados de bodega a vitrina! (+${data.yields.total_presas} presas listas)`;
+      if (undoBtn) undoBtn.classList.add('hidden');
+      banner.classList.remove('hidden');
+      setTimeout(() => {
+        banner.classList.add('hidden');
+        if (undoBtn) undoBtn.classList.remove('hidden');
+      }, 6000);
+    }
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>✅</span><span>Confirmar y Surtir</span>';
+    }
   }
 }

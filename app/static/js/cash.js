@@ -340,3 +340,122 @@ function triggerPwaInstall() {
     if (modal) modal.classList.remove('hidden');
   }
 }
+
+// ==================== TRASLADO DE POLLO: BODEGA A VITRINA (DESDE CAJA) ====================
+let cashBodegaChickenStock = 30;
+
+async function openSacarPolloCashModal() {
+  const modal = document.getElementById('modalSacarPolloCash');
+  if (!modal) return;
+  try {
+    const res = await fetch('/api/pos/stock-summary');
+    if (res.ok) {
+      const data = await res.json();
+      cashBodegaChickenStock = (data['pollo_entero_crudo'] && data['pollo_entero_crudo'].stock) || 0;
+    }
+  } catch (e) {
+    console.warn("Could not fetch stock-summary:", e);
+  }
+  const countEl = document.getElementById('modalBodegaStockCountCash');
+  if (countEl) countEl.textContent = Math.floor(cashBodegaChickenStock);
+  const inputEl = document.getElementById('inputSacarPolloCashQty');
+  if (inputEl) {
+    const defaultVal = Math.min(5, Math.max(1, Math.floor(cashBodegaChickenStock)));
+    inputEl.value = defaultVal;
+    inputEl.max = Math.max(1, Math.floor(cashBodegaChickenStock));
+  }
+  updateSacarPolloCashPreview();
+  modal.classList.remove('hidden');
+}
+
+function closeSacarPolloCashModal() {
+  const modal = document.getElementById('modalSacarPolloCash');
+  if (modal) modal.classList.add('hidden');
+}
+
+function setSacarPolloCashQty(n) {
+  const inputEl = document.getElementById('inputSacarPolloCashQty');
+  if (inputEl) {
+    inputEl.value = Math.min(n, Math.max(1, Math.floor(cashBodegaChickenStock)));
+    updateSacarPolloCashPreview();
+  }
+}
+
+function adjustSacarPolloCashQty(delta) {
+  const inputEl = document.getElementById('inputSacarPolloCashQty');
+  if (!inputEl) return;
+  let val = parseInt(inputEl.value || '1', 10) + delta;
+  if (val < 1) val = 1;
+  if (val > cashBodegaChickenStock && cashBodegaChickenStock > 0) val = Math.floor(cashBodegaChickenStock);
+  inputEl.value = val;
+  updateSacarPolloCashPreview();
+}
+
+function updateSacarPolloCashPreview() {
+  const inputEl = document.getElementById('inputSacarPolloCashQty');
+  const n = parseInt(inputEl ? inputEl.value || '1' : '1', 10);
+  const yields = 2 * n;
+  
+  const pPechugas = document.getElementById('previewYieldPechugasCash');
+  const pContramuslos = document.getElementById('previewYieldContramuslosCash');
+  const pMuslos = document.getElementById('previewYieldMuslosCash');
+  const pAlas = document.getElementById('previewYieldAlasCash');
+  const pTotal = document.getElementById('previewYieldTotalCash');
+  const pRemaining = document.getElementById('previewRemainingBodegaCash');
+  
+  if (pPechugas) pPechugas.textContent = `+${yields}`;
+  if (pContramuslos) pContramuslos.textContent = `+${yields}`;
+  if (pMuslos) pMuslos.textContent = `+${yields}`;
+  if (pAlas) pAlas.textContent = `+${yields}`;
+  if (pTotal) pTotal.textContent = `+${8 * n}`;
+  if (pRemaining) pRemaining.textContent = Math.max(0, Math.floor(cashBodegaChickenStock - n));
+}
+
+async function confirmSacarPolloCash() {
+  const inputEl = document.getElementById('inputSacarPolloCashQty');
+  const tandaEl = document.getElementById('selectSacarPolloCashTanda');
+  const btn = document.getElementById('btnConfirmSacarPolloCash');
+  
+  const n = parseInt(inputEl ? inputEl.value || '1' : '1', 10);
+  const tanda = tandaEl ? tandaEl.value : 'Turno Caja';
+  
+  if (isNaN(n) || n <= 0) {
+    alert("Por favor ingresa una cantidad válida de pollos enteros.");
+    return;
+  }
+  
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span><span>Procesando...</span>';
+  }
+  
+  try {
+    const res = await fetch('/api/kitchen/despiece', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        whole_chickens: n,
+        operator: 'Caja',
+        notes: tanda
+      })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Error al registrar salida de pollo.');
+    }
+    
+    closeSacarPolloCashModal();
+    if (typeof loadDailySummary === 'function') await loadDailySummary();
+    if (typeof loadDailyReconciliation === 'function') await loadDailyReconciliation();
+    if (typeof loadClosingInventorySheet === 'function') await loadClosingInventorySheet(true);
+    alert(`¡${n} pollos sacados de bodega a vitrina exitosamente!\n(+${data.yields.total_presas} presas listas para la venta)`);
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>✅</span><span>Confirmar y Surtir</span>';
+    }
+  }
+}

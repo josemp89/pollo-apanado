@@ -102,6 +102,26 @@
     <!-- LADO IZQUIERDO: MENÚ TÁCTIL (100% EN MÓVIL, 65% EN ESCRITORIO/TABLET) -->
     <section class="flex-1 flex flex-col border-r border-slate-800 overflow-hidden bg-slate-900/50 min-w-0">
       
+      <!-- BARRA OPERATIVA: ESTADO DE BODEGA Y TRASLADO A VITRINA -->
+      <div class="px-3 py-2 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border-b border-slate-800 flex items-center justify-between text-xs flex-shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-sm shadow-inner">
+            🧊
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Bodega / Congelador</div>
+            <div class="text-xs font-black text-amber-300">
+              <span id="bodegaRawChickensDisplay">--</span> pollos enteros
+            </div>
+          </div>
+        </div>
+
+        <button id="btnSacarPolloVitrina" onclick="openSacarPolloModal()" class="px-3 py-1.5 rounded-lg text-xs font-black bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:scale-95 text-white flex items-center space-x-1.5 shadow-md transition border border-amber-400/40 select-none" title="Sacar pollos crudos del congelador para despresar y pasar a la vitrina caliente">
+          <span>🍗</span>
+          <span>Sacar Pollo a Vitrina</span>
+        </button>
+      </div>
+
       <!-- PESTAÑAS DE CATEGORÍA -->
       <div class="cat-scroll-container p-2 sm:p-3 bg-slate-800/40 border-b border-slate-800 flex space-x-2 overflow-x-auto no-scrollbar flex-shrink-0">
         <button onclick="filterCategory(event, 'todos')" data-category="todos" class="cat-btn active flex-1 py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-black text-xs sm:text-sm tracking-wide bg-amber-500 text-slate-950 shadow-md transition active:scale-95 text-center flex items-center justify-center space-x-1.5 flex-shrink-0">
@@ -215,6 +235,118 @@
       </div>
     </aside>
   </main>
+
+  <!-- MODAL DE SACAR POLLO DE BODEGA A VITRINA (DESPIECE / SURTIDO) -->
+  <div id="modalSacarPolloVitrina" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/50 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 animate-scale-up">
+      <!-- Encabezado -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-black text-base text-amber-400 flex items-center space-x-2">
+          <span>🍗</span>
+          <span>Sacar Pollo a Vitrina</span>
+        </h3>
+        <button onclick="closeSacarPolloModal()" class="text-slate-400 hover:text-white font-bold text-xl select-none">&times;</button>
+      </div>
+
+      <p class="text-xs text-slate-300">
+        Pasa pollos enteros del congelador a la vitrina. El sistema descontará los pollos enteros de <strong>Bodega</strong> y sumará automáticamente las presas correspondientes a <strong>Vitrina</strong>.
+      </p>
+
+      <!-- Estado actual de bodega -->
+      <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <span class="text-lg">🧊</span>
+          <span class="text-xs text-slate-400">Disponibles en Bodega:</span>
+        </div>
+        <div class="text-sm font-black text-amber-300">
+          <span id="modalBodegaStockCount">30</span> pollos enteros
+        </div>
+      </div>
+
+      <!-- Selector de cantidad -->
+      <div class="space-y-2">
+        <label class="text-xs font-bold text-slate-300 block">¿Cuántos pollos vas a sacar para freír?</label>
+        
+        <!-- Botones rápidos -->
+        <div class="grid grid-cols-4 gap-2">
+          <button type="button" onclick="setSacarPolloQty(1)" class="btn-quick-pollo py-2 rounded-lg bg-slate-800 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500 text-xs font-black text-white transition active:scale-95">
+            +1 Pollo
+          </button>
+          <button type="button" onclick="setSacarPolloQty(2)" class="btn-quick-pollo py-2 rounded-lg bg-slate-800 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500 text-xs font-black text-white transition active:scale-95">
+            +2 Pollos
+          </button>
+          <button type="button" onclick="setSacarPolloQty(3)" class="btn-quick-pollo py-2 rounded-lg bg-slate-800 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500 text-xs font-black text-white transition active:scale-95">
+            +3 Pollos
+          </button>
+          <button type="button" onclick="setSacarPolloQty(5)" class="btn-quick-pollo py-2 rounded-lg bg-slate-800 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500 text-xs font-black text-white transition active:scale-95">
+            +5 Pollos
+          </button>
+        </div>
+
+        <!-- Stepper táctil numérico -->
+        <div class="flex items-center space-x-3 pt-1">
+          <button type="button" onclick="adjustSacarPolloQty(-1)" class="w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-xl font-black text-white border border-slate-700 flex items-center justify-center select-none shadow">
+            -
+          </button>
+          <input type="number" id="inputSacarPolloQty" min="1" max="100" value="5" oninput="updateSacarPolloPreview()" class="flex-1 h-12 bg-slate-950 border border-slate-700 rounded-xl text-center text-xl font-black text-amber-400 focus:border-amber-500 focus:outline-none">
+          <button type="button" onclick="adjustSacarPolloQty(1)" class="w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-xl font-black text-white border border-slate-700 flex items-center justify-center select-none shadow">
+            +
+          </button>
+        </div>
+      </div>
+
+      <!-- Previsualización de rendimientos -->
+      <div class="bg-amber-950/20 border border-amber-500/30 rounded-xl p-3 space-y-2 text-xs">
+        <div class="font-bold text-amber-300 flex items-center space-x-1.5">
+          <span>⚡</span>
+          <span>Presas listas que ingresarán a Vitrina:</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-slate-200">
+          <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 flex justify-between">
+            <span class="text-blue-300">Pechugas:</span>
+            <span id="previewYieldPechugas" class="font-black text-white">+10</span>
+          </div>
+          <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 flex justify-between">
+            <span class="text-amber-300">Contramuslos:</span>
+            <span id="previewYieldContramuslos" class="font-black text-white">+10</span>
+          </div>
+          <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 flex justify-between">
+            <span class="text-orange-300">Muslos:</span>
+            <span id="previewYieldMuslos" class="font-black text-white">+10</span>
+          </div>
+          <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 flex justify-between">
+            <span class="text-yellow-300">Alas:</span>
+            <span id="previewYieldAlas" class="font-black text-white">+10</span>
+          </div>
+        </div>
+        <div class="flex justify-between items-center text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+          <span>Total presas para venta: <strong id="previewYieldTotal" class="text-emerald-400 font-black">+40</strong></span>
+          <span>Quedarán en bodega: <strong id="previewRemainingBodega" class="text-amber-400 font-black">25</strong></span>
+        </div>
+      </div>
+
+      <!-- Turno / Momento -->
+      <div>
+        <label class="text-[11px] font-bold text-slate-400 block mb-1">Momento / Tanda del día:</label>
+        <select id="selectSacarPolloTanda" class="w-full h-10 bg-slate-950 border border-slate-700 rounded-xl px-3 text-xs text-white focus:border-amber-500 focus:outline-none">
+          <option value="Tanda Mañana (Apertura)">🌅 Tanda Mañana (Apertura)</option>
+          <option value="Tanda Almuerzo (Refuerzo)">☀️ Tanda Almuerzo (Refuerzo mediodía)</option>
+          <option value="Tanda Tarde / Noche">🌙 Tanda Tarde / Noche</option>
+        </select>
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="flex space-x-2 pt-2">
+        <button type="button" onclick="closeSacarPolloModal()" class="flex-1 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
+          Cancelar
+        </button>
+        <button type="button" id="btnConfirmSacarPollo" onclick="confirmSacarPollo()" class="flex-1 h-11 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg transition active:scale-95 flex items-center justify-center space-x-1.5">
+          <span>✅</span>
+          <span>Confirmar y Surtir</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL RÁPIDO DE SELECCIÓN DE PRESA PARA ALMUERZO -->
   <div id="presaModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
