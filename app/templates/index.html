@@ -110,8 +110,14 @@
           </div>
           <div>
             <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Nevera / 4 Canecas de Presas Crudas</div>
-            <div class="text-xs font-black text-amber-300 flex items-center space-x-1.5">
+            <div class="text-xs font-black text-amber-300 flex flex-wrap items-center gap-1.5">
               <span><span id="bodegaRawChickensDisplay">240</span> presas crudas</span>
+              <span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-200 border border-amber-500/40 text-xs font-black tracking-wide flex items-center space-x-1">
+                <span>🍗</span>
+                <span>=</span>
+                <span id="bodegaRawChickensEquivDisplay">30</span>
+                <span>pollos enteros</span>
+              </span>
               <span id="neveraPresasBreakdown" class="text-[10px] text-slate-400 font-normal hidden sm:inline">(60 P · 60 C · 60 M · 60 A)</span>
             </div>
           </div>
@@ -254,6 +260,15 @@
       </p>
 
       <!-- Estado en tiempo real de las 4 Canecas en Nevera -->
+      <div class="flex items-center justify-between text-xs px-1 text-slate-300">
+        <span class="font-bold text-slate-400">Total en Nevera: <strong class="text-amber-300"><span id="modalNeveraPresasTotal">240</span> presas</strong></span>
+        <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-500/40 text-[11px] font-black flex items-center space-x-1">
+          <span>🍗</span>
+          <span>=</span>
+          <span id="modalNeveraPollosEquiv">30</span>
+          <span>pollos enteros</span>
+        </span>
+      </div>
       <div class="grid grid-cols-4 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-center text-xs">
         <div class="space-y-0.5">
           <span class="text-[10px] text-blue-400 font-bold block">Pechugas</span>

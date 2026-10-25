@@ -76,6 +76,11 @@ async function loadStockSummary() {
         bodegaEl.textContent = Math.floor(rawCount);
       }
     }
+    const equivEl = document.getElementById('bodegaRawChickensEquivDisplay');
+    if (equivEl) {
+      const equivPollos = totalNeveraPresas > 0 ? (totalNeveraPresas / 8) : ((stockSummary['pollo_entero_crudo'] && stockSummary['pollo_entero_crudo'].stock) || 0);
+      equivEl.textContent = Number.isInteger(equivPollos) ? equivPollos : equivPollos.toFixed(1);
+    }
     const breakdownEl = document.getElementById('neveraPresasBreakdown');
     if (breakdownEl) {
       breakdownEl.textContent = `(${Math.floor(rawP)} P · ${Math.floor(rawC)} C · ${Math.floor(rawM)} M · ${Math.floor(rawA)} A)`;
@@ -1272,6 +1277,15 @@ function openSacarPolloModal() {
   if (elC) elC.textContent = Math.floor(rawC);
   if (elM) elM.textContent = Math.floor(rawM);
   if (elA) elA.textContent = Math.floor(rawA);
+
+  const totalModalNevera = rawP + rawC + rawM + rawA;
+  const modalPresasEl = document.getElementById('modalNeveraPresasTotal');
+  const modalEquivEl = document.getElementById('modalNeveraPollosEquiv');
+  if (modalPresasEl) modalPresasEl.textContent = Math.floor(totalModalNevera);
+  if (modalEquivEl) {
+    const equiv = totalModalNevera / 8;
+    modalEquivEl.textContent = Number.isInteger(equiv) ? equiv : equiv.toFixed(1);
+  }
 
   updateSurtirPresasPreview();
   modal.classList.remove('hidden');

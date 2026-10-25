@@ -367,6 +367,15 @@ async function openSacarPolloCashModal() {
       if (elC) elC.textContent = Math.floor(rawC);
       if (elM) elM.textContent = Math.floor(rawM);
       if (elA) elA.textContent = Math.floor(rawA);
+
+      const totalCashNevera = rawP + rawC + rawM + rawA;
+      const modalPresasEl = document.getElementById('modalNeveraCashPresasTotal');
+      const modalEquivEl = document.getElementById('modalNeveraCashPollosEquiv');
+      if (modalPresasEl) modalPresasEl.textContent = Math.floor(totalCashNevera);
+      if (modalEquivEl) {
+        const equiv = totalCashNevera / 8;
+        modalEquivEl.textContent = Number.isInteger(equiv) ? equiv : equiv.toFixed(1);
+      }
     }
   } catch (e) {
     console.warn("Could not fetch stock-summary:", e);

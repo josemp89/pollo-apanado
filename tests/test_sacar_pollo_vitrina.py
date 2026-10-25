@@ -12,6 +12,8 @@ def test_ui_contains_sacar_pollo_elements():
     assert "btnSacarPolloVitrina" in r_index.text
     assert "modalSacarPolloVitrina" in r_index.text
     assert "bodegaRawChickensDisplay" in r_index.text
+    assert "bodegaRawChickensEquivDisplay" in r_index.text
+    assert "pollos enteros" in r_index.text
 
     r_cash = client.get("/caja")
     assert r_cash.status_code == 200
