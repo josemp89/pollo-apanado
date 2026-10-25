@@ -487,6 +487,7 @@ def init_db():
         cursor.execute("UPDATE products SET cost = 15442 WHERE sku = 'POL-ENT'")
         cursor.execute("UPDATE products SET cost = 7721 WHERE sku = 'POL-12'")
         cursor.execute("UPDATE products SET cost = 3860 WHERE sku = 'POL-14'")
+        cursor.execute("UPDATE products SET cost = 850 WHERE sku = 'POR-PAPAS'")
 
     conn.commit()
     conn.close()

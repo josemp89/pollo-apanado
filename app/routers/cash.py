@@ -180,6 +180,7 @@ DEFAULT_ITEM_VALUATION = {
     "contramuslo_vitrina": {"price": 4500, "cost": 1829},
     "muslo_vitrina": {"price": 4500, "cost": 1829},
     "ala_vitrina": {"price": 3500, "cost": 1422},
+    "papas_raciones": {"price": 5000, "cost": 850},
     "harina_apanar_kg": {"price": 5000, "cost": 3500},
     "aceite_fritura_lt": {"price": 10000, "cost": 8000},
     "GAS-TEA-DUR-500": {"price": 3500, "cost": 1125},
