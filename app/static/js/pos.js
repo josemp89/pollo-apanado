@@ -262,11 +262,27 @@ function getProductIcon(product) {
     case 'POR-FRIJ': return '🫘';
     case 'POR-CALD': return '🥣';
     case 'POR-ARROZ': return '🍚';
+    // Bebidas Postobón Oficiales
+    case 'GAS-TEA-DUR-500':
+    case 'GAS-TEA-LIM-500':
+    case 'GAS-HIT-TRO-500':
+    case 'GAS-HIT-MAN-500':
+    case 'GAS-HIT-MOR-500':
+    case 'GAS-HIT-NP-500':
+    case 'GAS-HIT-MAN-1L':
+    case 'GAS-HIT-NP-1L': return '🧃';
+    case 'GAS-H2O-LIM-600':
+    case 'GAS-H2O-LTA-600':
+    case 'GAS-H2O-MAR-600':
+    case 'GAS-COL-250':
+    case 'GAS-MAN-250':
     case 'GAS-COC-400':
     case 'GAS-ZER-400':
     case 'GAS-COL-400':
     case 'GAS-MAN-400':
     case 'GAS-QUA-400': return '🥤';
+    case 'GAS-MAN-175L':
+    case 'GAS-PEP-175L':
     case 'GAS-COL-15L':
     case 'GAS-MAN-15L':
     case 'GAS-COC-15L': return '🍾';

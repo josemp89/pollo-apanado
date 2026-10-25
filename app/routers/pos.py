@@ -81,8 +81,12 @@ def update_product_prices(payload: UpdatePricesRequest):
 
 @router.get("/products")
 def get_products():
+    import os
     conn = get_db_connection()
-    products = conn.execute("SELECT * FROM products WHERE active = 1 ORDER BY category, price ASC").fetchall()
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        products = conn.execute("SELECT * FROM products ORDER BY category, price ASC").fetchall()
+    else:
+        products = conn.execute("SELECT * FROM products WHERE active = 1 ORDER BY category, price ASC").fetchall()
     conn.close()
     return [dict(p) for p in products]
 

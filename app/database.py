@@ -406,6 +406,77 @@ def init_db():
     
     # Saneamiento preventivo de inventario: restablecer cualquier stock negativo residual
     cursor.execute("UPDATE inventory SET stock = 15 WHERE stock < 0;")
+
+    # Sincronización oficial de las 15 bebidas Postobón del Inventario Inicial
+    postobon_products = [
+        ('GAS-TEA-DUR-500', 'Mr Tea Durazno 500ml', 'gaseosas', 3500, 1125, 0, '🧃', 'amber', 1),
+        ('GAS-TEA-LIM-500', 'Mr Tea Limón 500ml', 'gaseosas', 3500, 1125, 0, '🧃', 'lime', 1),
+        ('GAS-HIT-TRO-500', 'Hit Frutas Tropicales 500ml', 'gaseosas', 3500, 1250, 0, '🧃', 'orange', 1),
+        ('GAS-HIT-MAN-500', 'Hit Mango 500ml', 'gaseosas', 3500, 1250, 0, '🧃', 'amber', 1),
+        ('GAS-HIT-MOR-500', 'Hit Mora 500ml', 'gaseosas', 3500, 1250, 0, '🧃', 'purple', 1),
+        ('GAS-HIT-NP-500', 'Hit Naranja Piña 500ml', 'gaseosas', 3500, 1250, 0, '🧃', 'orange', 1),
+        ('GAS-H2O-LIM-600', 'H2OH! Lima Limón 600ml', 'gaseosas', 3500, 722, 0, '🥤', 'lime', 1),
+        ('GAS-H2O-LTA-600', 'H2OH! Limonata 600ml', 'gaseosas', 3500, 722, 0, '🥤', 'yellow', 1),
+        ('GAS-H2O-MAR-600', 'H2OH! Maracuyá 600ml', 'gaseosas', 3500, 722, 0, '🥤', 'amber', 1),
+        ('GAS-COL-250', 'Colombiana 250ml', 'gaseosas', 2500, 1250, 0, '🥤', 'red', 1),
+        ('GAS-MAN-250', 'Manzana Postobón 250ml', 'gaseosas', 2500, 1250, 0, '🥤', 'pink', 1),
+        ('GAS-HIT-MAN-1L', 'Hit Mango 1L Tetra', 'gaseosas', 6000, 1908, 0, '🧃', 'amber', 1),
+        ('GAS-HIT-NP-1L', 'Hit Naranja Piña 1L Tetra', 'gaseosas', 6000, 1908, 0, '🧃', 'orange', 1),
+        ('GAS-MAN-175L', 'Manzana Postobón 1.75L', 'gaseosas', 7500, 1875, 0, '🍾', 'pink', 1),
+        ('GAS-PEP-175L', 'Pepsi 1.75L', 'gaseosas', 7500, 1875, 0, '🍾', 'blue', 1),
+    ]
+    for p in postobon_products:
+        cursor.execute("""
+            INSERT INTO products (sku, name, category, price, cost, requires_presa_selection, icon, badge_color, active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(sku) DO UPDATE SET
+                name = excluded.name,
+                category = excluded.category,
+                price = excluded.price,
+                cost = excluded.cost,
+                icon = excluded.icon,
+                badge_color = excluded.badge_color,
+                active = excluded.active;
+        """, p)
+
+    # Desactivar bebidas legacy en products para que el mostrador muestre solo las 15 bebidas oficiales
+    postobon_skus = [p[0] for p in postobon_products]
+    placeholders = ','.join(['?'] * len(postobon_skus))
+    cursor.execute(f"""
+        UPDATE products 
+        SET active = 0 
+        WHERE category = 'gaseosas' AND sku NOT IN ({placeholders});
+    """, postobon_skus)
+
+    # Asegurar que las 15 bebidas estén registradas en la tabla inventory
+    postobon_inventory = [
+        ('GAS-TEA-DUR-500', 'Mr Tea Durazno 500ml', 'nevera', 12, 'unidad', 4, 'Nevera', 'Mr Tea Durazno 500ml'),
+        ('GAS-TEA-LIM-500', 'Mr Tea Limón 500ml', 'nevera', 12, 'unidad', 4, 'Nevera', 'Mr Tea Limón 500ml'),
+        ('GAS-HIT-TRO-500', 'Hit Frutas Tropicales 500ml', 'nevera', 12, 'unidad', 4, 'Nevera', 'Hit Frutas Tropicales 500ml'),
+        ('GAS-HIT-MAN-500', 'Hit Mango 500ml', 'nevera', 12, 'unidad', 4, 'Nevera', 'Hit Mango 500ml'),
+        ('GAS-HIT-MOR-500', 'Hit Mora 500ml', 'nevera', 12, 'unidad', 4, 'Nevera', 'Hit Mora 500ml'),
+        ('GAS-HIT-NP-500', 'Hit Naranja Piña 500ml', 'nevera', 12, 'unidad', 4, 'Nevera', 'Hit Naranja Piña 500ml'),
+        ('GAS-H2O-LIM-600', 'H2OH! Lima Limón 600ml', 'nevera', 15, 'unidad', 5, 'Nevera', 'H2OH! Lima Limón 600ml'),
+        ('GAS-H2O-LTA-600', 'H2OH! Limonata 600ml', 'nevera', 15, 'unidad', 5, 'Nevera', 'H2OH! Limonata 600ml'),
+        ('GAS-H2O-MAR-600', 'H2OH! Maracuyá 600ml', 'nevera', 15, 'unidad', 5, 'Nevera', 'H2OH! Maracuyá 600ml'),
+        ('GAS-COL-250', 'Colombiana 250ml', 'nevera', 12, 'unidad', 4, 'Nevera', 'Colombiana 250ml'),
+        ('GAS-MAN-250', 'Manzana Postobón 250ml', 'nevera', 12, 'unidad', 4, 'Nevera', 'Manzana Postobón 250ml'),
+        ('GAS-HIT-MAN-1L', 'Hit Mango 1L Tetra', 'nevera', 12, 'unidad', 4, 'Nevera', 'Hit Mango 1L Tetra'),
+        ('GAS-HIT-NP-1L', 'Hit Naranja Piña 1L Tetra', 'nevera', 12, 'unidad', 4, 'Nevera', 'Hit Naranja Piña 1L Tetra'),
+        ('GAS-MAN-175L', 'Manzana Postobón 1.75L', 'nevera', 12, 'unidad', 4, 'Nevera', 'Manzana Postobón 1.75L'),
+        ('GAS-PEP-175L', 'Pepsi 1.75L', 'nevera', 12, 'unidad', 4, 'Nevera', 'Pepsi 1.75L'),
+    ]
+    now_sync = datetime.now().isoformat()
+    for inv in postobon_inventory:
+        cursor.execute("""
+            INSERT INTO inventory (item_key, name, category, stock, unit, min_threshold, updated_at, location, item_name)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(item_key) DO UPDATE SET
+                name = excluded.name,
+                location = excluded.location,
+                item_name = excluded.item_name;
+        """, (inv[0], inv[1], inv[2], inv[3], inv[4], inv[5], now_sync, inv[6], inv[7]))
+
     conn.commit()
     conn.close()
 

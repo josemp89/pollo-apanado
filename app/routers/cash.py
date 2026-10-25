@@ -97,6 +97,23 @@ CLOSING_ZONES_SPEC = {
         "ala_vitrina"
     ],
     "nevera": [
+        # Bebidas Postobón Oficiales (Inventario Inicial de Gaseosas)
+        "GAS-TEA-DUR-500",
+        "GAS-TEA-LIM-500",
+        "GAS-HIT-TRO-500",
+        "GAS-HIT-MAN-500",
+        "GAS-HIT-MOR-500",
+        "GAS-HIT-NP-500",
+        "GAS-H2O-LIM-600",
+        "GAS-H2O-LTA-600",
+        "GAS-H2O-MAR-600",
+        "GAS-COL-250",
+        "GAS-MAN-250",
+        "GAS-HIT-MAN-1L",
+        "GAS-HIT-NP-1L",
+        "GAS-MAN-175L",
+        "GAS-PEP-175L",
+        # Legacy drinks para compatibilidad de pruebas preexistentes
         "GAS-COL-400",
         "GAS-MAN-400",
         "GAS-COC-400",
@@ -125,6 +142,23 @@ ITEM_TO_PRODUCT_SKU = {
     "muslo_vitrina": "POL-MUS",
     "contramuslo_vitrina": "POL-CON",
     "ala_vitrina": "POL-ALA",
+    # Mapeo 1:1 de Bebidas Postobón Oficiales
+    "GAS-TEA-DUR-500": "GAS-TEA-DUR-500",
+    "GAS-TEA-LIM-500": "GAS-TEA-LIM-500",
+    "GAS-HIT-TRO-500": "GAS-HIT-TRO-500",
+    "GAS-HIT-MAN-500": "GAS-HIT-MAN-500",
+    "GAS-HIT-MOR-500": "GAS-HIT-MOR-500",
+    "GAS-HIT-NP-500": "GAS-HIT-NP-500",
+    "GAS-H2O-LIM-600": "GAS-H2O-LIM-600",
+    "GAS-H2O-LTA-600": "GAS-H2O-LTA-600",
+    "GAS-H2O-MAR-600": "GAS-H2O-MAR-600",
+    "GAS-COL-250": "GAS-COL-250",
+    "GAS-MAN-250": "GAS-MAN-250",
+    "GAS-HIT-MAN-1L": "GAS-HIT-MAN-1L",
+    "GAS-HIT-NP-1L": "GAS-HIT-NP-1L",
+    "GAS-MAN-175L": "GAS-MAN-175L",
+    "GAS-PEP-175L": "GAS-PEP-175L",
+    # Mapeo de bebidas legacy
     "GAS-COL-400": "GAS-COL-400",
     "GAS-MAN-400": "GAS-MAN-400",
     "GAS-COC-400": "GAS-COC-400",
@@ -143,7 +177,22 @@ ITEM_TO_PRODUCT_SKU = {
 
 DEFAULT_ITEM_VALUATION = {
     "harina_apanar_kg": {"price": 5000, "cost": 3500},
-    "aceite_fritura_lt": {"price": 10000, "cost": 8000}
+    "aceite_fritura_lt": {"price": 10000, "cost": 8000},
+    "GAS-TEA-DUR-500": {"price": 3500, "cost": 1125},
+    "GAS-TEA-LIM-500": {"price": 3500, "cost": 1125},
+    "GAS-HIT-TRO-500": {"price": 3500, "cost": 1250},
+    "GAS-HIT-MAN-500": {"price": 3500, "cost": 1250},
+    "GAS-HIT-MOR-500": {"price": 3500, "cost": 1250},
+    "GAS-HIT-NP-500": {"price": 3500, "cost": 1250},
+    "GAS-H2O-LIM-600": {"price": 3500, "cost": 722},
+    "GAS-H2O-LTA-600": {"price": 3500, "cost": 722},
+    "GAS-H2O-MAR-600": {"price": 3500, "cost": 722},
+    "GAS-COL-250": {"price": 2500, "cost": 1250},
+    "GAS-MAN-250": {"price": 2500, "cost": 1250},
+    "GAS-HIT-MAN-1L": {"price": 6000, "cost": 1908},
+    "GAS-HIT-NP-1L": {"price": 6000, "cost": 1908},
+    "GAS-MAN-175L": {"price": 7500, "cost": 1875},
+    "GAS-PEP-175L": {"price": 7500, "cost": 1875}
 }
 
 def build_closing_inventory_sheet(conn, target_date: str) -> Dict[str, Any]:
@@ -1277,7 +1326,7 @@ def get_daily_summary(date_str: Optional[str] = None, shift_id: Optional[int] = 
                 product_breakdown["porciones"]["total_qty"] += qty
                 product_breakdown["porciones"]["subtotal_cop"] += rev
             elif cat == 'gaseosas':
-                if 'Postob' in name or sku.startswith('GAS-COL') or sku.startswith('GAS-MAN'):
+                if 'Postob' in name or sku.startswith(('GAS-COL', 'GAS-MAN', 'GAS-TEA', 'GAS-HIT', 'GAS-H2O', 'GAS-PEP')):
                     product_breakdown["gaseosas_postobon"]["items"].append(it)
                     product_breakdown["gaseosas_postobon"]["total_qty"] += qty
                     product_breakdown["gaseosas_postobon"]["subtotal_cop"] += rev
