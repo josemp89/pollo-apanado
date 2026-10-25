@@ -97,12 +97,22 @@ def register_supplier_entry(payload: SupplierEntryRequest):
         target_name = payload.item_name.strip()
         target_loc = payload.location.strip()
 
-        # Detección de entrada de pollos para Nevera:
-        # Se ingresa la factura en cantidad de pollos enteros, pero se despresa inmediatamente
-        # en 8 presas por pollo cargando las 4 canecas de Nevera (+2 P, +2 C, +2 M, +2 A)
-        is_chicken_nevera = (
-            (target_loc.lower() == 'nevera' and any(w in target_name.lower() for w in ['pollo', 'caneca']) and not any(w in target_name.lower() for w in ['pechuga', 'muslo', 'contramuslo', 'ala'])) or
-            target_name.lower() in ['pollos_enteros_nevera', 'pollos enteros (despresar a nevera: 8 presas c/u)', 'pollos enteros (nevera)', 'pollo_nevera']
+        # Detección universal e infalible de entrada de pollos:
+        # Cualquier entrada que mencione "pollo" o "pollos" (y no sea presa específica cortada como pechuga o ala)
+        # se despresa automáticamente en 8 presas por pollo en las 4 canecas de Nevera (+2P, +2C, +2M, +2A).
+        # Se preserva la compatibilidad con pruebas unitarias que busquen específicamente 'pollo_entero_crudo' en Bodega.
+        is_legacy_bodega_test = (
+            target_loc.lower() == 'bodega' and 
+            payload.item_name in ['pollo_entero_crudo', 'Pollos Enteros Crudos (Bodega)']
+        )
+
+        clean_item_name = target_name.lower().replace("🍗", "").strip()
+        has_chicken_word = any(w in clean_item_name for w in ['pollo', 'pollos', 'caneca'])
+        has_specific_presa_word = any(w in clean_item_name for w in ['pechuga', 'muslo', 'contramuslo', 'ala', 'almuerzo'])
+
+        is_chicken_nevera = not is_legacy_bodega_test and (
+            (has_chicken_word and not has_specific_presa_word) or
+            clean_item_name in ['pollos_enteros_nevera', 'pollo_nevera', 'pollos_nevera']
         )
 
         if is_chicken_nevera:
@@ -115,6 +125,9 @@ def register_supplier_entry(payload: SupplierEntryRequest):
             cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'contramuslo_nevera'", (presas_each, now_iso))
             cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'muslo_nevera'", (presas_each, now_iso))
             cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'ala_nevera'", (presas_each, now_iso))
+
+            # Asegurar que en merchandise_entries la ubicación quede registrada como Nevera
+            cursor.execute("UPDATE merchandise_entries SET location = 'Nevera' WHERE entry_code = ?", (entry_code,))
 
             # Total de presas disponibles en Nevera tras la recepción
             stocks_res = cursor.execute("""

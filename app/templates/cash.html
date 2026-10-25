@@ -2721,8 +2721,8 @@
           <div>
             <label class="block font-bold text-slate-300 mb-1">Ubicación:</label>
             <select id="supplierLocationSelect" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-100 focus:outline-none focus:border-blue-500">
+              <option value="Nevera" selected>Nevera (Canecas / Bebidas)</option>
               <option value="Bodega">Bodega (Frío / Seco)</option>
-              <option value="Nevera">Nevera (Bebidas)</option>
               <option value="Cocina">Cocina (Insumos)</option>
               <option value="Vitrina">Vitrina (Térmica)</option>
             </select>
@@ -2796,6 +2796,12 @@
         fb.className = 'hidden';
         fb.textContent = '';
       }
+      const sel = document.getElementById('supplierItemSelect');
+      if (sel) sel.value = 'pollos_enteros_nevera';
+      const custom = document.getElementById('supplierItemCustomInput');
+      if (custom) custom.value = '';
+      const locSel = document.getElementById('supplierLocationSelect');
+      if (locSel) locSel.value = 'Nevera';
       onSupplierItemSelectChange();
     }
 
@@ -2813,7 +2819,7 @@
 
       if (!sel || !sel.value) return;
       const opt = sel.options[sel.selectedIndex];
-      if (custom) custom.value = opt.text.split(' (')[0];
+      if (custom) custom.value = '';
       if (opt.dataset && opt.dataset.loc && locSel) {
         locSel.value = opt.dataset.loc;
       }
@@ -2900,6 +2906,33 @@
           closeSupplierEntryModal();
           if (typeof loadDailyReconciliation === 'function') loadDailyReconciliation();
           if (typeof loadDailySummary === 'function') loadDailySummary();
+          if (typeof loadStockSummary === 'function') loadStockSummary();
+
+          // Refrescar indicadores de stock de Nevera en tiempo real
+          fetch('/api/pos/stock-summary').then(r => r.json()).then(stockData => {
+            const rawP = stockData['pechuga_nevera'] ? stockData['pechuga_nevera'].stock : 0;
+            const rawC = stockData['contramuslo_nevera'] ? stockData['contramuslo_nevera'].stock : 0;
+            const rawM = stockData['muslo_nevera'] ? stockData['muslo_nevera'].stock : 0;
+            const rawA = stockData['ala_nevera'] ? stockData['ala_nevera'].stock : 0;
+
+            const elP = document.getElementById('stockNeveraCashPechuga');
+            const elC = document.getElementById('stockNeveraCashContramuslo');
+            const elM = document.getElementById('stockNeveraCashMuslo');
+            const elA = document.getElementById('stockNeveraCashAla');
+            if (elP) elP.textContent = Math.floor(rawP);
+            if (elC) elC.textContent = Math.floor(rawC);
+            if (elM) elM.textContent = Math.floor(rawM);
+            if (elA) elA.textContent = Math.floor(rawA);
+
+            const totalCashNevera = rawP + rawC + rawM + rawA;
+            const modalPresasEl = document.getElementById('modalNeveraCashPresasTotal');
+            const modalEquivEl = document.getElementById('modalNeveraCashPollosEquiv');
+            if (modalPresasEl) modalPresasEl.textContent = Math.floor(totalCashNevera);
+            if (modalEquivEl) {
+              const equiv = totalCashNevera / 8;
+              modalEquivEl.textContent = Number.isInteger(equiv) ? equiv : equiv.toFixed(1);
+            }
+          }).catch(e => console.warn(e));
         }, 1200);
 
       } catch (err) {

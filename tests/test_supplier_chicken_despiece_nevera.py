@@ -60,3 +60,43 @@ def test_supplier_chicken_entry_automatically_despresas_into_nevera_canecas():
     for k in ["pechuga_nevera", "contramuslo_nevera", "muslo_nevera", "ala_nevera"]:
         assert k in nevera_items, f"{k} no encontrado en la hoja de cierre"
         assert nevera_items[k]["supplier_entries"] >= 20.0
+
+
+def test_supplier_chicken_with_emoji_or_bodega_location_still_despresas_to_nevera():
+    """
+    Verifica que si el usuario ingresa con nombre de emoji '🍗 Pollos Enteros' o deja ubicación 'Bodega',
+    el sistema infaliblemente reconozca que es pollo y lo desprese a las canecas de Nevera (+2P, +2C, +2M, +2A).
+    """
+    conn = get_db_connection()
+    stocks_before = {
+        r["item_key"]: float(r["stock"])
+        for r in conn.execute("SELECT item_key, stock FROM inventory WHERE item_key LIKE '%nevera'").fetchall()
+    }
+    conn.close()
+
+    res = client.post("/api/inventory/supplier-entry", json={
+        "supplier_name": "Avícola Central",
+        "invoice_number": "FAC-EMOJI-20",
+        "item_name": "🍗 Pollos Enteros",
+        "location": "Bodega",
+        "quantity": 20.0,
+        "total_cost": 300000.0,
+        "notes": "Entrada con emoji y ubicación Bodega por omisión de usuario"
+    })
+    assert res.status_code == 200, res.text
+    data = res.json()
+    assert data["success"] is True
+    assert data["whole_chickens"] == 20.0
+    assert data["presas_added_each"] == 40.0
+    assert data["total_presas_added"] == 160.0
+
+    conn = get_db_connection()
+    stocks_after = {
+        r["item_key"]: float(r["stock"])
+        for r in conn.execute("SELECT item_key, stock FROM inventory WHERE item_key LIKE '%nevera'").fetchall()
+    }
+    conn.close()
+
+    for k in ["pechuga_nevera", "contramuslo_nevera", "muslo_nevera", "ala_nevera"]:
+        assert stocks_after[k] == stocks_before[k] + 40.0, f"Fallo en {k}: esperado {stocks_before[k] + 40}, actual {stocks_after[k]}"
+
