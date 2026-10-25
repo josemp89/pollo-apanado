@@ -230,11 +230,22 @@ def build_closing_inventory_sheet(conn, target_date: str) -> Dict[str, Any]:
         entries_map[(r["item_name"].lower(), r["location"].lower())] = float(r["total_qty"])
 
     butch_row = conn.execute("""
-        SELECT SUM(whole_chickens) as total_chickens
+        SELECT 
+            COALESCE(SUM(whole_chickens), 0) as total_chickens,
+            COALESCE(SUM(pechugas_yield), 0) as total_pechugas,
+            COALESCE(SUM(muslos_yield), 0) as total_muslos,
+            COALESCE(SUM(contramuslos_yield), 0) as total_contramuslos,
+            COALESCE(SUM(alas_yield), 0) as total_alas,
+            COALESCE(SUM(caldo_bases_yield), 0) as total_caldo
         FROM butchering_logs
         WHERE date(timestamp) = ?
     """, (target_date,)).fetchone()
-    chickens_butchered = float(butch_row["total_chickens"] or 0) if butch_row else 0.0
+    chickens_butchered = float(butch_row["total_chickens"]) if butch_row else 0.0
+    yield_pechugas = float(butch_row["total_pechugas"]) if butch_row else 0.0
+    yield_muslos = float(butch_row["total_muslos"]) if butch_row else 0.0
+    yield_contramuslos = float(butch_row["total_contramuslos"]) if butch_row else 0.0
+    yield_alas = float(butch_row["total_alas"]) if butch_row else 0.0
+    yield_caldo = float(butch_row["total_caldo"]) if butch_row else 0.0
 
     sales_items = conn.execute("""
         SELECT si.chosen_presa, si.quantity, p.sku, p.category
@@ -346,8 +357,16 @@ def build_closing_inventory_sheet(conn, target_date: str) -> Dict[str, Any]:
             )
 
             internal_in = 0.0
-            if key in ('pechuga_vitrina', 'muslo_vitrina', 'contramuslo_vitrina', 'ala_vitrina', 'caldo_raciones'):
-                internal_in = 2.0 * chickens_butchered
+            if key == 'pechuga_vitrina':
+                internal_in = yield_pechugas
+            elif key == 'muslo_vitrina':
+                internal_in = yield_muslos
+            elif key == 'contramuslo_vitrina':
+                internal_in = yield_contramuslos
+            elif key == 'ala_vitrina':
+                internal_in = yield_alas
+            elif key == 'caldo_raciones':
+                internal_in = yield_caldo
 
             if key == 'pollo_entero_crudo':
                 sales_out = chickens_butchered

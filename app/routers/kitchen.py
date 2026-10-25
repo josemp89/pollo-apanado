@@ -11,6 +11,14 @@ class DespieceRequest(BaseModel):
     operator: Optional[str] = "Santiago"
     notes: Optional[str] = None
 
+class SurtirPresasRequest(BaseModel):
+    pechugas: int = 0
+    contramuslos: int = 0
+    muslos: int = 0
+    alas: int = 0
+    operator: Optional[str] = "Santiago"
+    notes: Optional[str] = "Refuerzo presas"
+
 class BatchTimerRequest(BaseModel):
     stage: str  # 'salmuera', 'adobo', 'fritura'
     total_presas: int
@@ -126,6 +134,64 @@ def record_despiece(payload: DespieceRequest):
     except HTTPException:
         conn.rollback()
         raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@router.post("/surtir-presas")
+def surtir_presas(payload: SurtirPresasRequest):
+    """
+    Permite surtir presas específicas de pollo directamente a vitrina (ej. refuerzo de pechugas en la tarde).
+    Actualiza el stock disponible en mostrador y registra la producción en butchering_logs.
+    """
+    total = payload.pechugas + payload.contramuslos + payload.muslos + payload.alas
+    if total <= 0:
+        raise HTTPException(status_code=400, detail="Debes ingresar al menos una presa para surtir a vitrina.")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        now = datetime.now()
+        now_str = now.isoformat()
+
+        if payload.pechugas > 0:
+            cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'pechuga_vitrina'", (payload.pechugas, now_str))
+        if payload.muslos > 0:
+            cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'muslo_vitrina'", (payload.muslos, now_str))
+        if payload.contramuslos > 0:
+            cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'contramuslo_vitrina'", (payload.contramuslos, now_str))
+        if payload.alas > 0:
+            cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'ala_vitrina'", (payload.alas, now_str))
+
+        cursor.execute("""
+            INSERT INTO butchering_logs (
+                timestamp, operator, whole_chickens, pechugas_yield, muslos_yield, 
+                contramuslos_yield, alas_yield, caldo_bases_yield, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)
+        """, (
+            now_str, payload.operator, 0, payload.pechugas, payload.muslos, payload.contramuslos, payload.alas, payload.notes or "Refuerzo de presas"
+        ))
+
+        conn.commit()
+
+        # Obtener nuevo stock de cada presa
+        rows = cursor.execute("SELECT item_key, stock FROM inventory WHERE item_key IN ('pechuga_vitrina', 'muslo_vitrina', 'contramuslo_vitrina', 'ala_vitrina')").fetchall()
+        stock_map = {r["item_key"]: float(r["stock"]) for r in rows}
+
+        return {
+            "success": True,
+            "message": f"¡Se surtieron {total} presas a la vitrina con éxito!",
+            "added": {
+                "pechugas": payload.pechugas,
+                "contramuslos": payload.contramuslos,
+                "muslos": payload.muslos,
+                "alas": payload.alas,
+                "total": total
+            },
+            "new_stock": stock_map
+        }
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))

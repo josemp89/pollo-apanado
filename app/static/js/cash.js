@@ -364,7 +364,9 @@ async function openSacarPolloCashModal() {
     inputEl.value = defaultVal;
     inputEl.max = Math.max(1, Math.floor(cashBodegaChickenStock));
   }
+  switchSurtirCashTab('pollos');
   updateSacarPolloCashPreview();
+  updateSurtirCashPresasPreview();
   modal.classList.remove('hidden');
 }
 
@@ -455,7 +457,114 @@ async function confirmSacarPolloCash() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<span>✅</span><span>Confirmar y Surtir</span>';
+      btn.innerHTML = '<span>✅</span><span>Confirmar y Surtir Pollos</span>';
+    }
+  }
+}
+
+// ==================== SURTIDO DE PRESAS SUELTAS EN CAJA ====================
+function switchSurtirCashTab(mode) {
+  const panelPollos = document.getElementById('panelSurtirCashPollos');
+  const panelPresas = document.getElementById('panelSurtirCashPresas');
+  const tabPollos = document.getElementById('tabBtnSurtirCashPollos');
+  const tabPresas = document.getElementById('tabBtnSurtirCashPresas');
+
+  if (mode === 'pollos') {
+    if (panelPollos) panelPollos.classList.remove('hidden');
+    if (panelPresas) panelPresas.classList.add('hidden');
+    if (tabPollos) tabPollos.className = 'py-2 px-3 rounded-lg text-xs font-black transition border bg-amber-500 text-slate-950 border-amber-400 shadow-sm flex items-center justify-center space-x-1.5';
+    if (tabPresas) tabPresas.className = 'py-2 px-3 rounded-lg text-xs font-bold transition border bg-slate-800 text-slate-300 border-slate-700 hover:text-white flex items-center justify-center space-x-1.5';
+  } else {
+    if (panelPollos) panelPollos.classList.add('hidden');
+    if (panelPresas) panelPresas.classList.remove('hidden');
+    if (tabPollos) tabPollos.className = 'py-2 px-3 rounded-lg text-xs font-bold transition border bg-slate-800 text-slate-300 border-slate-700 hover:text-white flex items-center justify-center space-x-1.5';
+    if (tabPresas) tabPresas.className = 'py-2 px-3 rounded-lg text-xs font-black transition border bg-amber-500 text-slate-950 border-amber-400 shadow-sm flex items-center justify-center space-x-1.5';
+    updateSurtirCashPresasPreview();
+  }
+}
+
+function adjustSurtirCashPresaQty(presa, delta) {
+  const inp = document.getElementById(`surtir_cash_${presa}`);
+  if (!inp) return;
+  let val = parseInt(inp.value || '0', 10) + delta;
+  if (val < 0) val = 0;
+  inp.value = val;
+  updateSurtirCashPresasPreview();
+}
+
+function setSurtirCashPresaQty(presa, val) {
+  const inp = document.getElementById(`surtir_cash_${presa}`);
+  if (!inp) return;
+  inp.value = val;
+  updateSurtirCashPresasPreview();
+}
+
+function updateSurtirCashPresasPreview() {
+  const p = parseInt(document.getElementById('surtir_cash_pechuga')?.value || '0', 10);
+  const c = parseInt(document.getElementById('surtir_cash_contramuslo')?.value || '0', 10);
+  const m = parseInt(document.getElementById('surtir_cash_muslo')?.value || '0', 10);
+  const a = parseInt(document.getElementById('surtir_cash_ala')?.value || '0', 10);
+  const total = p + c + m + a;
+
+  const parts = [];
+  if (p > 0) parts.push(`${p} Pechugas`);
+  if (c > 0) parts.push(`${c} Contramuslos`);
+  if (m > 0) parts.push(`${m} Muslos`);
+  if (a > 0) parts.push(`${a} Alas`);
+
+  const summaryEl = document.getElementById('previewSurtirCashPresasSummary');
+  const totalEl = document.getElementById('previewSurtirCashPresasTotal');
+
+  if (summaryEl) summaryEl.textContent = parts.length > 0 ? parts.join(', ') : 'Ninguna seleccionada';
+  if (totalEl) totalEl.textContent = `+${total} presas`;
+}
+
+async function confirmSurtirCashPresas() {
+  const p = parseInt(document.getElementById('surtir_cash_pechuga')?.value || '0', 10);
+  const c = parseInt(document.getElementById('surtir_cash_contramuslo')?.value || '0', 10);
+  const m = parseInt(document.getElementById('surtir_cash_muslo')?.value || '0', 10);
+  const a = parseInt(document.getElementById('surtir_cash_ala')?.value || '0', 10);
+  const total = p + c + m + a;
+
+  if (total <= 0) {
+    alert("Por favor ingresa al menos una presa para surtir a la vitrina caliente.");
+    return;
+  }
+
+  const btn = document.getElementById('btnConfirmSurtirCashPresas');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span><span>Surtir presas...</span>';
+  }
+
+  try {
+    const res = await fetch('/api/kitchen/surtir-presas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pechugas: p,
+        contramuslos: c,
+        muslos: m,
+        alas: a,
+        operator: 'Caja',
+        notes: 'Refuerzo presas tarde'
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Error al surtir presas a vitrina');
+
+    closeSacarPolloCashModal();
+    if (typeof loadDailySummary === 'function') await loadDailySummary();
+    if (typeof loadDailyReconciliation === 'function') await loadDailyReconciliation();
+    if (typeof loadClosingInventorySheet === 'function') await loadClosingInventorySheet(true);
+    alert(`¡${total} presas surtidas a vitrina exitosamente!`);
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>✅</span><span>Surtir Presas a Vitrina</span>';
     }
   }
 }
