@@ -470,6 +470,18 @@ def open_shift(payload: OpenShiftRequest):
             payload.base_inicial, payload.base_inicial, payload.notes
         ))
         shift_id = cursor.lastrowid
+
+        # Rollover automático: Si no hay inventario inicial registrado para hoy, sembrarlo con el stock actual
+        # Esto transfiere automáticamente el pollo frito de la noche anterior y canecas crudas al inventario inicial de hoy
+        init_count = cursor.execute("SELECT COUNT(*) FROM daily_initial_inventory WHERE date = ?", (date_str,)).fetchone()[0]
+        if init_count == 0:
+            inv_rows = cursor.execute("SELECT item_key, name, stock, location FROM inventory").fetchall()
+            for r in inv_rows:
+                cursor.execute("""
+                    INSERT INTO daily_initial_inventory (date, item_name, location, quantity)
+                    VALUES (?, ?, ?, ?)
+                """, (date_str, r["name"], r["location"] or "Vitrina", float(r["stock"])))
+
         conn.commit()
 
         created_shift = cursor.execute("SELECT * FROM cash_shifts WHERE id = ?", (shift_id,)).fetchone()

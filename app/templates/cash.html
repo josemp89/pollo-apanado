@@ -755,6 +755,125 @@
             </button>
           </div>
 
+          <!-- ASISTENTE DE CONTEO DE POLLO: MÉTODO CANECAS & VITRINA DE SANTIAGO -->
+          <div class="bg-gradient-to-r from-amber-950/40 via-slate-900 to-amber-950/40 border-2 border-amber-500/50 rounded-2xl p-4 shadow-xl space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-lg shadow-inner">
+                  🍗
+                </div>
+                <div>
+                  <h4 class="text-sm font-black text-amber-300 tracking-wide flex items-center space-x-2">
+                    <span>Arqueo Rápido de Pollo (Método Canecas & Vitrina)</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30">Santiago</span>
+                  </h4>
+                  <p class="text-[11px] text-slate-400">Calcula automáticamente sumando canecas cerradas, caneca abierta y pollo frito que queda para mañana</p>
+                </div>
+              </div>
+              <button type="button" onclick="toggleSantiagoAssistant()" id="btnToggleSantiagoAssistant" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition">
+                Ocultar / Mostrar
+              </button>
+            </div>
+
+            <div id="santiagoAssistantContent" class="space-y-3 text-xs">
+              <!-- SECCIÓN 1: CANECAS SELLADAS -->
+              <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                  <span class="text-2xl">🧊</span>
+                  <div>
+                    <div class="font-bold text-slate-200">1. Canecas Selladas en Nevera (10 pollos c/u)</div>
+                    <div class="text-[11px] text-slate-400">Cada caneca cerrada = 20 pechugas, 20 contramuslos, 20 muslos, 20 alas</div>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <button type="button" onclick="setCanecasCerradas(0)" class="btn-caneca-opt px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-amber-600/30 border border-slate-700 font-bold text-xs">0</button>
+                  <button type="button" onclick="setCanecasCerradas(1)" class="btn-caneca-opt px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-amber-600/30 border border-slate-700 font-bold text-xs">1 (10p)</button>
+                  <button type="button" onclick="setCanecasCerradas(2)" class="btn-caneca-opt px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 border border-amber-400 font-black text-xs shadow-sm">2 (20p)</button>
+                  <button type="button" onclick="setCanecasCerradas(3)" class="btn-caneca-opt px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-amber-600/30 border border-slate-700 font-bold text-xs">3 (30p)</button>
+                  <input type="number" id="inputCanecasCerradas" value="2" min="0" max="10" oninput="calculateSantiagoTotals()" class="w-16 h-9 bg-slate-900 border border-slate-700 rounded-lg text-center font-black text-amber-400 text-sm">
+                </div>
+              </div>
+
+              <!-- SECCIÓN 2: CANECA ABIERTA (EN USO) -->
+              <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="font-bold text-slate-200 flex items-center space-x-1.5">
+                    <span>🥣</span>
+                    <span>2. Caneca Abierta en Nevera (Presas Crudas Adobadas restantes)</span>
+                  </div>
+                  <span class="text-[11px] text-slate-400">Presas contadas en la caneca en uso</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 text-center">
+                    <label class="text-[10px] font-bold text-blue-400 block mb-1">Pechugas Crudas</label>
+                    <input type="number" id="sc_crudo_pechuga" min="0" value="0" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-white text-sm focus:border-blue-500">
+                  </div>
+                  <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 text-center">
+                    <label class="text-[10px] font-bold text-amber-400 block mb-1">Contramuslos Crudos</label>
+                    <input type="number" id="sc_crudo_contramuslo" min="0" value="0" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-white text-sm focus:border-amber-500">
+                  </div>
+                  <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 text-center">
+                    <label class="text-[10px] font-bold text-orange-400 block mb-1">Muslos Crudos</label>
+                    <input type="number" id="sc_crudo_muslo" min="0" value="0" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-white text-sm focus:border-orange-500">
+                  </div>
+                  <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 text-center">
+                    <label class="text-[10px] font-bold text-yellow-400 block mb-1">Alas Crudas</label>
+                    <input type="number" id="sc_crudo_ala" min="0" value="0" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-white text-sm focus:border-yellow-500">
+                  </div>
+                </div>
+              </div>
+
+              <!-- SECCIÓN 3: POLLO FRITO QUE QUEDA PARA MAÑANA -->
+              <div class="bg-amber-950/20 p-3 rounded-xl border border-amber-500/30 space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="font-bold text-amber-300 flex items-center space-x-1.5">
+                    <span>🍗</span>
+                    <span>3. Vitrina Caliente (Pollo Frito que no se vendió y queda para mañana)</span>
+                  </div>
+                  <span class="text-[11px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">Pasa al inventario de mañana</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 text-center">
+                    <label class="text-[10px] font-bold text-blue-300 block mb-1">Pechugas Fritas</label>
+                    <input type="number" id="sc_frito_pechuga" min="0" value="0" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-amber-400 text-sm focus:border-amber-500">
+                  </div>
+                  <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 text-center">
+                    <label class="text-[10px] font-bold text-amber-300 block mb-1">Contramuslos Fritos</label>
+                    <input type="number" id="sc_frito_contramuslo" min="0" value="0" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-amber-400 text-sm focus:border-amber-500">
+                  </div>
+                  <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 text-center">
+                    <label class="text-[10px] font-bold text-orange-300 block mb-1">Muslos Fritos</label>
+                    <input type="number" id="sc_frito_muslo" min="0" value="0" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-amber-400 text-sm focus:border-amber-500">
+                  </div>
+                  <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 text-center">
+                    <label class="text-[10px] font-bold text-yellow-300 block mb-1">Alas Fritas</label>
+                    <input type="number" id="sc_frito_ala" min="0" value="0" oninput="calculateSantiagoTotals()" class="w-full h-9 bg-slate-950 border border-slate-700 rounded-lg text-center font-black text-amber-400 text-sm focus:border-amber-500">
+                  </div>
+                </div>
+              </div>
+
+              <!-- BARRA DE TOTALES Y BOTÓN APLICAR -->
+              <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="space-y-1">
+                  <div class="text-[11px] text-slate-400">Total Presas Físicas Contadas:</div>
+                  <div class="font-black text-white text-xs flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span>Pechugas: <strong id="sc_total_pechuga" class="text-blue-400 font-mono">0</strong></span>
+                    <span>Contramuslos: <strong id="sc_total_contramuslo" class="text-amber-400 font-mono">0</strong></span>
+                    <span>Muslos: <strong id="sc_total_muslo" class="text-orange-400 font-mono">0</strong></span>
+                    <span>Alas: <strong id="sc_total_ala" class="text-yellow-400 font-mono">0</strong></span>
+                  </div>
+                  <div class="text-[10px] text-amber-300 font-medium">
+                    Equivalente en stock total: <strong id="sc_equiv_pollos" class="font-black">0.0</strong> pollos enteros &bull; Pollo frito para mañana: <strong id="sc_equiv_frito_total" class="font-black text-white">0</strong> presas
+                  </div>
+                </div>
+                <button type="button" onclick="applySantiagoChickenTotals()" class="h-11 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex items-center justify-center space-x-1.5 select-none self-end sm:self-auto">
+                  <span>⚡</span>
+                  <span>APLICAR TOTALES AL ARQUEO</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Contenedor Dinámico de Ítems por Zona -->
           <div id="closingZoneItemsContainer" class="space-y-3">
             <div class="p-6 text-center text-slate-400 text-xs">Cargando planilla de inventario al cierre...</div>
@@ -1236,11 +1355,128 @@
 
         renderClosingSheetItems(activeZoneFilter);
         updateStep2Summaries();
+        calculateSantiagoTotals();
       } catch (err) {
         if (container) {
           container.innerHTML = `<div class="p-4 text-center text-red-400 font-bold">Error cargando planilla de inventario: ${err.message}</div>`;
         }
       }
+    }
+
+    // ==================== ASISTENTE DE CONTEO DE POLLO (SANTIAGO) ====================
+    function toggleSantiagoAssistant() {
+      const content = document.getElementById('santiagoAssistantContent');
+      if (content) content.classList.toggle('hidden');
+    }
+
+    function setCanecasCerradas(n) {
+      const inp = document.getElementById('inputCanecasCerradas');
+      if (inp) {
+        inp.value = n;
+        calculateSantiagoTotals();
+      }
+      document.querySelectorAll('.btn-caneca-opt').forEach((btn, idx) => {
+        if (idx === n) {
+          btn.className = 'btn-caneca-opt px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 border border-amber-400 font-black text-xs shadow-sm';
+        } else {
+          btn.className = 'btn-caneca-opt px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-amber-600/30 border border-slate-700 font-bold text-xs';
+        }
+      });
+    }
+
+    function calculateSantiagoTotals() {
+      const canecas = parseInt(document.getElementById('inputCanecasCerradas')?.value || '0', 10);
+      const basePresas = canecas * 20; // Cada caneca cerrada de 10 pollos = 20 pechugas, 20 contramuslos, 20 muslos, 20 alas
+
+      const crudoPechuga = parseInt(document.getElementById('sc_crudo_pechuga')?.value || '0', 10);
+      const crudoContramuslo = parseInt(document.getElementById('sc_crudo_contramuslo')?.value || '0', 10);
+      const crudoMuslo = parseInt(document.getElementById('sc_crudo_muslo')?.value || '0', 10);
+      const crudoAla = parseInt(document.getElementById('sc_crudo_ala')?.value || '0', 10);
+
+      const fritoPechuga = parseInt(document.getElementById('sc_frito_pechuga')?.value || '0', 10);
+      const fritoContramuslo = parseInt(document.getElementById('sc_frito_contramuslo')?.value || '0', 10);
+      const fritoMuslo = parseInt(document.getElementById('sc_frito_muslo')?.value || '0', 10);
+      const fritoAla = parseInt(document.getElementById('sc_frito_ala')?.value || '0', 10);
+
+      const totalPechuga = basePresas + crudoPechuga + fritoPechuga;
+      const totalContramuslo = basePresas + crudoContramuslo + fritoContramuslo;
+      const totalMuslo = basePresas + crudoMuslo + fritoMuslo;
+      const totalAla = basePresas + crudoAla + fritoAla;
+
+      const totalPresas = totalPechuga + totalContramuslo + totalMuslo + totalAla;
+      const equivPollos = (totalPresas / 8).toFixed(1);
+      const totalFrito = fritoPechuga + fritoContramuslo + fritoMuslo + fritoAla;
+
+      const elP = document.getElementById('sc_total_pechuga');
+      const elC = document.getElementById('sc_total_contramuslo');
+      const elM = document.getElementById('sc_total_muslo');
+      const elA = document.getElementById('sc_total_ala');
+      const elEq = document.getElementById('sc_equiv_pollos');
+      const elFritoTot = document.getElementById('sc_equiv_frito_total');
+
+      if (elP) elP.textContent = totalPechuga;
+      if (elC) elC.textContent = totalContramuslo;
+      if (elM) elM.textContent = totalMuslo;
+      if (elA) elA.textContent = totalAla;
+      if (elEq) elEq.textContent = equivPollos;
+      if (elFritoTot) elFritoTot.textContent = totalFrito;
+
+      return {
+        pechuga: totalPechuga,
+        contramuslo: totalContramuslo,
+        muslo: totalMuslo,
+        ala: totalAla,
+        frito: {
+          pechuga: fritoPechuga,
+          contramuslo: fritoContramuslo,
+          muslo: fritoMuslo,
+          ala: fritoAla,
+          total: totalFrito
+        },
+        crudo: {
+          canecas: canecas,
+          pechuga: crudoPechuga,
+          contramuslo: crudoContramuslo,
+          muslo: crudoMuslo,
+          ala: crudoAla
+        }
+      };
+    }
+
+    function applySantiagoChickenTotals() {
+      const totals = calculateSantiagoTotals();
+
+      // Actualizar estado de inventario físico
+      physicalInventoryState['pechuga_vitrina'] = totals.pechuga;
+      physicalInventoryState['contramuslo_vitrina'] = totals.contramuslo;
+      physicalInventoryState['muslo_vitrina'] = totals.muslo;
+      physicalInventoryState['ala_vitrina'] = totals.ala;
+
+      // Actualizar inputs en la tabla
+      ['pechuga_vitrina', 'contramuslo_vitrina', 'muslo_vitrina', 'ala_vitrina'].forEach(key => {
+        const inp = document.getElementById(`phys_input_${key}`);
+        if (inp) inp.value = physicalInventoryState[key];
+        onPhysicalCountChange(key, physicalInventoryState[key]);
+      });
+
+      // Trazabilidad del pollo frito que pasa a mañana en las notas de cierre
+      const notesEl = document.getElementById('closeClosingNotes');
+      const fritoSummary = `[POLLO FRITO PARA MAÑANA: ${totals.frito.pechuga} pechugas, ${totals.frito.contramuslo} contramuslos, ${totals.frito.muslo} muslos, ${totals.frito.ala} alas (Total: ${totals.frito.total} presas). CRUDA EN NEVERA: ${totals.crudo.canecas} canecas cerradas + caneca abierta].`;
+      if (notesEl) {
+        if (!notesEl.value.includes('[POLLO FRITO PARA MAÑANA:')) {
+          notesEl.value = (notesEl.value ? notesEl.value + ' ' : '') + fritoSummary;
+        } else {
+          notesEl.value = notesEl.value.replace(/\[POLLO FRITO PARA MAÑANA:[^\]]+\]/, fritoSummary);
+        }
+      }
+
+      updateStep2Summaries();
+      alert(`✅ Totales de pollo aplicados exitosamente al arqueo:\n\n` +
+            `🍗 Pechugas: ${totals.pechuga}\n` +
+            `🍗 Contramuslos: ${totals.contramuslo}\n` +
+            `🍗 Muslos: ${totals.muslo}\n` +
+            `🍗 Alas: ${totals.ala}\n\n` +
+            `📦 Pollo frito que queda para mañana: ${totals.frito.total} presas registradas para el inventario de apertura.`);
     }
 
     function stepItemPhysicalCount(itemKey, delta) {
