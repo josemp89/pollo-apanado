@@ -1180,11 +1180,13 @@ def get_daily_summary(date_str: Optional[str] = None, shift_id: Optional[int] = 
             totals_dict["total_tickets"] += row["tickets"]
 
         # 3. Gastos menores autorizados
-        expense_filter = "date_str = ?"
-        expense_params = [date_str]
-        if shift_id is not None:
-            expense_filter = "shift_id = ?"
-            expense_params = [shift_id]
+        target_shift_id = shift_id or (shift_row["id"] if shift_row else None)
+        if target_shift_id is not None:
+            expense_filter = "(shift_id = ? OR (shift_id IS NULL AND date_str = ?))"
+            expense_params = [target_shift_id, date_str]
+        else:
+            expense_filter = "date_str = ?"
+            expense_params = [date_str]
 
         expenses_rows = conn.execute(f"""
             SELECT * FROM cash_expenses WHERE {expense_filter} ORDER BY id ASC
