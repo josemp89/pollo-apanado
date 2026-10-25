@@ -227,12 +227,63 @@ def build_closing_inventory_sheet(conn, target_date: str) -> Dict[str, Any]:
         initial_map[(r["item_name"], r["location"])] = float(r["quantity"])
         initial_map[(r["item_name"].lower(), r["location"].lower())] = float(r["quantity"])
 
-    entries_rows = conn.execute("""
-        SELECT item_name, location, SUM(quantity) as total_qty
-        FROM merchandise_entries
-        WHERE date = ?
-        GROUP BY item_name, location
-    """, (target_date,)).fetchall()
+    active_shift = conn.execute("SELECT id, opened_at FROM cash_shifts WHERE status = 'abierto' ORDER BY id DESC LIMIT 1").fetchone()
+
+    if active_shift:
+        entries_rows = conn.execute("""
+            SELECT item_name, location, SUM(quantity) as total_qty
+            FROM merchandise_entries
+            WHERE date = ? AND created_at >= ?
+            GROUP BY item_name, location
+        """, (target_date, active_shift["opened_at"])).fetchall()
+
+        butch_row = conn.execute("""
+            SELECT 
+                COALESCE(SUM(whole_chickens), 0) as total_chickens,
+                COALESCE(SUM(pechugas_yield), 0) as total_pechugas,
+                COALESCE(SUM(muslos_yield), 0) as total_muslos,
+                COALESCE(SUM(contramuslos_yield), 0) as total_contramuslos,
+                COALESCE(SUM(alas_yield), 0) as total_alas,
+                COALESCE(SUM(caldo_bases_yield), 0) as total_caldo
+            FROM butchering_logs
+            WHERE date(timestamp) = ? AND timestamp >= ?
+        """, (target_date, active_shift["opened_at"])).fetchone()
+
+        sales_items = conn.execute("""
+            SELECT si.chosen_presa, si.quantity, p.sku, p.category
+            FROM sale_items si
+            JOIN sales s ON si.sale_id = s.id
+            JOIN products p ON si.product_id = p.id
+            WHERE s.shift_id = ? AND s.status = 'completada'
+        """, (active_shift["id"],)).fetchall()
+    else:
+        entries_rows = conn.execute("""
+            SELECT item_name, location, SUM(quantity) as total_qty
+            FROM merchandise_entries
+            WHERE date = ?
+            GROUP BY item_name, location
+        """, (target_date,)).fetchall()
+
+        butch_row = conn.execute("""
+            SELECT 
+                COALESCE(SUM(whole_chickens), 0) as total_chickens,
+                COALESCE(SUM(pechugas_yield), 0) as total_pechugas,
+                COALESCE(SUM(muslos_yield), 0) as total_muslos,
+                COALESCE(SUM(contramuslos_yield), 0) as total_contramuslos,
+                COALESCE(SUM(alas_yield), 0) as total_alas,
+                COALESCE(SUM(caldo_bases_yield), 0) as total_caldo
+            FROM butchering_logs
+            WHERE date(timestamp) = ?
+        """, (target_date,)).fetchone()
+
+        sales_items = conn.execute("""
+            SELECT si.chosen_presa, si.quantity, p.sku, p.category
+            FROM sale_items si
+            JOIN sales s ON si.sale_id = s.id
+            JOIN products p ON si.product_id = p.id
+            WHERE s.date_str = ? AND s.status = 'completada'
+        """, (target_date,)).fetchall()
+
     entries_map = {}
     chicken_entries_nevera = 0.0
     for r in entries_rows:
@@ -247,31 +298,12 @@ def build_closing_inventory_sheet(conn, target_date: str) -> Dict[str, Any]:
         if is_chk:
             chicken_entries_nevera += float(r["total_qty"])
 
-    butch_row = conn.execute("""
-        SELECT 
-            COALESCE(SUM(whole_chickens), 0) as total_chickens,
-            COALESCE(SUM(pechugas_yield), 0) as total_pechugas,
-            COALESCE(SUM(muslos_yield), 0) as total_muslos,
-            COALESCE(SUM(contramuslos_yield), 0) as total_contramuslos,
-            COALESCE(SUM(alas_yield), 0) as total_alas,
-            COALESCE(SUM(caldo_bases_yield), 0) as total_caldo
-        FROM butchering_logs
-        WHERE date(timestamp) = ?
-    """, (target_date,)).fetchone()
     chickens_butchered = float(butch_row["total_chickens"]) if butch_row else 0.0
     yield_pechugas = float(butch_row["total_pechugas"]) if butch_row else 0.0
     yield_muslos = float(butch_row["total_muslos"]) if butch_row else 0.0
     yield_contramuslos = float(butch_row["total_contramuslos"]) if butch_row else 0.0
     yield_alas = float(butch_row["total_alas"]) if butch_row else 0.0
     yield_caldo = float(butch_row["total_caldo"]) if butch_row else 0.0
-
-    sales_items = conn.execute("""
-        SELECT si.chosen_presa, si.quantity, p.sku, p.category
-        FROM sale_items si
-        JOIN sales s ON si.sale_id = s.id
-        JOIN products p ON si.product_id = p.id
-        WHERE s.date_str = ? AND s.status = 'completada'
-    """, (target_date,)).fetchall()
 
     consumed_by_key = {}
     def add_consumed(k: str, q: float):
@@ -476,14 +508,14 @@ def get_current_shift():
         
         live_cash = conn.execute("""
             SELECT COALESCE(SUM(total_amount), 0) FROM sales 
-            WHERE (shift_id = ? OR (shift_id IS NULL AND date_str = ?))
+            WHERE shift_id = ?
               AND payment_method = 'efectivo' AND status = 'completada'
-        """, (shift["id"], shift["date_str"])).fetchone()[0]
+        """, (shift["id"],)).fetchone()[0]
         
         live_expenses = conn.execute("""
             SELECT COALESCE(SUM(amount), 0) FROM cash_expenses
-            WHERE shift_id = ? OR (shift_id IS NULL AND date_str = ?)
-        """, (shift["id"], shift["date_str"])).fetchone()[0]
+            WHERE shift_id = ?
+        """, (shift["id"],)).fetchone()[0]
 
         shift_dict["current_cash_sales"] = live_cash
         shift_dict["current_expenses"] = live_expenses
@@ -520,16 +552,15 @@ def open_shift(payload: OpenShiftRequest):
         ))
         shift_id = cursor.lastrowid
 
-        # Rollover automático: Si no hay inventario inicial registrado para hoy, sembrarlo con el stock actual
-        # Esto transfiere automáticamente el pollo frito de la noche anterior y canecas crudas al inventario inicial de hoy
-        init_count = cursor.execute("SELECT COUNT(*) FROM daily_initial_inventory WHERE date = ?", (date_str,)).fetchone()[0]
-        if init_count == 0:
-            inv_rows = cursor.execute("SELECT item_key, name, stock, location FROM inventory").fetchall()
-            for r in inv_rows:
-                cursor.execute("""
-                    INSERT INTO daily_initial_inventory (date, item_name, location, quantity)
-                    VALUES (?, ?, ?, ?)
-                """, (date_str, r["name"], r["location"] or "Vitrina", float(r["stock"])))
+        # Rollover de inventario inicial para el nuevo turno:
+        # Registra el stock físico exacto disponible en cocina, vitrina y nevera en el momento de la apertura
+        cursor.execute("DELETE FROM daily_initial_inventory WHERE date = ?", (date_str,))
+        inv_rows = cursor.execute("SELECT item_key, name, stock, location FROM inventory").fetchall()
+        for r in inv_rows:
+            cursor.execute("""
+                INSERT INTO daily_initial_inventory (date, item_name, location, quantity)
+                VALUES (?, ?, ?, ?)
+            """, (date_str, r["name"], r["location"] or "Vitrina", float(r["stock"])))
 
         conn.commit()
 
@@ -570,34 +601,34 @@ def close_shift(payload: CloseShiftRequest):
         now = datetime.now()
         now_str = now.isoformat()
 
-        # Ventas en efectivo asociadas
+        # Ventas en efectivo asociadas al turno
         cash_sales = cursor.execute("""
             SELECT COALESCE(SUM(total_amount), 0) FROM sales 
-            WHERE (shift_id = ? OR (shift_id IS NULL AND date_str = ?))
+            WHERE shift_id = ?
               AND payment_method = 'efectivo' AND status = 'completada'
-        """, (shift_id, date_str)).fetchone()[0]
+        """, (shift_id,)).fetchone()[0]
 
-        # Ventas digitales (Nequi / Daviplata)
+        # Ventas digitales (Nequi / Daviplata) asociadas al turno
         digital_sales = cursor.execute("""
             SELECT COALESCE(SUM(total_amount), 0) FROM sales 
-            WHERE (shift_id = ? OR (shift_id IS NULL AND date_str = ?))
+            WHERE shift_id = ?
               AND payment_method = 'nequi_daviplata' AND status = 'completada'
-        """, (shift_id, date_str)).fetchone()[0]
+        """, (shift_id,)).fetchone()[0]
 
-        # Ventas Datáfono
+        # Ventas Datáfono asociadas al turno
         datafono_sales = cursor.execute("""
             SELECT COALESCE(SUM(total_amount), 0) FROM sales 
-            WHERE (shift_id = ? OR (shift_id IS NULL AND date_str = ?))
+            WHERE shift_id = ?
               AND payment_method = 'datafono' AND status = 'completada'
-        """, (shift_id, date_str)).fetchone()[0]
+        """, (shift_id,)).fetchone()[0]
 
         total_sales = cash_sales + digital_sales + datafono_sales
 
-        # Gastos menores de caja menor
+        # Gastos menores de caja menor asociados al turno
         total_expenses = cursor.execute("""
             SELECT COALESCE(SUM(amount), 0) FROM cash_expenses 
-            WHERE (shift_id = ? OR (shift_id IS NULL AND date_str = ?))
-        """, (shift_id, date_str)).fetchone()[0]
+            WHERE shift_id = ?
+        """, (shift_id,)).fetchone()[0]
 
         # Fórmula R1: Efectivo Final Esperado en Cajón = Base Inicial + Ventas Efectivo - Gastos Menores
         expected_cash = base_inicial + cash_sales - total_expenses
@@ -1188,27 +1219,42 @@ def get_daily_summary(date_str: Optional[str] = None, shift_id: Optional[int] = 
 
     conn = get_db_connection()
     try:
-        # 1. Turno de caja relevante
+        # 1. Turno de caja relevante: priorizar siempre el turno actualmente ABIERTO
         shift_row = None
         if shift_id is not None:
             shift_row = conn.execute("SELECT * FROM cash_shifts WHERE id = ?", (shift_id,)).fetchone()
         else:
             shift_row = conn.execute("""
                 SELECT * FROM cash_shifts 
-                WHERE date_str = ? 
-                ORDER BY CASE WHEN status = 'abierto' THEN 1 ELSE 2 END, id DESC 
+                WHERE status = 'abierto'
+                ORDER BY id DESC 
                 LIMIT 1
-            """, (date_str,)).fetchone()
+            """).fetchone()
+            if not shift_row:
+                shift_row = conn.execute("""
+                    SELECT * FROM cash_shifts 
+                    WHERE date_str = ? 
+                    ORDER BY id DESC 
+                    LIMIT 1
+                """, (date_str,)).fetchone()
 
         shift_info = dict(shift_row) if shift_row else None
         base_inicial = shift_info["base_inicial"] if shift_info else 0
 
-        # Filtro base para ventas del turno/día
-        sales_filter = "date_str = ? AND status = 'completada'"
-        sales_params = [date_str]
-        if shift_id is not None:
+        target_shift_id = shift_id or (shift_info["id"] if shift_info else None)
+
+        if target_shift_id is not None:
+            # Ventas y gastos acotados estrictamente al turno evaluado
             sales_filter = "shift_id = ? AND status = 'completada'"
-            sales_params = [shift_id]
+            sales_params = [target_shift_id]
+            expense_filter = "shift_id = ?"
+            expense_params = [target_shift_id]
+        else:
+            # Fallback para consultas generales de día sin turnos
+            sales_filter = "date_str = ? AND status = 'completada'"
+            sales_params = [date_str]
+            expense_filter = "date_str = ?"
+            expense_params = [date_str]
 
         # 2. Ventas por método de pago
         sales_by_method = conn.execute(f"""
@@ -1229,14 +1275,6 @@ def get_daily_summary(date_str: Optional[str] = None, shift_id: Optional[int] = 
             totals_dict["total_tickets"] += row["tickets"]
 
         # 3. Gastos menores autorizados
-        target_shift_id = shift_id or (shift_row["id"] if shift_row else None)
-        if target_shift_id is not None:
-            expense_filter = "(shift_id = ? OR (shift_id IS NULL AND date_str = ?))"
-            expense_params = [target_shift_id, date_str]
-        else:
-            expense_filter = "date_str = ?"
-            expense_params = [date_str]
-
         expenses_rows = conn.execute(f"""
             SELECT * FROM cash_expenses WHERE {expense_filter} ORDER BY id ASC
         """, tuple(expense_params)).fetchall()
