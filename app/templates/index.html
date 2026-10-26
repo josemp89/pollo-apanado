@@ -1034,9 +1034,14 @@
 
       <!-- Botones de Acción Táctil -->
       <div class="space-y-2 pt-1">
-        <button type="button" onclick="printCurrentSuccessTicket()" class="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-sm shadow-xl transition flex items-center justify-center space-x-2 select-none border border-emerald-400/40">
-          <span class="text-lg">🖨️</span>
-          <span>IMPRIMIR TICKET</span>
+        <button type="button" onclick="printCurrentSuccessTicket('rawbt')" class="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-sm shadow-xl transition flex items-center justify-center space-x-2 select-none border border-emerald-400/40">
+          <span class="text-lg">⚡</span>
+          <span>IMPRIMIR CON RAWBT (Directo POS)</span>
+        </button>
+
+        <button type="button" onclick="printCurrentSuccessTicket('browser')" class="w-full h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-cyan-300 font-bold text-xs transition flex items-center justify-center space-x-2 select-none border border-cyan-500/30">
+          <span>🌐</span>
+          <span>Imprimir por Diálogo de Android / Navegador</span>
         </button>
 
         <button type="button" onclick="closeSaleSuccessModal()" class="w-full h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white font-bold text-xs transition flex items-center justify-center space-x-1 select-none border border-slate-700">

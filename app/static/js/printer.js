@@ -231,59 +231,27 @@ function generateReceiptHTML(saleData) {
 // ==================== MÉTODOS DE IMPRESIÓN ====================
 
 /**
- * Vía 1: Envío directo a RawBT en Android
+ * Vía 1: Envío directo a RawBT en Android (Abre RawBT e imprime al instante)
  */
-async function printReceiptViaRawBT(saleData) {
+function printReceiptViaRawBT(saleData) {
   const plainText = generateReceiptPlainText(saleData);
   const settings = getPrinterSettings();
 
-  // Si está activada la apertura de cajón para efectivo:
-  // En RawBT, se puede enviar comando de cajón ESC p (\x1b\x70\x00\x19\xfa)
   const isCash = (saleData.payment_method || '').toLowerCase() === 'efectivo';
   const shouldKickDrawer = settings.openDrawer && isCash;
   const kickDrawerCmd = shouldKickDrawer ? "\x1b\x70\x00\x19\xfa" : "";
+  const fullContent = kickDrawerCmd + plainText;
 
-  // 1. Intentar por API HTTP local de RawBT (puerto 40213)
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1800);
-
-    const payload = {
-      type: "text",
-      content: kickDrawerCmd + plainText
-    };
-
-    const res = await fetch("http://localhost:40213/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-    if (res.ok) {
-      console.log("Ticket enviado exitosamente a RawBT vía HTTP.");
-      return true;
-    }
-  } catch (err) {
-    console.warn("RawBT HTTP local no respondió (posiblemente ejecutando desde navegador sin servicio o con esquema intent):", err.message);
-  }
-
-  // 2. Intentar por esquema de URL de Android: rawbt:
-  try {
-    // Si estamos en un navegador en Android que soporta intent URL
-    const rawbtUrl = "rawbt:data:text/plain;charset=utf-8," + encodeURIComponent(plainText);
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    iframe.src = rawbtUrl;
-    document.body.appendChild(iframe);
-    setTimeout(() => {
-      try { document.body.removeChild(iframe); } catch(e){}
-    }, 2000);
+    // Protocolo oficial RawBT para Android:
+    // rawbt:base64,<contenido_en_base64>
+    const b64 = btoa(unescape(encodeURIComponent(fullContent)));
+    window.location.href = "rawbt:base64," + b64;
     return true;
   } catch (err) {
-    console.warn("Fallo al disparar intent rawbt:", err);
-    return false;
+    console.warn("Fallo al codificar en base64, usando URI encode:", err);
+    window.location.href = "rawbt:data:text/plain;charset=utf-8," + encodeURIComponent(fullContent);
+    return true;
   }
 }
 
@@ -292,53 +260,78 @@ async function printReceiptViaRawBT(saleData) {
  */
 function printReceiptViaBrowser(saleData) {
   const printArea = document.getElementById('thermalReceiptPrintArea');
-  if (!printArea) {
-    // Si no existe el contenedor, crearlo dinámicamente
-    const div = document.createElement('div');
-    div.id = 'thermalReceiptPrintArea';
-    div.className = 'print-only-thermal';
-    document.body.appendChild(div);
+  if (printArea) {
+    printArea.classList.remove('hidden');
+    printArea.innerHTML = generateReceiptHTML(saleData);
   }
 
-  const el = document.getElementById('thermalReceiptPrintArea');
-  el.innerHTML = generateReceiptHTML(saleData);
+  // Intentar abrir ventana limpia dedicada (sin Tailwind ni layouts oscuros)
+  try {
+    const printWin = window.open('', '_blank', 'width=450,height=650');
+    if (printWin) {
+      printWin.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Ticket - ${saleData.sale_code || 'Venta'}</title>
+          <style>
+            @page { size: auto; margin: 0; }
+            body { 
+              margin: 0; 
+              padding: 4px; 
+              font-family: 'Courier New', Courier, monospace; 
+              background: #fff; 
+              color: #000; 
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          </style>
+        </head>
+        <body>
+          ${generateReceiptHTML(saleData)}
+        </body>
+        </html>
+      `);
+      printWin.document.close();
+      printWin.focus();
+      setTimeout(() => {
+        printWin.print();
+        setTimeout(() => { try { printWin.close(); } catch(e){} }, 2500);
+      }, 400);
+      return true;
+    }
+  } catch (e) {
+    console.warn("window.open no disponible, usando window.print() en ventana principal:", e);
+  }
 
-  // Disparar diálogo del navegador
+  // Si window.open fue bloqueado, imprimir en la ventana actual
   window.print();
+  setTimeout(() => {
+    if (printArea) printArea.classList.add('hidden');
+  }, 2000);
   return true;
 }
 
 /**
  * Ejecutor Principal: Doble Vía con Respaldo Automático
  */
-async function printReceipt(saleData) {
+function printReceipt(saleData, preferredMethod = null) {
   if (!saleData) return;
   const settings = getPrinterSettings();
+  const method = preferredMethod || settings.mode;
 
-  if (settings.mode === 'browser') {
+  if (method === 'browser') {
     return printReceiptViaBrowser(saleData);
   }
 
-  if (settings.mode === 'rawbt') {
-    const ok = await printReceiptViaRawBT(saleData);
-    if (!ok) {
-      alert("No se pudo conectar con RawBT. Verifica que la app RawBT esté abierta en la tablet.");
-    }
-    return ok;
+  if (method === 'rawbt') {
+    return printReceiptViaRawBT(saleData);
   }
 
-  // Modo 'auto' (Recomendado): Intenta RawBT; si no responde, alterna a navegador
-  try {
-    const ok = await printReceiptViaRawBT(saleData);
-    if (!ok) {
-      console.log("RawBT no disponible en modo auto. Usando diálogo nativo...");
-      return printReceiptViaBrowser(saleData);
-    }
-    return true;
-  } catch (e) {
-    console.warn("Error en auto-print, alternando a navegador:", e);
-    return printReceiptViaBrowser(saleData);
-  }
+  // En modo 'auto': dispara RawBT (el intent de Android lo captura de inmediato si RawBT está instalado)
+  return printReceiptViaRawBT(saleData);
 }
 
 /**
@@ -417,9 +410,15 @@ function closeSaleSuccessModal() {
   currentSuccessSaleData = null;
 }
 
-function printCurrentSuccessTicket() {
+function printCurrentSuccessTicket(method = null) {
   if (currentSuccessSaleData) {
-    printReceipt(currentSuccessSaleData);
+    if (method === 'rawbt') {
+      printReceiptViaRawBT(currentSuccessSaleData);
+    } else if (method === 'browser') {
+      printReceiptViaBrowser(currentSuccessSaleData);
+    } else {
+      printReceipt(currentSuccessSaleData);
+    }
   }
 }
 
