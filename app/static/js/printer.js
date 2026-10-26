@@ -11,7 +11,8 @@ const DEFAULT_PRINTER_SETTINGS = {
   paperWidth: '58mm',    // '58mm' (32 col), '58mm-30' (30 col), '58mm-28' (28 col), '80mm' (42 col), '80mm-48' (48 col)
   autoPrint: false,      // Imprimir automáticamente al cobrar
   openDrawer: true,      // Abrir cajón monedero al cobrar en efectivo
-  storeName: 'POLLO APANADO',
+  printLogo: true,       // Imprimir logotipo 'Yo Soy Don Pollo' en el encabezado
+  storeName: 'YO SOY DON POLLO',
   storeNit: 'NIT: 901.458.789-1',
   storePhone: 'Tel: 310 123 4567',
   storeAddress: 'Calle Principal # 10-20',
@@ -232,9 +233,15 @@ function generateReceiptHTML(saleData) {
   }
 
   const paperWidth = settings.paperWidth === '80mm' ? '72mm' : '48mm';
+  const logoHtml = settings.printLogo !== false ? `
+    <div style="text-align: center; margin-bottom: 6px;">
+      <img src="/static/img/logo_don_pollo_ticket.png" alt="YO SOY DON POLLO" style="max-width: 140px; height: auto; margin: 0 auto; display: block;" />
+    </div>
+  ` : '';
 
   return `
     <div style="width: ${paperWidth}; margin: 0 auto; font-family: 'Courier New', Courier, monospace; color: #000; line-height: 1.25; padding: 4px;">
+      ${logoHtml}
       <div style="text-align: center; font-weight: 900; font-size: 14px; margin-bottom: 2px;">${settings.storeName}</div>
       <div style="text-align: center; font-size: 10px;">${settings.storeNit}</div>
       ${settings.storeAddress ? `<div style="text-align: center; font-size: 10px;">${settings.storeAddress}</div>` : ''}
@@ -285,6 +292,25 @@ function generateReceiptHTML(saleData) {
 
 // ==================== MÉTODOS DE IMPRESIÓN ====================
 
+function stringToBinaryBytes(str) {
+  let binary = '';
+  const map = {
+    'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
+    'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U',
+    'ñ': 'n', 'Ñ': 'N', 'ü': 'u', 'Ü': 'U'
+  };
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    if (map[char]) {
+      binary += map[char];
+    } else {
+      const code = str.charCodeAt(i);
+      binary += String.fromCharCode(code <= 255 ? code : 63);
+    }
+  }
+  return binary;
+}
+
 /**
  * Genera la URL de Intent oficial de Android para RawBT
  */
@@ -297,12 +323,26 @@ function getRawbtIntentUrl(saleData) {
   const shouldKickDrawer = settings.openDrawer && isCash;
   // Disparo de apertura para pin 2 (\x00) y pin 5 (\x01) de gaveta monedero RJ11 estándar (24V)
   const kickDrawerCmd = shouldKickDrawer ? "\x1b\x70\x00\x19\xfa\x1b\x70\x01\x19\xfa" : "";
-  // Inicialización ESC/POS (\x1b\x40) + pulso cajón + texto formateado
-  const fullContent = "\x1b\x40" + kickDrawerCmd + plainText;
+  const initCmd = "\x1b\x40";
 
-  // Intent oficial Android para abrir RawBT directamente
+  let fullBinary = initCmd + kickDrawerCmd;
+
+  // Si tiene logo activado y la data base64 del logo está cargada en memoria
+  if (settings.printLogo !== false && window.DON_POLLO_LOGO_ESCPOS_B64) {
+    try {
+      const logoBytes = atob(window.DON_POLLO_LOGO_ESCPOS_B64);
+      fullBinary += logoBytes;
+    } catch (e) {
+      console.warn("Error agregando logo ESC/POS:", e);
+    }
+  }
+
+  fullBinary += stringToBinaryBytes(plainText);
+
+  // Codificar el paquete binario completo en Base64 para envío seguro a RawBT
+  const base64Payload = btoa(fullBinary);
   const rawbtIntentScheme = "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
-  return "intent:" + encodeURIComponent(fullContent) + rawbtIntentScheme;
+  return "intent:base64," + base64Payload + rawbtIntentScheme;
 }
 
 /**
@@ -542,6 +582,7 @@ function openPrinterSettingsModal() {
   const widthSel = document.getElementById('printerSettingWidth');
   const autoPrintChk = document.getElementById('printerSettingAutoPrint');
   const drawerChk = document.getElementById('printerSettingOpenDrawer');
+  const logoChk = document.getElementById('printerSettingPrintLogo');
   const nameInp = document.getElementById('printerSettingStoreName');
   const nitInp = document.getElementById('printerSettingStoreNit');
   const phoneInp = document.getElementById('printerSettingStorePhone');
@@ -551,6 +592,7 @@ function openPrinterSettingsModal() {
   if (widthSel) widthSel.value = settings.paperWidth;
   if (autoPrintChk) autoPrintChk.checked = !!settings.autoPrint;
   if (drawerChk) drawerChk.checked = !!settings.openDrawer;
+  if (logoChk) logoChk.checked = settings.printLogo !== false;
   if (nameInp) nameInp.value = settings.storeName;
   if (nitInp) nitInp.value = settings.storeNit;
   if (phoneInp) phoneInp.value = settings.storePhone;
@@ -571,6 +613,7 @@ function savePrinterSettingsFromForm(e) {
   const widthSel = document.getElementById('printerSettingWidth');
   const autoPrintChk = document.getElementById('printerSettingAutoPrint');
   const drawerChk = document.getElementById('printerSettingOpenDrawer');
+  const logoChk = document.getElementById('printerSettingPrintLogo');
   const nameInp = document.getElementById('printerSettingStoreName');
   const nitInp = document.getElementById('printerSettingStoreNit');
   const phoneInp = document.getElementById('printerSettingStorePhone');
@@ -581,6 +624,7 @@ function savePrinterSettingsFromForm(e) {
     paperWidth: widthSel ? widthSel.value : '58mm',
     autoPrint: autoPrintChk ? autoPrintChk.checked : false,
     openDrawer: drawerChk ? drawerChk.checked : true,
+    printLogo: logoChk ? logoChk.checked : true,
     storeName: nameInp ? nameInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storeName,
     storeNit: nitInp ? nitInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storeNit,
     storePhone: phoneInp ? phoneInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storePhone,
