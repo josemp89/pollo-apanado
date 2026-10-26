@@ -96,8 +96,12 @@
       </button>
     </nav>
 
-    <!-- Reloj en vivo y Status -->
+    <!-- Reloj en vivo, Botón de Impresora y Status -->
     <div class="flex items-center space-x-2 flex-shrink-0">
+      <button type="button" onclick="openPrinterSettingsModal()" class="px-2.5 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-700 active:scale-95 text-amber-400 border border-slate-700 text-xs font-bold flex items-center space-x-1.5 transition shadow" title="Configurar Impresora POS, Nombre del Negocio y Márgenes">
+        <span>🖨️</span>
+        <span class="hidden md:inline font-bold">Impresora</span>
+      </button>
       <div class="hidden sm:block text-right">
         <div id="liveClock" class="text-sm font-black text-amber-300 tabular-nums">--:--:--</div>
         <div id="liveDate" class="text-[11px] text-slate-400 font-medium">--</div>
@@ -1081,10 +1085,14 @@
         <!-- Ancho del Papel Térmico -->
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block font-bold text-slate-300 mb-1">Ancho de Papel:</label>
+            <label class="block font-bold text-slate-300 mb-1">Ancho de Papel / Márgenes:</label>
             <select id="printerSettingWidth" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-100 focus:outline-none focus:border-amber-500">
-              <option value="58mm">58 mm (Rollo Pequeño - 32 col)</option>
-              <option value="80mm">80 mm (Rollo Estándar - 42 col)</option>
+              <option value="58mm">58 mm (Estándar - 32 columnas)</option>
+              <option value="58mm-30">58 mm (Estrecho - 30 columnas)</option>
+              <option value="58mm-28">58 mm (Compacto con margen - 28 col)</option>
+              <option value="58mm-36">58 mm (Amplio - 36 columnas)</option>
+              <option value="80mm">80 mm (Estándar - 42 columnas)</option>
+              <option value="80mm-48">80 mm (Amplio - 48 columnas)</option>
             </select>
           </div>
           <div>
@@ -1103,36 +1111,46 @@
             <span class="text-xs text-amber-300 font-bold">⚡ Disparar apertura de cajón en pagos en efectivo</span>
           </label>
           <p class="text-[10px] text-slate-400 mt-1 pl-6">
-            Envía el pulso ESC/POS (24V) por el cable RJ11 a la gaveta de dinero.
+            Envía el pulso ESC/POS (24V doble pin 2/5) por el cable RJ11 a la gaveta de dinero.
           </p>
         </div>
 
         <!-- Datos del Encabezado del Ticket -->
         <div class="space-y-2 border-t border-slate-800 pt-2">
           <div class="text-[11px] font-bold text-slate-400">Datos para el Recibo:</div>
+          <div>
+            <label class="block text-[10px] text-slate-400">Nombre del Negocio (Título principal):</label>
+            <input type="text" id="printerSettingStoreName" placeholder="Ej. ASADERO POLLO APANADO LA 14" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-amber-300 font-bold">
+          </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
-              <label class="block text-[10px] text-slate-400">Nombre del Negocio:</label>
-              <input type="text" id="printerSettingStoreName" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+              <label class="block text-[10px] text-slate-400">NIT / Cédula:</label>
+              <input type="text" id="printerSettingStoreNit" placeholder="Ej. NIT: 901.458.789-1" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
             </div>
             <div>
-              <label class="block text-[10px] text-slate-400">NIT / Cédula:</label>
-              <input type="text" id="printerSettingStoreNit" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+              <label class="block text-[10px] text-slate-400">Teléfono / WhatsApp:</label>
+              <input type="text" id="printerSettingStorePhone" placeholder="Ej. Tel: 310 123 4567" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
             </div>
           </div>
           <div>
-            <label class="block text-[10px] text-slate-400">Teléfono / WhatsApp:</label>
-            <input type="text" id="printerSettingStorePhone" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+            <label class="block text-[10px] text-slate-400">Dirección del Local:</label>
+            <input type="text" id="printerSettingStoreAddress" placeholder="Ej. Calle 14 # 25-10" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
           </div>
         </div>
 
         <!-- Botones -->
-        <div class="flex space-x-2 pt-2 border-t border-slate-800">
-          <button type="button" onclick="printTestTicket()" class="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs transition border border-slate-700">
-            🖨️ Ticket de Prueba
+        <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800">
+          <button type="button" onclick="printColumnCalibrationTicket()" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold text-xs transition border border-slate-700 flex items-center justify-center space-x-1" title="Imprimir regla para calibrar columnas">
+            <span>📏</span>
+            <span>Calibrar</span>
           </button>
-          <button type="submit" class="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-lg transition">
-            💾 Guardar Cambios
+          <button type="button" onclick="printTestTicket()" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs transition border border-slate-700 flex items-center justify-center space-x-1">
+            <span>🖨️</span>
+            <span>Prueba</span>
+          </button>
+          <button type="submit" class="py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-lg transition flex items-center justify-center space-x-1">
+            <span>💾</span>
+            <span>Guardar</span>
           </button>
         </div>
       </form>
@@ -1143,7 +1161,7 @@
   <div id="thermalReceiptPrintArea" class="hidden"></div>
 
   <!-- SCRIPTS -->
-  <script src="/static/js/printer.js?v=20261025_v1"></script>
+  <script src="/static/js/printer.js?v=20261025_v2"></script>
   <script src="/static/js/pos.js?v=20261021_v5"></script>
 </body>
 </html>

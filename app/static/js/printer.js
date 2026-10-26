@@ -8,14 +8,14 @@
 
 const DEFAULT_PRINTER_SETTINGS = {
   mode: 'auto',          // 'auto' (intenta RawBT y si falla usa navegador), 'rawbt', 'browser'
-  paperWidth: '58mm',    // '58mm' (32 col) o '80mm' (42 col)
+  paperWidth: '58mm',    // '58mm' (32 col), '58mm-30' (30 col), '58mm-28' (28 col), '80mm' (42 col), '80mm-48' (48 col)
   autoPrint: false,      // Imprimir automáticamente al cobrar
   openDrawer: true,      // Abrir cajón monedero al cobrar en efectivo
-  storeName: 'ASADERO POLLO APANADO',
+  storeName: 'POLLO APANADO',
   storeNit: 'NIT: 901.458.789-1',
   storePhone: 'Tel: 310 123 4567',
   storeAddress: 'Calle Principal # 10-20',
-  footerMsg: '¡Gracias por su compra! Vuelva pronto.'
+  footerMsg: '¡Gracias por su compra!'
 };
 
 function getPrinterSettings() {
@@ -42,19 +42,49 @@ function savePrinterSettings(newSettings) {
 
 // ==================== FORMATEADOR DE TICKET DE TEXTO ====================
 
+function getColumnWidth(paperWidthSetting) {
+  if (paperWidthSetting === '58mm-28') return 28;
+  if (paperWidthSetting === '58mm-30') return 30;
+  if (paperWidthSetting === '58mm-36') return 36;
+  if (paperWidthSetting === '80mm-48') return 48;
+  if (paperWidthSetting === '80mm') return 42;
+  return 32; // Default 58mm estándar
+}
+
+function wrapText(text, width) {
+  const words = String(text || '').trim().split(/\s+/);
+  if (!words.length || !words[0]) return [];
+  const lines = [];
+  let curr = '';
+  for (const w of words) {
+    if (!curr) {
+      curr = w;
+    } else if ((curr.length + 1 + w.length) <= width) {
+      curr += ' ' + w;
+    } else {
+      lines.push(curr);
+      curr = w;
+    }
+  }
+  if (curr) lines.push(curr);
+  return lines;
+}
+
 function padLine(left, right, width) {
-  const l = String(left || '');
-  const r = String(right || '');
+  const l = String(left != null ? left : '').trimEnd();
+  const r = String(right != null ? right : '').trim();
   const spaceNeeded = width - l.length - r.length;
   if (spaceNeeded <= 0) {
-    return l.substring(0, width - r.length - 1) + ' ' + r;
+    const rPad = Math.max(0, width - r.length);
+    return l + '\n' + ' '.repeat(rPad) + r;
   }
   return l + ' '.repeat(spaceNeeded) + r;
 }
 
 function centerText(text, width) {
   const t = String(text || '').trim();
-  if (t.length >= width) return t;
+  if (!t) return '';
+  if (t.length >= width) return t.substring(0, width);
   const leftPad = Math.floor((width - t.length) / 2);
   return ' '.repeat(leftPad) + t;
 }
@@ -64,24 +94,36 @@ function formatCOPLocal(amount) {
 }
 
 /**
- * Genera el texto formateado plano para el rollo térmico
+ * Genera el texto formateado plano para el rollo térmico con márgenes y espaciados perfectos
  */
 function generateReceiptPlainText(saleData) {
   const settings = getPrinterSettings();
-  const width = settings.paperWidth === '80mm' ? 42 : 32;
+  const width = getColumnWidth(settings.paperWidth);
   const sep = '-'.repeat(width);
   const dblSep = '='.repeat(width);
 
   const lines = [];
 
-  // Encabezado
-  lines.push(centerText(settings.storeName, width));
-  lines.push(centerText(settings.storeNit, width));
-  if (settings.storeAddress) lines.push(centerText(settings.storeAddress, width));
-  if (settings.storePhone) lines.push(centerText(settings.storePhone, width));
+  // 1. ENCABEZADO DEL NEGOCIO (Centrado y elegante, con soporte multilinea)
+  lines.push(dblSep);
+  const nameLines = wrapText(settings.storeName.toUpperCase(), width);
+  nameLines.forEach(nl => lines.push(centerText(nl, width)));
+
+  if (settings.storeNit) {
+    const nitLines = wrapText(settings.storeNit, width);
+    nitLines.forEach(nl => lines.push(centerText(nl, width)));
+  }
+  if (settings.storeAddress) {
+    const addrLines = wrapText(settings.storeAddress, width);
+    addrLines.forEach(al => lines.push(centerText(al, width)));
+  }
+  if (settings.storePhone) {
+    const phoneLines = wrapText(settings.storePhone, width);
+    phoneLines.forEach(pl => lines.push(centerText(pl, width)));
+  }
   lines.push(dblSep);
 
-  // Datos de Factura
+  // 2. DATOS DE LA VENTA
   const code = saleData.sale_code || ('VTA-' + (saleData.sale_id || '0000'));
   const fecha = saleData.time_str ? `${saleData.time_str}` : new Date().toLocaleTimeString();
   const fechaCompleta = new Date().toLocaleDateString('es-CO');
@@ -90,48 +132,61 @@ function generateReceiptPlainText(saleData) {
   lines.push(padLine(`Fecha: ${fechaCompleta}`, `Caja: Principal`, width));
   lines.push(sep);
 
-  // Detalle de Ítems
-  lines.push(padLine("CANT DESCRIPCION", "TOTAL", width));
+  // 3. TABLA DE PRODUCTOS
+  lines.push(padLine("CANT  DESCRIPCION", "VALOR", width));
   lines.push(sep);
 
   const items = saleData.items || [];
   items.forEach(it => {
     const qty = it.quantity || 1;
-    const name = it.product_name || it.name || 'Producto';
+    const name = (it.product_name || it.name || 'Producto').trim();
     const subtotal = formatCOPLocal(it.subtotal || (it.unit_price * qty));
-    
-    // Línea principal
-    const desc = `${qty}x ${name}`;
-    lines.push(padLine(desc, subtotal, width));
+    const prefix = `${qty}x `;
+    const singleDesc = `${prefix}${name}`;
 
-    // Si tiene presa elegida (ej. Almuerzo Completo)
-    if (it.chosen_presa) {
-      const presaDesc = `  Presa: ${it.chosen_presa.toUpperCase()}`;
-      lines.push(presaDesc);
+    // Si cabe en una línea con al menos 2 espacios de separación
+    if ((singleDesc.length + subtotal.length + 2) <= width) {
+      lines.push(padLine(singleDesc, subtotal, width));
+      if (it.chosen_presa) {
+        lines.push(`   * Presa: ${it.chosen_presa.toUpperCase()}`);
+      }
+    } else {
+      // Si el nombre es largo, envolver el nombre completo sin truncar
+      const descLines = wrapText(singleDesc, width);
+      descLines.forEach(dl => lines.push(dl));
+      if (it.chosen_presa) {
+        lines.push(padLine(`   * Presa: ${it.chosen_presa.toUpperCase()}`, subtotal, width));
+      } else {
+        lines.push(padLine('   Valor:', subtotal, width));
+      }
     }
   });
 
   lines.push(sep);
 
-  // Totales
+  // 4. TOTALES Y PAGO
   const totalStr = formatCOPLocal(saleData.total_amount);
   lines.push(padLine("TOTAL A PAGAR:", totalStr, width));
+  lines.push(sep);
 
-  // Forma de pago y cambio
   const method = (saleData.payment_method || 'efectivo').toUpperCase();
-  lines.push(padLine("FORMA DE PAGO:", method, width));
+  lines.push(padLine("METODO DE PAGO:", method, width));
 
   if ((saleData.payment_method || '').toLowerCase() === 'efectivo') {
     const recibido = formatCOPLocal(saleData.cash_received || saleData.total_amount);
     const cambio = formatCOPLocal(saleData.change_returned || 0);
-    lines.push(padLine("EFECTIVO RECIBIDO:", recibido, width));
+    lines.push(padLine("RECIBIDO:", recibido, width));
     lines.push(padLine("CAMBIO / DEVUELTA:", cambio, width));
   }
 
+  // 5. PIE DE PÁGINA
   lines.push(dblSep);
-  lines.push(centerText(settings.footerMsg, width));
-  lines.push(centerText("*** COPIA CLIENTE ***", width));
-  lines.push("\n\n\n"); // Espacio para corte
+  if (settings.footerMsg) {
+    const footerLines = wrapText(settings.footerMsg, width);
+    footerLines.forEach(fl => lines.push(centerText(fl, width)));
+  }
+  lines.push(centerText("*** COMPROBANTE DE PAGO ***", width));
+  lines.push("\n\n\n\n"); // Avance de papel para no cortar el texto
 
   return lines.join("\n");
 }
@@ -240,8 +295,10 @@ function getRawbtIntentUrl(saleData) {
 
   const isCash = (saleData.payment_method || '').toLowerCase() === 'efectivo';
   const shouldKickDrawer = settings.openDrawer && isCash;
-  const kickDrawerCmd = shouldKickDrawer ? "\x1b\x70\x00\x19\xfa" : "";
-  const fullContent = kickDrawerCmd + plainText;
+  // Disparo de apertura para pin 2 (\x00) y pin 5 (\x01) de gaveta monedero RJ11 estándar (24V)
+  const kickDrawerCmd = shouldKickDrawer ? "\x1b\x70\x00\x19\xfa\x1b\x70\x01\x19\xfa" : "";
+  // Inicialización ESC/POS (\x1b\x40) + pulso cajón + texto formateado
+  const fullContent = "\x1b\x40" + kickDrawerCmd + plainText;
 
   // Intent oficial Android para abrir RawBT directamente
   const rawbtIntentScheme = "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
@@ -440,6 +497,40 @@ function printCurrentSuccessTicket(method = null, event = null) {
   }
 }
 
+/**
+ * Impresión de regla numerada de calibración para determinar columnas exactas (30 vs 32)
+ */
+function printColumnCalibrationTicket() {
+  const settings = getPrinterSettings();
+  const width = getColumnWidth(settings.paperWidth);
+  const sep = '-'.repeat(width);
+  const dblSep = '='.repeat(width);
+
+  const lines = [];
+  lines.push(dblSep);
+  lines.push(centerText("CALIBRACION DE MARGENES", width));
+  lines.push(centerText(`Modo Actual: ${width} Columnas`, width));
+  lines.push(sep);
+  lines.push("REGLA NUMERADA (1 AL 32):");
+  lines.push("12345678901234567890123456789012".substring(0, width));
+  lines.push("         10        20        30 ");
+  lines.push(sep);
+  lines.push("GUIA DE INTERPRETACION:");
+  lines.push("* Si la regla de arriba se ve en");
+  lines.push("  una SOLA linea recta sin saltar,");
+  lines.push("  tu margen esta 100% calibrado.");
+  lines.push("* Si los numeros 31 o 32 bajan a");
+  lines.push("  una linea nueva, cambia a");
+  lines.push("  '58 mm (Estrecho - 30 col)'.");
+  lines.push(dblSep);
+  lines.push("\n\n\n\n");
+
+  const fullContent = "\x1b\x40" + lines.join("\n");
+  const rawbtIntentScheme = "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
+  const intentUrl = "intent:" + encodeURIComponent(fullContent) + rawbtIntentScheme;
+  window.location.href = intentUrl;
+}
+
 // ==================== MODAL DE AJUSTES DE IMPRESORA ====================
 
 function openPrinterSettingsModal() {
@@ -454,6 +545,7 @@ function openPrinterSettingsModal() {
   const nameInp = document.getElementById('printerSettingStoreName');
   const nitInp = document.getElementById('printerSettingStoreNit');
   const phoneInp = document.getElementById('printerSettingStorePhone');
+  const addressInp = document.getElementById('printerSettingStoreAddress');
 
   if (modeSel) modeSel.value = settings.mode;
   if (widthSel) widthSel.value = settings.paperWidth;
@@ -462,6 +554,7 @@ function openPrinterSettingsModal() {
   if (nameInp) nameInp.value = settings.storeName;
   if (nitInp) nitInp.value = settings.storeNit;
   if (phoneInp) phoneInp.value = settings.storePhone;
+  if (addressInp) addressInp.value = settings.storeAddress || '';
 
   modal.classList.remove('hidden');
 }
@@ -481,6 +574,7 @@ function savePrinterSettingsFromForm(e) {
   const nameInp = document.getElementById('printerSettingStoreName');
   const nitInp = document.getElementById('printerSettingStoreNit');
   const phoneInp = document.getElementById('printerSettingStorePhone');
+  const addressInp = document.getElementById('printerSettingStoreAddress');
 
   const newSettings = {
     mode: modeSel ? modeSel.value : 'auto',
@@ -489,7 +583,8 @@ function savePrinterSettingsFromForm(e) {
     openDrawer: drawerChk ? drawerChk.checked : true,
     storeName: nameInp ? nameInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storeName,
     storeNit: nitInp ? nitInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storeNit,
-    storePhone: phoneInp ? phoneInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storePhone
+    storePhone: phoneInp ? phoneInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storePhone,
+    storeAddress: addressInp ? addressInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storeAddress
   };
 
   savePrinterSettings(newSettings);
