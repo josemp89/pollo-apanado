@@ -436,41 +436,44 @@ function printReceipt(saleData, preferredMethod = null) {
 }
 
 /**
- * Envía el pulso ESC/POS para abrir la gaveta monedero RJ11 conectada a la impresora
+ * Esquema nativo oficial de RawBT para apertura inmediata de cajón monedero (sin imprimir)
  * Comandos oficiales Digital POS DIG-K200L / DIG-4101:
- * - ESC p 0 50 250 (Pin 2, pulso de 100ms para solenoide de trabajo pesado a 24V)
- * - ESC p 1 50 250 (Pin 5, pulso alternativo de 100ms a 24V)
+ * - ESC @ (0x1b 0x40): Inicializar / limpiar búfer
+ * - ESC p 0 50 250 (0x1b 0x70 0x00 0x32 0xfa): Pin 2 (100ms a 24V)
+ * - ESC p 1 50 250 (0x1b 0x70 0x01 0x32 0xfa): Pin 5 (100ms a 24V)
  * - ESC p '0' y '1' (variantes ASCII)
- * - Star x 1 (emulación Star)
  * - DLE DC4 1 0 1 (Apertura en tiempo real DIG-K200L)
  * - BEL \x07 (Disparo acústico/apertura)
  * - LF \x0a (Vaciado inmediato de búfer)
- * Protocolo: rawbt:base64, (esquema nativo oficial de RawBT para bytes ESC/POS directos)
+ * Base64: G0AbcAAy+htwATL6G3AwMvobcDEy+hAUAQABBwo=
  */
-function openCashDrawer() {
-  const bytes = [
-    0x1b, 0x70, 0x00, 0x32, 0xfa,
-    0x1b, 0x70, 0x01, 0x32, 0xfa,
-    0x1b, 0x70, 0x30, 0x32, 0xfa,
-    0x1b, 0x70, 0x31, 0x32, 0xfa,
-    0x1b, 0x78, 0x01,
-    0x10, 0x14, 0x01, 0x00, 0x01,
-    0x07,
-    0x0a
-  ];
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  const base64Data = btoa(binary);
+const RAWBT_DRAWER_URL = "rawbt:base64,G0AbcAAy+htwATL6G3AwMvobcDEy+hAUAQABBwo=";
 
-  // Esquema nativo oficial de RawBT para envío de bytes binarios directos sin pasar por filtro de texto
-  window.location.href = "rawbt:base64," + base64Data;
+function openCashDrawer(event = null) {
+  // Si fue disparado desde un enlace <a> con href nativo a rawbt:, permitir navegación nativa del navegador
+  if (event && event.currentTarget && event.currentTarget.tagName === 'A') {
+    return true;
+  }
+
+  // Para disparos por código JS o eventos no directos, simular click en anchor nativo
+  // Esto evita que Chrome en Android bloquee window.location.href hacia esquemas personalizados
+  try {
+    const a = document.createElement('a');
+    a.href = RAWBT_DRAWER_URL;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      try { document.body.removeChild(a); } catch (e) {}
+    }, 500);
+  } catch (e) {
+    window.location.href = RAWBT_DRAWER_URL;
+  }
   return true;
 }
 
-function testOpenDrawer() {
-  openCashDrawer();
+function testOpenDrawer(event = null) {
+  return openCashDrawer(event);
 }
 
 /**
