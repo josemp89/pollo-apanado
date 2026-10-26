@@ -105,19 +105,25 @@ function generateReceiptPlainText(saleData) {
 
   const lines = [];
 
-  // 1. LOGOTIPO Y ENCABEZADO DEL NEGOCIO (Line-Art Térmico Nítido)
+  // 1. LOGOTIPO Y ENCABEZADO DEL NEGOCIO (Silueta Rellena con Líneas |||||)
   lines.push(dblSep);
   if (settings.printLogo !== false) {
     const emblem = [
-      '/\\_/\\_/\\',
-      '(   o   o   )',
-      '(     V     )',
-      ' .-\'---------\'-. ',
-      '/    YO  SOY    \\',
-      '|   DON POLLO   |',
-      '\\_______________/'
+      "   |||   |||   |||   ",
+      " |||||||||||||||||   ",
+      " |||||   |||   ||||| ",
+      " |||||    |    ||||| ",
+      "  |||||  |||  |||||  ",
+      " |||||||||||||||||   ",
+      "|||||||||||||||||||  ",
+      "|||||||||||||||||||||",
+      " ||||||||||||||||||  ",
+      "   |||||||||||||||   ",
+      "    |||||   |||||    "
     ];
     emblem.forEach(l => lines.push(centerText(l.trim(), width)));
+    lines.push(dblSep);
+    lines.push(centerText(settings.storeName.toUpperCase(), width));
     lines.push(dblSep);
   } else {
     const nameLines = wrapText(settings.storeName.toUpperCase(), width);
