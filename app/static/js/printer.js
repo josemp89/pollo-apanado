@@ -25,19 +25,31 @@ function getPrinterSettings() {
     const raw = localStorage.getItem('pos_printer_settings');
     if (raw) {
       const parsed = JSON.parse(raw);
+      let needsSave = false;
       // Normalizar automáticamente si venía de versiones con offset experimental
       if (parsed.headerOffset === 'escpos' || parsed.headerOffset === 2 || parsed.headerOffset === '2') {
         parsed.headerOffset = 0;
+        needsSave = true;
       }
-      // Garantizar que storeName nunca sea vacío
-      if (!parsed.storeName || !parsed.storeName.trim()) {
-        parsed.storeName = DEFAULT_PRINTER_SETTINGS.storeName;
+      // Garantizar que storeName sea obligatoriamente 'YO SOY DON POLLO' si está vacío o si quedó con el antiguo 'POLLO APANADO'
+      if (!parsed.storeName || !parsed.storeName.trim() || parsed.storeName === 'POLLO APANADO' || parsed.storeName.toUpperCase().includes('POLLO APANADO')) {
+        parsed.storeName = 'YO SOY DON POLLO';
+        needsSave = true;
       }
-      return { ...DEFAULT_PRINTER_SETTINGS, ...parsed };
+      const merged = { ...DEFAULT_PRINTER_SETTINGS, ...parsed };
+      if (needsSave) {
+        try {
+          localStorage.setItem('pos_printer_settings', JSON.stringify(merged));
+        } catch (e) {}
+      }
+      return merged;
     }
   } catch (e) {
     console.warn("Error leyendo printer settings:", e);
   }
+  try {
+    localStorage.setItem('pos_printer_settings', JSON.stringify(DEFAULT_PRINTER_SETTINGS));
+  } catch (e) {}
   return { ...DEFAULT_PRINTER_SETTINGS };
 }
 
@@ -121,7 +133,9 @@ function generateReceiptPlainText(saleData) {
 
   // 1. ENCABEZADO DEL NEGOCIO (Centrado y elegante, con soporte multilinea)
   lines.push(dblSep);
-  const storeName = (settings.storeName && settings.storeName.trim()) ? settings.storeName.trim() : 'YO SOY DON POLLO';
+  const storeName = (settings.storeName && settings.storeName.trim() && !settings.storeName.toUpperCase().includes('POLLO APANADO'))
+    ? settings.storeName.trim()
+    : 'YO SOY DON POLLO';
   const nameLines = wrapText(storeName.toUpperCase(), width);
   nameLines.forEach(nl => lines.push(centerText(nl, width, offset)));
 
@@ -251,10 +265,13 @@ function generateReceiptHTML(saleData) {
   }
 
   const paperWidth = settings.paperWidth === '80mm' ? '72mm' : '48mm';
+  const storeName = (settings.storeName && settings.storeName.trim() && !settings.storeName.toUpperCase().includes('POLLO APANADO'))
+    ? settings.storeName.trim()
+    : 'YO SOY DON POLLO';
 
   return `
     <div style="width: ${paperWidth}; margin: 0 auto; font-family: 'Courier New', Courier, monospace; color: #000; line-height: 1.25; padding: 4px;">
-      <div style="text-align: center; font-weight: 900; font-size: 14px; margin-bottom: 2px;">${settings.storeName}</div>
+      <div style="text-align: center; font-weight: 900; font-size: 14px; margin-bottom: 2px;">${storeName}</div>
       <div style="text-align: center; font-size: 10px;">${settings.storeNit}</div>
       ${settings.storeAddress ? `<div style="text-align: center; font-size: 10px;">${settings.storeAddress}</div>` : ''}
       ${settings.storePhone ? `<div style="text-align: center; font-size: 10px;">${settings.storePhone}</div>` : ''}
@@ -341,11 +358,20 @@ function getRawbtIntentUrl(saleData) {
     ? new TextEncoder().encode(plainText)
     : new Uint8Array(plainText.split('').map(c => c.charCodeAt(0)));
 
-  // Secuencia de finalización perfecta: Texto -> Corte de papel -> Apertura de cajón
-  const combined = new Uint8Array(textBytes.length + cutBytes.length + drawerBytes.length);
-  combined.set(textBytes, 0);
-  combined.set(cutBytes, textBytes.length);
-  combined.set(drawerBytes, textBytes.length + cutBytes.length);
+  // Inicialización limpia ESC/POS: ESC @ (0x1b, 0x40) para restaurar parámetros estándar
+  const initBytes = new Uint8Array([0x1b, 0x40]);
+
+  // Secuencia de finalización perfecta: Inicialización -> Texto -> Corte de papel -> Apertura de cajón
+  const totalLength = initBytes.length + textBytes.length + cutBytes.length + drawerBytes.length;
+  const combined = new Uint8Array(totalLength);
+  let pos = 0;
+  combined.set(initBytes, pos);
+  pos += initBytes.length;
+  combined.set(textBytes, pos);
+  pos += textBytes.length;
+  combined.set(cutBytes, pos);
+  pos += cutBytes.length;
+  combined.set(drawerBytes, pos);
 
   let binary = '';
   const chunkSize = 8192;
@@ -465,14 +491,20 @@ function openCashDrawer(event = null) {
   const timeStr = now.toLocaleTimeString('es-CO');
   const dateStr = now.toLocaleDateString('es-CO');
 
+  const storeName = (settings.storeName && !settings.storeName.toUpperCase().includes('POLLO APANADO'))
+    ? settings.storeName
+    : 'YO SOY DON POLLO';
+
   const miniSlip = [
     "================================",
     "      ⚡ APERTURA DE CAJON",
-    `        ${settings.storeName || 'YO SOY DON POLLO'}`,
+    `        ${storeName}`,
     `      ${dateStr} - ${timeStr}`,
     "================================",
     "\n\n"
   ].join("\n");
+
+  const initBytes = new Uint8Array([0x1b, 0x40]);
 
   const cutBytes = new Uint8Array([
     0x1d, 0x56, 0x42, 0x00,
@@ -489,10 +521,16 @@ function openCashDrawer(event = null) {
     ? new TextEncoder().encode(miniSlip)
     : new Uint8Array(miniSlip.split('').map(c => c.charCodeAt(0)));
 
-  const combined = new Uint8Array(textBytes.length + cutBytes.length + drawerBytes.length);
-  combined.set(textBytes, 0);
-  combined.set(cutBytes, textBytes.length);
-  combined.set(drawerBytes, textBytes.length + cutBytes.length);
+  const totalLength = initBytes.length + textBytes.length + cutBytes.length + drawerBytes.length;
+  const combined = new Uint8Array(totalLength);
+  let pos = 0;
+  combined.set(initBytes, pos);
+  pos += initBytes.length;
+  combined.set(textBytes, pos);
+  pos += textBytes.length;
+  combined.set(cutBytes, pos);
+  pos += cutBytes.length;
+  combined.set(drawerBytes, pos);
 
   let binary = '';
   const chunkSize = 8192;
@@ -605,7 +643,7 @@ function closeSaleSuccessModal() {
 function printCurrentSuccessTicket(method = null, event = null) {
   if (currentSuccessSaleData) {
     if (method === 'rawbt') {
-      // Si fue invocado por click en enlace <a> con href de intent, el navegador lo procesa de forma nativa
+      if (event && event.preventDefault) event.preventDefault();
       printReceiptViaRawBT(currentSuccessSaleData);
     } else if (method === 'browser') {
       if (event) event.preventDefault();
@@ -674,7 +712,10 @@ function openPrinterSettingsModal() {
   if (autoPrintChk) autoPrintChk.checked = !!settings.autoPrint;
   if (drawerChk) drawerChk.checked = !!settings.openDrawer;
   if (cutChk) cutChk.checked = settings.autoCut !== false;
-  if (nameInp) nameInp.value = settings.storeName;
+  const storeNameVal = (settings.storeName && !settings.storeName.toUpperCase().includes('POLLO APANADO'))
+    ? settings.storeName
+    : 'YO SOY DON POLLO';
+  if (nameInp) nameInp.value = storeNameVal;
   if (nitInp) nitInp.value = settings.storeNit;
   if (phoneInp) phoneInp.value = settings.storePhone;
   if (addressInp) addressInp.value = settings.storeAddress || '';
@@ -708,7 +749,9 @@ function savePrinterSettingsFromForm(e) {
     autoPrint: autoPrintChk ? autoPrintChk.checked : false,
     openDrawer: drawerChk ? drawerChk.checked : true,
     autoCut: cutChk ? cutChk.checked : true,
-    storeName: nameInp ? nameInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storeName,
+    storeName: (nameInp && nameInp.value.trim() && !nameInp.value.toUpperCase().includes('POLLO APANADO'))
+      ? nameInp.value.trim()
+      : 'YO SOY DON POLLO',
     storeNit: nitInp ? nitInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storeNit,
     storePhone: phoneInp ? phoneInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storePhone,
     storeAddress: addressInp ? addressInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storeAddress
