@@ -1117,17 +1117,23 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-3 gap-2">
           <div>
             <label class="flex items-center space-x-2 p-2 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer">
               <input type="checkbox" id="printerSettingAutoPrint" class="w-4 h-4 rounded text-amber-500 bg-slate-950 border-slate-700 focus:ring-0">
-              <span class="text-[11px] text-slate-300 font-bold">Auto-imprimir al cobrar</span>
+              <span class="text-[10px] text-slate-300 font-bold">Auto-imprimir al cobrar</span>
             </label>
           </div>
           <div>
             <label class="flex items-center space-x-2 p-2 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer">
               <input type="checkbox" id="printerSettingOpenDrawer" checked class="w-4 h-4 rounded text-amber-500 bg-slate-950 border-slate-700 focus:ring-0">
-              <span class="text-[11px] text-amber-300 font-bold">⚡ Abrir cajón monedero</span>
+              <span class="text-[10px] text-amber-300 font-bold">⚡ Abrir cajón</span>
+            </label>
+          </div>
+          <div>
+            <label class="flex items-center space-x-2 p-2 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer">
+              <input type="checkbox" id="printerSettingAutoCut" checked class="w-4 h-4 rounded text-amber-500 bg-slate-950 border-slate-700 focus:ring-0">
+              <span class="text-[10px] text-emerald-300 font-bold">✂️ Cortar papel</span>
             </label>
           </div>
         </div>
@@ -1182,7 +1188,7 @@
   <div id="thermalReceiptPrintArea" class="hidden"></div>
 
   <!-- SCRIPTS -->
-  <script src="/static/js/printer.js?v=20261025_v16"></script>
+  <script src="/static/js/printer.js?v=20261025_v17"></script>
   <script src="/static/js/pos.js?v=20261021_v5"></script>
 </body>
 </html>

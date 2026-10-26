@@ -12,6 +12,7 @@ const DEFAULT_PRINTER_SETTINGS = {
   headerOffset: 0,       // Centrado simétrico estándar (0 espacios extra, formato perfecto 350e1a9)
   autoPrint: true,       // Imprimir automáticamente al cobrar
   openDrawer: true,      // Abrir cajón monedero automáticamente al cobrar en efectivo
+  autoCut: true,         // Cortar papel automáticamente al finalizar la factura (Autocorte DIG-K200L)
   storeName: 'YO SOY DON POLLO',
   storeNit: 'NIT: 901.458.789-1',
   storePhone: 'Tel: 310 123 4567',
@@ -305,8 +306,21 @@ function getRawbtIntentUrl(saleData) {
 
   const isCash = (saleData.payment_method || '').toLowerCase() === 'efectivo';
   const shouldKickDrawer = settings.openDrawer && isCash;
+  const shouldAutoCut = settings.autoCut !== false;
 
-  // Secuencia de pulso para cajón monedero 24V (DIG-4101 con DIG-K200L):
+  // 1. Comando de corte de papel para DIG-K200L (Corte parcial por guillotina)
+  // 3 avances de línea para librar la cuchilla + GS V 66 0 + GS V 1 + ESC i
+  let cutBytes = new Uint8Array(0);
+  if (shouldAutoCut) {
+    cutBytes = new Uint8Array([
+      0x0a, 0x0a, 0x0a,
+      0x1d, 0x56, 0x42, 0x00,
+      0x1d, 0x56, 0x01,
+      0x1b, 0x69
+    ]);
+  }
+
+  // 2. Secuencia de pulso para cajón monedero 24V (DIG-4101 con DIG-K200L):
   // Pin 2 (100ms), Pin 5 (100ms), ASCII, Star, DLE DC4 tiempo real, BEL y vaciado LF (\n)
   let drawerBytes = new Uint8Array(0);
   if (shouldKickDrawer) {
@@ -326,11 +340,11 @@ function getRawbtIntentUrl(saleData) {
     ? new TextEncoder().encode(plainText)
     : new Uint8Array(plainText.split('').map(c => c.charCodeAt(0)));
 
-  // Ponemos los bytes del cajón al FINAL de la impresión (después del avance de papel)
-  // para que el corte y apertura se ejecuten al finalizar el ticket
-  const combined = new Uint8Array(textBytes.length + drawerBytes.length);
+  // Secuencia de finalización perfecta: Texto -> Corte de papel -> Apertura de cajón
+  const combined = new Uint8Array(textBytes.length + cutBytes.length + drawerBytes.length);
   combined.set(textBytes, 0);
-  combined.set(drawerBytes, textBytes.length);
+  combined.set(cutBytes, textBytes.length);
+  combined.set(drawerBytes, textBytes.length + cutBytes.length);
 
   let binary = '';
   const chunkSize = 8192;
@@ -459,6 +473,13 @@ function openCashDrawer(event = null) {
     "\n\n"
   ].join("\n");
 
+  const cutBytes = new Uint8Array([
+    0x0a, 0x0a, 0x0a,
+    0x1d, 0x56, 0x42, 0x00,
+    0x1d, 0x56, 0x01,
+    0x1b, 0x69
+  ]);
+
   const drawerBytes = new Uint8Array([
     0x1b, 0x70, 0x00, 0x32, 0xfa,
     0x1b, 0x70, 0x01, 0x32, 0xfa,
@@ -474,9 +495,10 @@ function openCashDrawer(event = null) {
     ? new TextEncoder().encode(miniSlip)
     : new Uint8Array(miniSlip.split('').map(c => c.charCodeAt(0)));
 
-  const combined = new Uint8Array(textBytes.length + drawerBytes.length);
+  const combined = new Uint8Array(textBytes.length + cutBytes.length + drawerBytes.length);
   combined.set(textBytes, 0);
-  combined.set(drawerBytes, textBytes.length);
+  combined.set(cutBytes, textBytes.length);
+  combined.set(drawerBytes, textBytes.length + cutBytes.length);
 
   let binary = '';
   const chunkSize = 8192;
@@ -646,6 +668,7 @@ function openPrinterSettingsModal() {
   const offsetSel = document.getElementById('printerSettingHeaderOffset');
   const autoPrintChk = document.getElementById('printerSettingAutoPrint');
   const drawerChk = document.getElementById('printerSettingOpenDrawer');
+  const cutChk = document.getElementById('printerSettingAutoCut');
   const nameInp = document.getElementById('printerSettingStoreName');
   const nitInp = document.getElementById('printerSettingStoreNit');
   const phoneInp = document.getElementById('printerSettingStorePhone');
@@ -656,6 +679,7 @@ function openPrinterSettingsModal() {
   if (offsetSel) offsetSel.value = String(settings.headerOffset != null ? settings.headerOffset : 0);
   if (autoPrintChk) autoPrintChk.checked = !!settings.autoPrint;
   if (drawerChk) drawerChk.checked = !!settings.openDrawer;
+  if (cutChk) cutChk.checked = settings.autoCut !== false;
   if (nameInp) nameInp.value = settings.storeName;
   if (nitInp) nitInp.value = settings.storeNit;
   if (phoneInp) phoneInp.value = settings.storePhone;
@@ -677,6 +701,7 @@ function savePrinterSettingsFromForm(e) {
   const offsetSel = document.getElementById('printerSettingHeaderOffset');
   const autoPrintChk = document.getElementById('printerSettingAutoPrint');
   const drawerChk = document.getElementById('printerSettingOpenDrawer');
+  const cutChk = document.getElementById('printerSettingAutoCut');
   const nameInp = document.getElementById('printerSettingStoreName');
   const nitInp = document.getElementById('printerSettingStoreNit');
   const phoneInp = document.getElementById('printerSettingStorePhone');
@@ -688,6 +713,7 @@ function savePrinterSettingsFromForm(e) {
     headerOffset: offsetSel ? parseInt(offsetSel.value, 10) : 0,
     autoPrint: autoPrintChk ? autoPrintChk.checked : false,
     openDrawer: drawerChk ? drawerChk.checked : true,
+    autoCut: cutChk ? cutChk.checked : true,
     storeName: nameInp ? nameInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storeName,
     storeNit: nitInp ? nitInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storeNit,
     storePhone: phoneInp ? phoneInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storePhone,
