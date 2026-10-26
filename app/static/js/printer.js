@@ -412,12 +412,34 @@ function printReceipt(saleData, preferredMethod = null) {
 /**
  * Envía el pulso ESC/POS para abrir la gaveta monedero RJ11 conectada a la impresora
  * Pulso cuádruple universal: Pin 2 (m=0 y m=48) y Pin 5 (m=1 y m=49) a 24V con 500ms OFF
+ * Transmitido vía Base64 para evitar truncamiento por bytes nulos (%00) en el parser de intents de Android
  */
 function openCashDrawer() {
-  const kickDrawerCmd = "\x1b\x40\x1b\x70\x00\x19\xfa\x1b\x70\x01\x19\xfa\x1b\x70\x30\x19\xfa\x1b\x70\x31\x19\xfa\x10\x14\x01\x00\x05\n";
+  const bytes = [
+    0x1b, 0x40,
+    0x1b, 0x70, 0x00, 0x19, 0xfa,
+    0x1b, 0x70, 0x01, 0x19, 0xfa,
+    0x1b, 0x70, 0x00, 0x32, 0xfa,
+    0x1b, 0x70, 0x01, 0x32, 0xfa,
+    0x1b, 0x70, 0x30, 0x19, 0xfa,
+    0x1b, 0x70, 0x31, 0x19, 0xfa,
+    0x10, 0x14, 0x01, 0x00, 0x05
+  ];
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  const base64Data = btoa(binary);
+
+  // Esquema 1: Intent nativo de Android hacia RawBT con base64 puro
   const rawbtIntentScheme = "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
-  const intentUrl = "intent:" + encodeURIComponent(kickDrawerCmd) + rawbtIntentScheme;
-  window.location.href = intentUrl;
+  const intentUrl = "intent://base64," + base64Data + rawbtIntentScheme;
+
+  try {
+    window.location.href = intentUrl;
+  } catch (e) {
+    window.location.href = "rawbt:base64," + base64Data;
+  }
   return true;
 }
 
