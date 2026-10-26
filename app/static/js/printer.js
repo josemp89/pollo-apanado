@@ -9,9 +9,10 @@
 const DEFAULT_PRINTER_SETTINGS = {
   mode: 'auto',          // 'auto' (intenta RawBT y si falla usa navegador), 'rawbt', 'browser'
   paperWidth: '58mm',    // '58mm' (32 col), '58mm-30' (30 col), '58mm-28' (28 col), '80mm' (42 col), '80mm-48' (48 col)
+  headerOffset: 2,       // Desplazamiento óptico (+2 espacios) para centrado físico perfecto en papel de 58mm
   autoPrint: false,      // Imprimir automáticamente al cobrar
   openDrawer: true,      // Abrir cajón monedero al cobrar en efectivo
-  storeName: 'POLLO APANADO',
+  storeName: 'YO SOY DON POLLO',
   storeNit: 'NIT: 901.458.789-1',
   storePhone: 'Tel: 310 123 4567',
   storeAddress: 'Calle Principal # 10-20',
@@ -81,11 +82,12 @@ function padLine(left, right, width) {
   return l + ' '.repeat(spaceNeeded) + r;
 }
 
-function centerText(text, width) {
+function centerText(text, width, offset = 0) {
   const t = String(text || '').trim();
   if (!t) return '';
   if (t.length >= width) return t.substring(0, width);
-  const leftPad = Math.floor((width - t.length) / 2);
+  const basePad = Math.floor((width - t.length) / 2);
+  const leftPad = Math.max(0, Math.min(width - t.length, basePad + offset));
   return ' '.repeat(leftPad) + t;
 }
 
@@ -99,27 +101,28 @@ function formatCOPLocal(amount) {
 function generateReceiptPlainText(saleData) {
   const settings = getPrinterSettings();
   const width = getColumnWidth(settings.paperWidth);
+  const offset = parseInt(settings.headerOffset != null ? settings.headerOffset : 2, 10) || 0;
   const sep = '-'.repeat(width);
   const dblSep = '='.repeat(width);
 
   const lines = [];
 
-  // 1. ENCABEZADO DEL NEGOCIO (Centrado y elegante, con soporte multilinea)
+  // 1. ENCABEZADO DEL NEGOCIO (Centrado y elegante, con soporte multilinea y offset de centrado)
   lines.push(dblSep);
   const nameLines = wrapText(settings.storeName.toUpperCase(), width);
-  nameLines.forEach(nl => lines.push(centerText(nl, width)));
+  nameLines.forEach(nl => lines.push(centerText(nl, width, offset)));
 
   if (settings.storeNit) {
     const nitLines = wrapText(settings.storeNit, width);
-    nitLines.forEach(nl => lines.push(centerText(nl, width)));
+    nitLines.forEach(nl => lines.push(centerText(nl, width, offset)));
   }
   if (settings.storeAddress) {
     const addrLines = wrapText(settings.storeAddress, width);
-    addrLines.forEach(al => lines.push(centerText(al, width)));
+    addrLines.forEach(al => lines.push(centerText(al, width, offset)));
   }
   if (settings.storePhone) {
     const phoneLines = wrapText(settings.storePhone, width);
-    phoneLines.forEach(pl => lines.push(centerText(pl, width)));
+    phoneLines.forEach(pl => lines.push(centerText(pl, width, offset)));
   }
   lines.push(dblSep);
 
@@ -183,9 +186,9 @@ function generateReceiptPlainText(saleData) {
   lines.push(dblSep);
   if (settings.footerMsg) {
     const footerLines = wrapText(settings.footerMsg, width);
-    footerLines.forEach(fl => lines.push(centerText(fl, width)));
+    footerLines.forEach(fl => lines.push(centerText(fl, width, offset)));
   }
-  lines.push(centerText("*** COMPROBANTE DE PAGO ***", width));
+  lines.push(centerText("*** COMPROBANTE DE PAGO ***", width, offset));
   lines.push("\n\n\n\n"); // Avance de papel para no cortar el texto
 
   return lines.join("\n");
@@ -540,6 +543,7 @@ function openPrinterSettingsModal() {
   const settings = getPrinterSettings();
   const modeSel = document.getElementById('printerSettingMode');
   const widthSel = document.getElementById('printerSettingWidth');
+  const offsetSel = document.getElementById('printerSettingHeaderOffset');
   const autoPrintChk = document.getElementById('printerSettingAutoPrint');
   const drawerChk = document.getElementById('printerSettingOpenDrawer');
   const nameInp = document.getElementById('printerSettingStoreName');
@@ -549,6 +553,7 @@ function openPrinterSettingsModal() {
 
   if (modeSel) modeSel.value = settings.mode;
   if (widthSel) widthSel.value = settings.paperWidth;
+  if (offsetSel) offsetSel.value = String(settings.headerOffset != null ? settings.headerOffset : 2);
   if (autoPrintChk) autoPrintChk.checked = !!settings.autoPrint;
   if (drawerChk) drawerChk.checked = !!settings.openDrawer;
   if (nameInp) nameInp.value = settings.storeName;
@@ -569,6 +574,7 @@ function savePrinterSettingsFromForm(e) {
 
   const modeSel = document.getElementById('printerSettingMode');
   const widthSel = document.getElementById('printerSettingWidth');
+  const offsetSel = document.getElementById('printerSettingHeaderOffset');
   const autoPrintChk = document.getElementById('printerSettingAutoPrint');
   const drawerChk = document.getElementById('printerSettingOpenDrawer');
   const nameInp = document.getElementById('printerSettingStoreName');
@@ -579,6 +585,7 @@ function savePrinterSettingsFromForm(e) {
   const newSettings = {
     mode: modeSel ? modeSel.value : 'auto',
     paperWidth: widthSel ? widthSel.value : '58mm',
+    headerOffset: offsetSel ? parseInt(offsetSel.value, 10) : 2,
     autoPrint: autoPrintChk ? autoPrintChk.checked : false,
     openDrawer: drawerChk ? drawerChk.checked : true,
     storeName: nameInp ? nameInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storeName,

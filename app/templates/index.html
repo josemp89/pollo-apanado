@@ -1082,10 +1082,10 @@
           </p>
         </div>
 
-        <!-- Ancho del Papel Térmico -->
+        <!-- Ancho del Papel Térmico y Centrado -->
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block font-bold text-slate-300 mb-1">Ancho de Papel / Márgenes:</label>
+            <label class="block font-bold text-slate-300 mb-1">Ancho de Papel / Columnas:</label>
             <select id="printerSettingWidth" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-100 focus:outline-none focus:border-amber-500">
               <option value="58mm">58 mm (Estándar - 32 columnas)</option>
               <option value="58mm-30">58 mm (Estrecho - 30 columnas)</option>
@@ -1096,23 +1096,30 @@
             </select>
           </div>
           <div>
-            <label class="block font-bold text-slate-300 mb-1">Auto-imprimir:</label>
-            <label class="flex items-center space-x-2 mt-2 cursor-pointer">
-              <input type="checkbox" id="printerSettingAutoPrint" class="w-4 h-4 rounded text-amber-500 bg-slate-950 border-slate-700 focus:ring-0">
-              <span class="text-[11px] text-slate-300 font-bold">Al cobrar venta</span>
-            </label>
+            <label class="block font-bold text-slate-300 mb-1">Centrado del Título:</label>
+            <select id="printerSettingHeaderOffset" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-100 focus:outline-none focus:border-amber-500">
+              <option value="0">Centrado Simétrico (+0)</option>
+              <option value="1">Leve (+1 a la derecha)</option>
+              <option value="2" selected>⭐ Centrado Óptico (+2 derecha)</option>
+              <option value="3">Pronunciado (+3 derecha)</option>
+              <option value="4">Extra (+4 derecha)</option>
+            </select>
           </div>
         </div>
 
-        <!-- Abrir cajón monedero -->
-        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-          <label class="flex items-center space-x-2 cursor-pointer">
-            <input type="checkbox" id="printerSettingOpenDrawer" checked class="w-4 h-4 rounded text-amber-500 bg-slate-950 border-slate-700 focus:ring-0">
-            <span class="text-xs text-amber-300 font-bold">⚡ Disparar apertura de cajón en pagos en efectivo</span>
-          </label>
-          <p class="text-[10px] text-slate-400 mt-1 pl-6">
-            Envía el pulso ESC/POS (24V doble pin 2/5) por el cable RJ11 a la gaveta de dinero.
-          </p>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="flex items-center space-x-2 p-2 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer">
+              <input type="checkbox" id="printerSettingAutoPrint" class="w-4 h-4 rounded text-amber-500 bg-slate-950 border-slate-700 focus:ring-0">
+              <span class="text-[11px] text-slate-300 font-bold">Auto-imprimir al cobrar</span>
+            </label>
+          </div>
+          <div>
+            <label class="flex items-center space-x-2 p-2 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer">
+              <input type="checkbox" id="printerSettingOpenDrawer" checked class="w-4 h-4 rounded text-amber-500 bg-slate-950 border-slate-700 focus:ring-0">
+              <span class="text-[11px] text-amber-300 font-bold">⚡ Abrir cajón monedero</span>
+            </label>
+          </div>
         </div>
 
         <!-- Datos del Encabezado del Ticket -->
@@ -1120,7 +1127,7 @@
           <div class="text-[11px] font-bold text-slate-400">Datos para el Recibo:</div>
           <div>
             <label class="block text-[10px] text-slate-400">Nombre del Negocio (Título principal):</label>
-            <input type="text" id="printerSettingStoreName" placeholder="Ej. ASADERO POLLO APANADO LA 14" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-amber-300 font-bold">
+            <input type="text" id="printerSettingStoreName" placeholder="Ej. YO SOY DON POLLO" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-amber-300 font-bold">
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
@@ -1161,7 +1168,7 @@
   <div id="thermalReceiptPrintArea" class="hidden"></div>
 
   <!-- SCRIPTS -->
-  <script src="/static/js/printer.js?v=20261025_v7"></script>
+  <script src="/static/js/printer.js?v=20261025_v8"></script>
   <script src="/static/js/pos.js?v=20261021_v5"></script>
 </body>
 </html>
