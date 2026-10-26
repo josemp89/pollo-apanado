@@ -29,6 +29,10 @@ function getPrinterSettings() {
       if (parsed.headerOffset === 'escpos' || parsed.headerOffset === 2 || parsed.headerOffset === '2') {
         parsed.headerOffset = 0;
       }
+      // Garantizar que storeName nunca sea vacío
+      if (!parsed.storeName || !parsed.storeName.trim()) {
+        parsed.storeName = DEFAULT_PRINTER_SETTINGS.storeName;
+      }
       return { ...DEFAULT_PRINTER_SETTINGS, ...parsed };
     }
   } catch (e) {
@@ -117,7 +121,8 @@ function generateReceiptPlainText(saleData) {
 
   // 1. ENCABEZADO DEL NEGOCIO (Centrado y elegante, con soporte multilinea)
   lines.push(dblSep);
-  const nameLines = wrapText(settings.storeName.toUpperCase(), width);
+  const storeName = (settings.storeName && settings.storeName.trim()) ? settings.storeName.trim() : 'YO SOY DON POLLO';
+  const nameLines = wrapText(storeName.toUpperCase(), width);
   nameLines.forEach(nl => lines.push(centerText(nl, width, offset)));
 
   if (settings.storeNit) {
@@ -197,10 +202,10 @@ function generateReceiptPlainText(saleData) {
     footerLines.forEach(fl => lines.push(centerText(fl, width, offset)));
   }
   lines.push(centerText("*** COMPROBANTE DE PAGO ***", width, offset));
-  // Margen inferior generoso (8 líneas de avance) para expulsar el ticket completamente más allá de la cuchilla
-  for (let i = 0; i < 8; i++) {
-    lines.push("");
-  }
+  // Exactamente 3 líneas de avance: la impresora avanza automáticamente a la cuchilla al cortar
+  lines.push("");
+  lines.push("");
+  lines.push("");
 
   return lines.join("\n");
 }
@@ -311,33 +316,23 @@ function getRawbtIntentUrl(saleData) {
   const shouldKickDrawer = settings.openDrawer && isCash;
   const shouldAutoCut = settings.autoCut !== false;
 
-  // 1. Comando de corte de papel para DIG-K200L (Corte parcial por guillotina)
-  // GS V 66 0 + GS V 1 + GS V 0 + ESC i + ESC m
+  // 1. Comando de corte de papel para DIG-K200L (UN SOLO corte parcial limpio)
+  // GS V 66 0 (\x1d\x56\x42\x00): ejecuta exactamente 1 corte parcial por guillotina
   let cutBytes = new Uint8Array(0);
   if (shouldAutoCut) {
     cutBytes = new Uint8Array([
-      0x0a, 0x0a,
       0x1d, 0x56, 0x42, 0x00,
-      0x1d, 0x56, 0x01,
-      0x1d, 0x56, 0x00,
-      0x1b, 0x69,
-      0x1b, 0x6d,
       0x0a
     ]);
   }
 
-  // 2. Secuencia de pulso para cajón monedero 24V (DIG-4101 con DIG-K200L):
-  // Pin 2 (100ms), Pin 5 (100ms), ASCII, Star, DLE DC4 tiempo real, BEL y vaciado LF (\n)
+  // 2. Pulso para cajón monedero 24V (DIG-4101 con DIG-K200L):
+  // Pin 2 (100ms) y Pin 5 (100ms) limpio
   let drawerBytes = new Uint8Array(0);
   if (shouldKickDrawer) {
     drawerBytes = new Uint8Array([
       0x1b, 0x70, 0x00, 0x32, 0xfa,
       0x1b, 0x70, 0x01, 0x32, 0xfa,
-      0x1b, 0x70, 0x30, 0x32, 0xfa,
-      0x1b, 0x70, 0x31, 0x32, 0xfa,
-      0x1b, 0x78, 0x01,
-      0x10, 0x14, 0x01, 0x00, 0x01,
-      0x07,
       0x0a
     ]);
   }
@@ -480,20 +475,13 @@ function openCashDrawer(event = null) {
   ].join("\n");
 
   const cutBytes = new Uint8Array([
-    0x0a, 0x0a, 0x0a,
     0x1d, 0x56, 0x42, 0x00,
-    0x1d, 0x56, 0x01,
-    0x1b, 0x69
+    0x0a
   ]);
 
   const drawerBytes = new Uint8Array([
     0x1b, 0x70, 0x00, 0x32, 0xfa,
     0x1b, 0x70, 0x01, 0x32, 0xfa,
-    0x1b, 0x70, 0x30, 0x32, 0xfa,
-    0x1b, 0x70, 0x31, 0x32, 0xfa,
-    0x1b, 0x78, 0x01,
-    0x10, 0x14, 0x01, 0x00, 0x01,
-    0x07,
     0x0a
   ]);
 
@@ -596,12 +584,15 @@ function showSaleSuccessModal(saleData) {
 
   modal.classList.remove('hidden');
 
-  // 4. Impresión de ticket y apertura de cajón
+  // 4. Apertura inmediata de caja registradora al ejecutar la venta
   const settings = getPrinterSettings();
 
   if (settings.autoPrint) {
-    // Si auto-imprimir está activo en ajustes, se imprime la tirilla, se corta y se abre el cajón
+    // Si auto-imprimir está activo, se imprime la factura completa, se corta y se abre el cajón
     printReceipt(saleData);
+  } else if (settings.openDrawer && isCash) {
+    // Abre la caja registradora apenas se ejecuta la venta en efectivo, sin tener que imprimir
+    openCashDrawer();
   }
 }
 
