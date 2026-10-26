@@ -10,8 +10,8 @@ const DEFAULT_PRINTER_SETTINGS = {
   mode: 'auto',          // 'auto' (intenta RawBT y si falla usa navegador), 'rawbt', 'browser'
   paperWidth: '58mm',    // '58mm' (32 col), '58mm-30' (30 col), '58mm-28' (28 col), '80mm' (42 col), '80mm-48' (48 col)
   headerOffset: 'escpos', // 'escpos' (centrado automático perfecto por hardware ESC/POS) o número (-2, -1, 0, 1, 2)
-  autoPrint: false,      // Imprimir automáticamente al cobrar
-  openDrawer: true,      // Abrir cajón monedero al cobrar en efectivo
+  autoPrint: true,       // Imprimir automáticamente y disparar gaveta al cobrar
+  openDrawer: true,      // Abrir cajón monedero automáticamente al cobrar en efectivo
   storeName: 'YO SOY DON POLLO',
   storeNit: 'NIT: 901.458.789-1',
   storePhone: 'Tel: 310 123 4567',
@@ -434,7 +434,23 @@ function printReceipt(saleData, preferredMethod = null) {
 }
 
 /**
- * Impresión de prueba desde ajustes
+ * Envía el pulso ESC/POS para abrir la gaveta monedero RJ11 conectada a la impresora
+ * Pulso doble: Pin 2 (\x00) y Pin 5 (\x01) a 24V, 50ms ON / 100ms OFF
+ */
+function openCashDrawer() {
+  const kickDrawerCmd = "\x1b\x40\x1b\x70\x00\x19\x32\x1b\x70\x01\x19\x32";
+  const rawbtIntentScheme = "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
+  const intentUrl = "intent:" + encodeURIComponent(kickDrawerCmd) + rawbtIntentScheme;
+  window.location.href = intentUrl;
+  return true;
+}
+
+function testOpenDrawer() {
+  openCashDrawer();
+}
+
+/**
+ * Impresión de prueba desde ajustes (incluye pulso de cajón monedero para verificar ambos)
  */
 function printTestTicket() {
   const testSale = {
@@ -507,10 +523,15 @@ function showSaleSuccessModal(saleData) {
 
   modal.classList.remove('hidden');
 
-  // 4. Auto-imprimir si está habilitado en ajustes
+  // 4. Disparo INMEDIATO del impulso de gaveta monedero e impresión de ticket
   const settings = getPrinterSettings();
+
   if (settings.autoPrint) {
+    // Si auto-imprimir está activo, printReceipt ya incluye el impulso del cajón + el ticket
     printReceipt(saleData);
+  } else if (settings.openDrawer && isCash) {
+    // Si auto-imprimir está apagado pero es pago en efectivo, abrir el cajón inmediatamente al cobrar
+    openCashDrawer();
   }
 }
 

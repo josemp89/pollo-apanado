@@ -1043,10 +1043,16 @@
           <span>IMPRIMIR CON RAWBT (Directo USB)</span>
         </a>
 
-        <button type="button" onclick="printCurrentSuccessTicket('browser', event)" class="w-full h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-cyan-300 font-bold text-xs transition flex items-center justify-center space-x-2 select-none border border-cyan-500/30">
-          <span>🌐</span>
-          <span>Imprimir por Diálogo de Android / Navegador</span>
-        </button>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="openCashDrawer()" class="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-300 font-bold text-xs transition flex items-center justify-center space-x-1 select-none border border-amber-500/30" title="Disparar pulso manual de apertura de cajón">
+            <span>⚡</span>
+            <span>Abrir Cajón</span>
+          </button>
+          <button type="button" onclick="printCurrentSuccessTicket('browser', event)" class="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-cyan-300 font-bold text-xs transition flex items-center justify-center space-x-1 select-none border border-cyan-500/30">
+            <span>🌐</span>
+            <span>Navegador</span>
+          </button>
+        </div>
 
         <button type="button" onclick="closeSaleSuccessModal()" class="w-full h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white font-bold text-xs transition flex items-center justify-center space-x-1 select-none border border-slate-700">
           <span>➡️</span>
@@ -1146,15 +1152,19 @@
           </div>
         </div>
 
-        <!-- Botones -->
-        <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800">
+        <!-- Botones de Acción y Prueba -->
+        <div class="grid grid-cols-4 gap-2 pt-2 border-t border-slate-800">
           <button type="button" onclick="printColumnCalibrationTicket()" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold text-xs transition border border-slate-700 flex items-center justify-center space-x-1" title="Imprimir regla para calibrar columnas">
             <span>📏</span>
             <span>Calibrar</span>
           </button>
-          <button type="button" onclick="printTestTicket()" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs transition border border-slate-700 flex items-center justify-center space-x-1">
+          <button type="button" onclick="testOpenDrawer()" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs transition border border-slate-700 flex items-center justify-center space-x-1" title="Probar apertura inmediata de gaveta monedero">
+            <span>⚡</span>
+            <span>Cajón</span>
+          </button>
+          <button type="button" onclick="printTestTicket()" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs transition border border-slate-700 flex items-center justify-center space-x-1" title="Imprimir ticket de prueba">
             <span>🖨️</span>
-            <span>Prueba</span>
+            <span>Ticket</span>
           </button>
           <button type="submit" class="py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-lg transition flex items-center justify-center space-x-1">
             <span>💾</span>
@@ -1169,7 +1179,7 @@
   <div id="thermalReceiptPrintArea" class="hidden"></div>
 
   <!-- SCRIPTS -->
-  <script src="/static/js/printer.js?v=20261025_v9"></script>
+  <script src="/static/js/printer.js?v=20261025_v10"></script>
   <script src="/static/js/pos.js?v=20261021_v5"></script>
 </body>
 </html>
