@@ -2,16 +2,16 @@
  * printer_config_base.js - Respaldo permanente y oficial de la configuración base de impresora
  * Configuración:
  *   - Nombre del Negocio: YO SOY DON POLLO
- *   - Centrado: Hardware ESC/POS nativo (\x1b\x61\x01) - 100% simétrico y sin cortes
- *   - Ancho: 58mm (32 col estándar) con protección CRLF (\r\n)
- *   - Apertura de cajón monedero: Inmediata en cobros en efectivo (\x1b\x70\x00\x19\x32\x1b\x70\x01\x19\x32)
+ *   - Centrado: Espaciado simétrico puro (offset: 0) probado y validado
+ *   - Ancho: 58mm (32 col estándar) con delimitadores limpios
+ *   - Apertura de cajón monedero: Inmediata en cobros en efectivo con disparo cuádruple universal (Pin 2 y Pin 5 a 24V 500ms)
  *   - Impresión automática: Activa (autoPrint: true)
  */
 
 const BASE_OFFICIAL_PRINTER_SETTINGS = {
   mode: 'auto',
   paperWidth: '58mm',
-  headerOffset: 'escpos',
+  headerOffset: 0,
   autoPrint: true,
   openDrawer: true,
   storeName: 'YO SOY DON POLLO',

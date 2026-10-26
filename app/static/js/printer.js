@@ -9,8 +9,8 @@
 const DEFAULT_PRINTER_SETTINGS = {
   mode: 'auto',          // 'auto' (intenta RawBT y si falla usa navegador), 'rawbt', 'browser'
   paperWidth: '58mm',    // '58mm' (32 col), '58mm-30' (30 col), '58mm-28' (28 col), '80mm' (42 col), '80mm-48' (48 col)
-  headerOffset: 'escpos', // 'escpos' (centrado automático perfecto por hardware ESC/POS) o número (-2, -1, 0, 1, 2)
-  autoPrint: true,       // Imprimir automáticamente y disparar gaveta al cobrar
+  headerOffset: 0,       // Centrado simétrico estándar (0 espacios extra, formato perfecto 350e1a9)
+  autoPrint: true,       // Imprimir automáticamente al cobrar
   openDrawer: true,      // Abrir cajón monedero automáticamente al cobrar en efectivo
   storeName: 'YO SOY DON POLLO',
   storeNit: 'NIT: 901.458.789-1',
@@ -24,9 +24,9 @@ function getPrinterSettings() {
     const raw = localStorage.getItem('pos_printer_settings');
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Migración automática si tenía offset 2 que recortaba letras en el firmware del usuario
-      if (parsed.headerOffset === 2 || parsed.headerOffset === '2') {
-        parsed.headerOffset = 'escpos';
+      // Normalizar automáticamente si venía de versiones con offset experimental
+      if (parsed.headerOffset === 'escpos' || parsed.headerOffset === 2 || parsed.headerOffset === '2') {
+        parsed.headerOffset = 0;
       }
       return { ...DEFAULT_PRINTER_SETTINGS, ...parsed };
     }
@@ -84,7 +84,7 @@ function padLine(left, right, width) {
   const spaceNeeded = width - l.length - r.length;
   if (spaceNeeded <= 0) {
     const rPad = Math.max(0, width - r.length);
-    return l + '\r\n' + ' '.repeat(rPad) + r;
+    return l + '\n' + ' '.repeat(rPad) + r;
   }
   return l + ' '.repeat(spaceNeeded) + r;
 }
@@ -92,7 +92,6 @@ function padLine(left, right, width) {
 function centerText(text, width, offset = 0) {
   const t = String(text || '').trim();
   if (!t) return '';
-  // Nunca truncar el texto para no perder letras
   if (t.length >= width) return t;
   const basePad = Math.max(0, Math.floor((width - t.length) / 2));
   const leftPad = Math.max(0, Math.min(width - t.length, basePad + offset));
@@ -109,46 +108,28 @@ function formatCOPLocal(amount) {
 function generateReceiptPlainText(saleData) {
   const settings = getPrinterSettings();
   const width = getColumnWidth(settings.paperWidth);
-  const offsetSetting = settings.headerOffset != null ? settings.headerOffset : 'escpos';
+  const offset = parseInt(settings.headerOffset != null ? settings.headerOffset : 0, 10) || 0;
   const sep = '-'.repeat(width);
   const dblSep = '='.repeat(width);
 
   const lines = [];
 
-  // Comandos ESC/POS nativos para centrado perfecto por hardware (evita cortes de caracteres)
-  const ESC_ALIGN_CENTER = "\x1b\x61\x01";
-  const ESC_ALIGN_LEFT   = "\x1b\x61\x00";
-  const ESC_BOLD_ON      = "\x1b\x45\x01";
-  const ESC_BOLD_OFF     = "\x1b\x45\x00";
-
-  const useEscposCenter = (offsetSetting === 'escpos');
-  const numericOffset = useEscposCenter ? 0 : (parseInt(offsetSetting, 10) || 0);
-
-  // 1. ENCABEZADO DEL NEGOCIO (Centrado perfecto por hardware o por offset matemático)
+  // 1. ENCABEZADO DEL NEGOCIO (Centrado y elegante, con soporte multilinea)
   lines.push(dblSep);
+  const nameLines = wrapText(settings.storeName.toUpperCase(), width);
+  nameLines.forEach(nl => lines.push(centerText(nl, width, offset)));
 
-  if (useEscposCenter) {
-    lines.push(ESC_ALIGN_CENTER + ESC_BOLD_ON + settings.storeName.toUpperCase() + ESC_BOLD_OFF);
-    if (settings.storeNit) lines.push(settings.storeNit);
-    if (settings.storeAddress) lines.push(settings.storeAddress);
-    if (settings.storePhone) lines.push(settings.storePhone);
-    lines.push(ESC_ALIGN_LEFT); // Retornar siempre a alineación izquierda
-  } else {
-    const nameLines = wrapText(settings.storeName.toUpperCase(), width);
-    nameLines.forEach(nl => lines.push(centerText(nl, width, numericOffset)));
-
-    if (settings.storeNit) {
-      const nitLines = wrapText(settings.storeNit, width);
-      nitLines.forEach(nl => lines.push(centerText(nl, width, numericOffset)));
-    }
-    if (settings.storeAddress) {
-      const addrLines = wrapText(settings.storeAddress, width);
-      addrLines.forEach(al => lines.push(centerText(al, width, numericOffset)));
-    }
-    if (settings.storePhone) {
-      const phoneLines = wrapText(settings.storePhone, width);
-      phoneLines.forEach(pl => lines.push(centerText(pl, width, numericOffset)));
-    }
+  if (settings.storeNit) {
+    const nitLines = wrapText(settings.storeNit, width);
+    nitLines.forEach(nl => lines.push(centerText(nl, width, offset)));
+  }
+  if (settings.storeAddress) {
+    const addrLines = wrapText(settings.storeAddress, width);
+    addrLines.forEach(al => lines.push(centerText(al, width, offset)));
+  }
+  if (settings.storePhone) {
+    const phoneLines = wrapText(settings.storePhone, width);
+    phoneLines.forEach(pl => lines.push(centerText(pl, width, offset)));
   }
   lines.push(dblSep);
 
@@ -210,21 +191,14 @@ function generateReceiptPlainText(saleData) {
 
   // 5. PIE DE PÁGINA
   lines.push(dblSep);
-  if (useEscposCenter) {
-    lines.push(ESC_ALIGN_CENTER);
-    if (settings.footerMsg) lines.push(settings.footerMsg);
-    lines.push("*** COMPROBANTE DE PAGO ***");
-    lines.push(ESC_ALIGN_LEFT);
-  } else {
-    if (settings.footerMsg) {
-      const footerLines = wrapText(settings.footerMsg, width);
-      footerLines.forEach(fl => lines.push(centerText(fl, width, numericOffset)));
-    }
-    lines.push(centerText("*** COMPROBANTE DE PAGO ***", width, numericOffset));
+  if (settings.footerMsg) {
+    const footerLines = wrapText(settings.footerMsg, width);
+    footerLines.forEach(fl => lines.push(centerText(fl, width, offset)));
   }
-  lines.push("\r\n\r\n\r\n\r\n"); // Avance de papel para no cortar el texto
+  lines.push(centerText("*** COMPROBANTE DE PAGO ***", width, offset));
+  lines.push("\n\n\n\n"); // Avance de papel para no cortar el texto
 
-  return lines.join("\r\n");
+  return lines.join("\n");
 }
 
 /**
@@ -331,9 +305,11 @@ function getRawbtIntentUrl(saleData) {
 
   const isCash = (saleData.payment_method || '').toLowerCase() === 'efectivo';
   const shouldKickDrawer = settings.openDrawer && isCash;
-  // Disparo de apertura para pin 2 (\x00) y pin 5 (\x01) de gaveta monedero RJ11 estándar (24V)
-  // t1 = 25 (50ms on), t2 = 50 (100ms off) -> 0x32 es ASCII '2' (1 byte limpio en UTF-8 sin desborde)
-  const kickDrawerCmd = shouldKickDrawer ? "\x1b\x70\x00\x19\x32\x1b\x70\x01\x19\x32" : "";
+  // Disparo universal de apertura para gaveta monedero RJ11 estándar (24V)
+  // Soporta Pin 2 (\x00 y '0') + Pin 5 (\x01 y '1') con pulso 50ms ON / 500ms OFF
+  const kickDrawerCmd = shouldKickDrawer
+    ? "\x1b\x70\x00\x19\xfa\x1b\x70\x01\x19\xfa\x1b\x70\x30\x19\xfa\x1b\x70\x31\x19\xfa\x10\x14\x01\x00\x05"
+    : "";
   // Inicialización ESC/POS (\x1b\x40) + pulso cajón + texto formateado
   const fullContent = "\x1b\x40" + kickDrawerCmd + plainText;
 
@@ -435,10 +411,10 @@ function printReceipt(saleData, preferredMethod = null) {
 
 /**
  * Envía el pulso ESC/POS para abrir la gaveta monedero RJ11 conectada a la impresora
- * Pulso doble: Pin 2 (\x00) y Pin 5 (\x01) a 24V, 50ms ON / 100ms OFF
+ * Pulso cuádruple universal: Pin 2 (m=0 y m=48) y Pin 5 (m=1 y m=49) a 24V con 500ms OFF
  */
 function openCashDrawer() {
-  const kickDrawerCmd = "\x1b\x40\x1b\x70\x00\x19\x32\x1b\x70\x01\x19\x32";
+  const kickDrawerCmd = "\x1b\x40\x1b\x70\x00\x19\xfa\x1b\x70\x01\x19\xfa\x1b\x70\x30\x19\xfa\x1b\x70\x31\x19\xfa\x10\x14\x01\x00\x05\n";
   const rawbtIntentScheme = "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
   const intentUrl = "intent:" + encodeURIComponent(kickDrawerCmd) + rawbtIntentScheme;
   window.location.href = intentUrl;
@@ -581,9 +557,9 @@ function printColumnCalibrationTicket() {
   lines.push("  una linea nueva, cambia a");
   lines.push("  '58 mm (Estrecho - 30 col)'.");
   lines.push(dblSep);
-  lines.push("\r\n\r\n\r\n\r\n");
+  lines.push("\n\n\n\n");
 
-  const fullContent = "\x1b\x40" + lines.join("\r\n");
+  const fullContent = "\x1b\x40" + lines.join("\n");
   const rawbtIntentScheme = "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
   const intentUrl = "intent:" + encodeURIComponent(fullContent) + rawbtIntentScheme;
   window.location.href = intentUrl;
@@ -608,7 +584,7 @@ function openPrinterSettingsModal() {
 
   if (modeSel) modeSel.value = settings.mode;
   if (widthSel) widthSel.value = settings.paperWidth;
-  if (offsetSel) offsetSel.value = String(settings.headerOffset != null ? settings.headerOffset : 'escpos');
+  if (offsetSel) offsetSel.value = String(settings.headerOffset != null ? settings.headerOffset : 0);
   if (autoPrintChk) autoPrintChk.checked = !!settings.autoPrint;
   if (drawerChk) drawerChk.checked = !!settings.openDrawer;
   if (nameInp) nameInp.value = settings.storeName;
@@ -637,15 +613,10 @@ function savePrinterSettingsFromForm(e) {
   const phoneInp = document.getElementById('printerSettingStorePhone');
   const addressInp = document.getElementById('printerSettingStoreAddress');
 
-  let headerOffsetVal = 'escpos';
-  if (offsetSel) {
-    headerOffsetVal = (offsetSel.value === 'escpos') ? 'escpos' : (parseInt(offsetSel.value, 10) || 0);
-  }
-
   const newSettings = {
     mode: modeSel ? modeSel.value : 'auto',
     paperWidth: widthSel ? widthSel.value : '58mm',
-    headerOffset: headerOffsetVal,
+    headerOffset: offsetSel ? parseInt(offsetSel.value, 10) : 0,
     autoPrint: autoPrintChk ? autoPrintChk.checked : false,
     openDrawer: drawerChk ? drawerChk.checked : true,
     storeName: nameInp ? nameInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storeName,
