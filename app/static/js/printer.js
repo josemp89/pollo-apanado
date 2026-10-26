@@ -11,7 +11,6 @@ const DEFAULT_PRINTER_SETTINGS = {
   paperWidth: '58mm',    // '58mm' (32 col), '58mm-30' (30 col), '58mm-28' (28 col), '80mm' (42 col), '80mm-48' (48 col)
   autoPrint: false,      // Imprimir automáticamente al cobrar
   openDrawer: true,      // Abrir cajón monedero al cobrar en efectivo
-  printLogo: true,       // Imprimir logotipo 'Yo Soy Don Pollo' en el encabezado
   storeName: 'YO SOY DON POLLO',
   storeNit: 'NIT: 901.458.789-1',
   storePhone: 'Tel: 310 123 4567',
@@ -105,31 +104,10 @@ function generateReceiptPlainText(saleData) {
 
   const lines = [];
 
-  // 1. LOGOTIPO Y ENCABEZADO DEL NEGOCIO (Silueta Rellena con Líneas |||||)
+  // 1. ENCABEZADO DEL NEGOCIO (Limpio y Centrado)
   lines.push(dblSep);
-  if (settings.printLogo !== false) {
-    const emblem = [
-      "   |||   |||   |||   ",
-      " |||||||||||||||||   ",
-      " |||||   |||   ||||| ",
-      " |||||    |    ||||| ",
-      "  |||||  |||  |||||  ",
-      " |||||||||||||||||   ",
-      "|||||||||||||||||||  ",
-      "|||||||||||||||||||||",
-      " ||||||||||||||||||  ",
-      "   |||||||||||||||   ",
-      "    |||||   |||||    "
-    ];
-    emblem.forEach(l => lines.push(centerText(l.trim(), width)));
-    lines.push(dblSep);
-    lines.push(centerText(settings.storeName.toUpperCase(), width));
-    lines.push(dblSep);
-  } else {
-    const nameLines = wrapText(settings.storeName.toUpperCase(), width);
-    nameLines.forEach(nl => lines.push(centerText(nl, width)));
-    lines.push(dblSep);
-  }
+  const nameLines = wrapText(settings.storeName.toUpperCase(), width);
+  nameLines.forEach(nl => lines.push(centerText(nl, width)));
 
   if (settings.storeNit) {
     const nitLines = wrapText(settings.storeNit, width);
@@ -143,9 +121,7 @@ function generateReceiptPlainText(saleData) {
     const phoneLines = wrapText(settings.storePhone, width);
     phoneLines.forEach(pl => lines.push(centerText(pl, width)));
   }
-  if (settings.storeNit || settings.storeAddress || settings.storePhone) {
-    lines.push(dblSep);
-  }
+  lines.push(dblSep);
 
   // 2. DATOS DE LA VENTA
   const code = saleData.sale_code || ('VTA-' + (saleData.sale_id || '0000'));
@@ -256,15 +232,9 @@ function generateReceiptHTML(saleData) {
   }
 
   const paperWidth = settings.paperWidth === '80mm' ? '72mm' : '48mm';
-  const logoHtml = settings.printLogo !== false ? `
-    <div style="text-align: center; margin-bottom: 6px;">
-      <img src="/static/img/logo_don_pollo_ticket.png" alt="YO SOY DON POLLO" style="max-width: 140px; height: auto; margin: 0 auto; display: block;" />
-    </div>
-  ` : '';
 
   return `
     <div style="width: ${paperWidth}; margin: 0 auto; font-family: 'Courier New', Courier, monospace; color: #000; line-height: 1.25; padding: 4px;">
-      ${logoHtml}
       <div style="text-align: center; font-weight: 900; font-size: 14px; margin-bottom: 2px;">${settings.storeName}</div>
       <div style="text-align: center; font-size: 10px;">${settings.storeNit}</div>
       ${settings.storeAddress ? `<div style="text-align: center; font-size: 10px;">${settings.storeAddress}</div>` : ''}
@@ -574,7 +544,6 @@ function openPrinterSettingsModal() {
   const widthSel = document.getElementById('printerSettingWidth');
   const autoPrintChk = document.getElementById('printerSettingAutoPrint');
   const drawerChk = document.getElementById('printerSettingOpenDrawer');
-  const logoChk = document.getElementById('printerSettingPrintLogo');
   const nameInp = document.getElementById('printerSettingStoreName');
   const nitInp = document.getElementById('printerSettingStoreNit');
   const phoneInp = document.getElementById('printerSettingStorePhone');
@@ -584,7 +553,6 @@ function openPrinterSettingsModal() {
   if (widthSel) widthSel.value = settings.paperWidth;
   if (autoPrintChk) autoPrintChk.checked = !!settings.autoPrint;
   if (drawerChk) drawerChk.checked = !!settings.openDrawer;
-  if (logoChk) logoChk.checked = settings.printLogo !== false;
   if (nameInp) nameInp.value = settings.storeName;
   if (nitInp) nitInp.value = settings.storeNit;
   if (phoneInp) phoneInp.value = settings.storePhone;
@@ -605,7 +573,6 @@ function savePrinterSettingsFromForm(e) {
   const widthSel = document.getElementById('printerSettingWidth');
   const autoPrintChk = document.getElementById('printerSettingAutoPrint');
   const drawerChk = document.getElementById('printerSettingOpenDrawer');
-  const logoChk = document.getElementById('printerSettingPrintLogo');
   const nameInp = document.getElementById('printerSettingStoreName');
   const nitInp = document.getElementById('printerSettingStoreNit');
   const phoneInp = document.getElementById('printerSettingStorePhone');
@@ -616,7 +583,6 @@ function savePrinterSettingsFromForm(e) {
     paperWidth: widthSel ? widthSel.value : '58mm',
     autoPrint: autoPrintChk ? autoPrintChk.checked : false,
     openDrawer: drawerChk ? drawerChk.checked : true,
-    printLogo: logoChk ? logoChk.checked : true,
     storeName: nameInp ? nameInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storeName,
     storeNit: nitInp ? nitInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storeNit,
     storePhone: phoneInp ? phoneInp.value.trim() : DEFAULT_PRINTER_SETTINGS.storePhone,
