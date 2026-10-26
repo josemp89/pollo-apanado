@@ -11,7 +11,7 @@ const DEFAULT_PRINTER_SETTINGS = {
   paperWidth: '58mm',    // '58mm' (32 col), '58mm-30' (30 col), '58mm-28' (28 col), '80mm' (42 col), '80mm-48' (48 col)
   autoPrint: false,      // Imprimir automáticamente al cobrar
   openDrawer: true,      // Abrir cajón monedero al cobrar en efectivo
-  storeName: 'YO SOY DON POLLO',
+  storeName: 'POLLO APANADO',
   storeNit: 'NIT: 901.458.789-1',
   storePhone: 'Tel: 310 123 4567',
   storeAddress: 'Calle Principal # 10-20',
@@ -104,7 +104,7 @@ function generateReceiptPlainText(saleData) {
 
   const lines = [];
 
-  // 1. ENCABEZADO DEL NEGOCIO (Limpio y Centrado)
+  // 1. ENCABEZADO DEL NEGOCIO (Centrado y elegante, con soporte multilinea)
   lines.push(dblSep);
   const nameLines = wrapText(settings.storeName.toUpperCase(), width);
   nameLines.forEach(nl => lines.push(centerText(nl, width)));
@@ -286,8 +286,7 @@ function generateReceiptHTML(saleData) {
 // ==================== MÉTODOS DE IMPRESIÓN ====================
 
 /**
- * Genera la URL de Intent oficial de Android para RawBT (Modo Texto ESC/POS Puro)
- * Garantiza 0 puntos residuales y 100% de compatibilidad con impresoras USB
+ * Genera la URL de Intent oficial de Android para RawBT
  */
 function getRawbtIntentUrl(saleData) {
   if (!saleData) return '#';
@@ -298,11 +297,10 @@ function getRawbtIntentUrl(saleData) {
   const shouldKickDrawer = settings.openDrawer && isCash;
   // Disparo de apertura para pin 2 (\x00) y pin 5 (\x01) de gaveta monedero RJ11 estándar (24V)
   const kickDrawerCmd = shouldKickDrawer ? "\x1b\x70\x00\x19\xfa\x1b\x70\x01\x19\xfa" : "";
-  const initCmd = "\x1b\x40";
+  // Inicialización ESC/POS (\x1b\x40) + pulso cajón + texto formateado
+  const fullContent = "\x1b\x40" + kickDrawerCmd + plainText;
 
-  const fullContent = initCmd + kickDrawerCmd + plainText;
-
-  // Intent oficial Android para abrir RawBT directamente en texto limpio
+  // Intent oficial Android para abrir RawBT directamente
   const rawbtIntentScheme = "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
   return "intent:" + encodeURIComponent(fullContent) + rawbtIntentScheme;
 }
