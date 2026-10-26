@@ -352,7 +352,8 @@ def process_checkout(payload: CheckoutRequest):
             "change_returned": change_returned,
             "payment_method": payment_method,
             "timestamp": now.isoformat(),
-            "time_str": time_str
+            "time_str": time_str,
+            "items": items_to_save
         }
 
     except HTTPException:
@@ -363,6 +364,32 @@ def process_checkout(payload: CheckoutRequest):
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         conn.close()
+
+@router.get("/sale/{sale_id}/receipt")
+def get_sale_receipt(sale_id: int):
+    """Retorna los datos completos de una venta para re-imprimir el comprobante térmico."""
+    conn = get_db_connection()
+    sale = conn.execute("SELECT * FROM sales WHERE id = ?", (sale_id,)).fetchone()
+    if not sale:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Venta no encontrada")
+    
+    items = conn.execute("""
+        SELECT product_name, quantity, unit_price, subtotal, chosen_presa
+        FROM sale_items
+        WHERE sale_id = ?
+    """, (sale_id,)).fetchall()
+    
+    sale_data = dict(sale)
+    sale_data["items"] = [dict(it) for it in items]
+    sale_data["store"] = {
+        "name": "ASADERO & RESTAURANTE POLLO APANADO",
+        "nit": "901.458.789-1",
+        "address": "Calle Principal # 10-20",
+        "phone": "310 123 4567"
+    }
+    conn.close()
+    return sale_data
 
 @router.get("/recent-sales")
 def get_recent_sales(limit: int = 10):

@@ -887,6 +887,11 @@ async function processCheckout(paymentMethod, cashReceived = 0, notes = null) {
     // Mostrar banner de última venta con opción de deshacer
     showLastSaleBanner(data);
 
+    // Abrir modal de venta exitosa con preview de ticket y devuelta
+    if (typeof showSaleSuccessModal === 'function') {
+      showSaleSuccessModal(data);
+    }
+
     // Vaciar comanda
     cart = [];
     renderCart();

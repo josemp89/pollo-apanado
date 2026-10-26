@@ -31,6 +31,28 @@
       }
     }
   </script>
+  <style>
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #thermalReceiptPrintArea, #thermalReceiptPrintArea * {
+        visibility: visible !important;
+      }
+      #thermalReceiptPrintArea {
+        display: block !important;
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        color: #000 !important;
+        z-index: 999999 !important;
+      }
+    }
+  </style>
 </head>
 <body class="bg-slate-900 text-slate-100 h-screen h-[100dvh] flex flex-col font-sans overflow-hidden">
 
@@ -84,16 +106,22 @@
     </div>
   </header>
 
-  <!-- BANNER DE ÚLTIMA VENTA / DESHACER -->
+  <!-- BANNER DE ÚLTIMA VENTA / DESHACER & IMPRIMIR -->
   <div id="lastSaleBanner" class="hidden bg-emerald-900/90 border-b border-emerald-600 px-4 py-2 flex items-center justify-between text-xs transition-all duration-300">
     <div class="flex items-center space-x-2">
       <span class="text-base">✅</span>
       <span id="lastSaleText" class="font-bold text-emerald-200">Venta registrada con éxito</span>
     </div>
-    <button id="btnUndoSale" onclick="cancelLastSale()" class="bg-red-600/90 hover:bg-red-700 active:scale-95 text-white font-bold px-3 py-1 rounded-lg text-xs shadow transition flex items-center space-x-1">
-      <span>↩️</span>
-      <span>Deshacer venta</span>
-    </button>
+    <div class="flex items-center space-x-2">
+      <button id="btnPrintLastSale" onclick="printCurrentSuccessTicket()" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold px-3 py-1 rounded-lg text-xs shadow transition flex items-center space-x-1" title="Imprimir comprobante de la última venta">
+        <span>🖨️</span>
+        <span class="hidden sm:inline">Imprimir Ticket</span>
+      </button>
+      <button id="btnUndoSale" onclick="cancelLastSale()" class="bg-red-600/90 hover:bg-red-700 active:scale-95 text-white font-bold px-3 py-1 rounded-lg text-xs shadow transition flex items-center space-x-1" title="Deshacer venta con PIN">
+        <span>↩️</span>
+        <span>Deshacer</span>
+      </button>
+    </div>
   </div>
 
   <!-- CONTENEDOR PRINCIPAL: PANTALLA DIVIDIDA EN DESKTOP / VISTA COMPLETA EN MÓVIL -->
@@ -959,7 +987,158 @@
     </div>
   </div>
 
+  <!-- ==================== MODAL DE VENTA EXITOSA & TICKET TÉRMICO ==================== -->
+  <div id="modalSaleSuccess" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-slate-900 border-2 border-emerald-500/70 rounded-2xl max-w-md w-full p-4 sm:p-5 shadow-2xl space-y-3.5 my-auto animate-scale-up">
+      <!-- Encabezado -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl">🎉</span>
+          <div>
+            <h3 class="font-black text-base text-emerald-400">¡Venta Exitosa!</h3>
+            <span id="modalSuccessPaymentBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 uppercase">EFECTIVO</span>
+          </div>
+        </div>
+        <button onclick="closeSaleSuccessModal()" class="text-slate-400 hover:text-white font-bold text-2xl select-none leading-none">&times;</button>
+      </div>
+
+      <!-- Tarjeta de Devuelta / Cambio (Efectivo) -->
+      <div id="modalSuccessCashBox" class="p-3.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-emerald-500/10 to-amber-500/20 border-2 border-amber-500/50 text-center space-y-1">
+        <div class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Cambio / Devuelta a Entregar:</div>
+        <div id="modalSuccessChangeAmount" class="text-3xl sm:text-4xl font-black text-amber-300 tabular-nums tracking-tight animate-pulse">$ 0</div>
+        <div class="text-[11px] text-slate-400 flex justify-center items-center space-x-4 pt-1 border-t border-amber-500/20">
+          <span>Total: <strong id="modalSuccessTotalAmount" class="text-white">$ 0</strong></span>
+          <span>Recibido: <strong id="modalSuccessReceivedAmount" class="text-white">$ 0</strong></span>
+        </div>
+      </div>
+
+      <!-- Tarjeta para pagos digitales -->
+      <div id="modalSuccessNonCashBox" class="hidden p-3.5 rounded-xl bg-blue-950/40 border border-blue-500/40 text-center space-y-1">
+        <div class="text-xs font-bold text-blue-300" id="modalSuccessNonCashText">Pago Digital Confirmado</div>
+        <div class="text-xs text-slate-400">Sin cambio a devolver ($ 0)</div>
+      </div>
+
+      <!-- Previsualización del Ticket Térmico -->
+      <div class="space-y-1">
+        <div class="flex items-center justify-between text-[11px] text-slate-400">
+          <span class="font-bold">Comprobante Térmico:</span>
+          <button type="button" onclick="openPrinterSettingsModal()" class="text-amber-400 hover:underline flex items-center space-x-1">
+            <span>⚙️</span>
+            <span>Ajustes impresora</span>
+          </button>
+        </div>
+        <div id="modalSuccessReceiptPreview" class="bg-white text-slate-900 p-3 rounded-xl max-h-48 overflow-y-auto shadow-inner text-xs font-mono border border-slate-300 select-all">
+          <!-- Renderizado dinámico del recibo -->
+        </div>
+      </div>
+
+      <!-- Botones de Acción Táctil -->
+      <div class="space-y-2 pt-1">
+        <button type="button" onclick="printCurrentSuccessTicket()" class="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-sm shadow-xl transition flex items-center justify-center space-x-2 select-none border border-emerald-400/40">
+          <span class="text-lg">🖨️</span>
+          <span>IMPRIMIR TICKET</span>
+        </button>
+
+        <button type="button" onclick="closeSaleSuccessModal()" class="w-full h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white font-bold text-xs transition flex items-center justify-center space-x-1 select-none border border-slate-700">
+          <span>➡️</span>
+          <span>Siguiente Venta (Cerrar)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE AJUSTES DE IMPRESORA ==================== -->
+  <div id="modalPrinterSettings" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 my-auto animate-scale-up text-xs">
+      <!-- Encabezado -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-black text-sm sm:text-base text-amber-400 flex items-center space-x-2">
+          <span>🖨️</span>
+          <span>Configuración de Impresora POS</span>
+        </h3>
+        <button onclick="closePrinterSettingsModal()" class="text-slate-400 hover:text-white font-bold text-xl select-none">&times;</button>
+      </div>
+
+      <form onsubmit="savePrinterSettingsFromForm(event)" class="space-y-3">
+        <!-- Vía de Impresión -->
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Modo / Vía de Impresión:</label>
+          <select id="printerSettingMode" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-100 focus:outline-none focus:border-amber-500">
+            <option value="auto">⭐ Automático (Intenta RawBT en Android con respaldo Web)</option>
+            <option value="rawbt">⚡ RawBT Service (ESC/POS Directo y Silencioso)</option>
+            <option value="browser">🌐 Navegador Web Estándar (Diálogo window.print())</option>
+          </select>
+          <p class="text-[10px] text-slate-400 mt-1">
+            "Automático" envía a RawBT si está instalado en la tablet; si no, abre el visor de impresión estándar del sistema sin trabarse.
+          </p>
+        </div>
+
+        <!-- Ancho del Papel Térmico -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Ancho de Papel:</label>
+            <select id="printerSettingWidth" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-100 focus:outline-none focus:border-amber-500">
+              <option value="58mm">58 mm (Rollo Pequeño - 32 col)</option>
+              <option value="80mm">80 mm (Rollo Estándar - 42 col)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Auto-imprimir:</label>
+            <label class="flex items-center space-x-2 mt-2 cursor-pointer">
+              <input type="checkbox" id="printerSettingAutoPrint" class="w-4 h-4 rounded text-amber-500 bg-slate-950 border-slate-700 focus:ring-0">
+              <span class="text-[11px] text-slate-300 font-bold">Al cobrar venta</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Abrir cajón monedero -->
+        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="checkbox" id="printerSettingOpenDrawer" checked class="w-4 h-4 rounded text-amber-500 bg-slate-950 border-slate-700 focus:ring-0">
+            <span class="text-xs text-amber-300 font-bold">⚡ Disparar apertura de cajón en pagos en efectivo</span>
+          </label>
+          <p class="text-[10px] text-slate-400 mt-1 pl-6">
+            Envía el pulso ESC/POS (24V) por el cable RJ11 a la gaveta de dinero.
+          </p>
+        </div>
+
+        <!-- Datos del Encabezado del Ticket -->
+        <div class="space-y-2 border-t border-slate-800 pt-2">
+          <div class="text-[11px] font-bold text-slate-400">Datos para el Recibo:</div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] text-slate-400">Nombre del Negocio:</label>
+              <input type="text" id="printerSettingStoreName" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400">NIT / Cédula:</label>
+              <input type="text" id="printerSettingStoreNit" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+            </div>
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-400">Teléfono / WhatsApp:</label>
+            <input type="text" id="printerSettingStorePhone" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+          </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex space-x-2 pt-2 border-t border-slate-800">
+          <button type="button" onclick="printTestTicket()" class="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs transition border border-slate-700">
+            🖨️ Ticket de Prueba
+          </button>
+          <button type="submit" class="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-lg transition">
+            💾 Guardar Cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- CONTENEDOR OCULTO PARA IMPRESIÓN TÉRMICA NATIVA (WINDOW.PRINT) -->
+  <div id="thermalReceiptPrintArea" class="hidden"></div>
+
   <!-- SCRIPTS -->
+  <script src="/static/js/printer.js?v=20261025_v1"></script>
   <script src="/static/js/pos.js?v=20261021_v5"></script>
 </body>
 </html>
