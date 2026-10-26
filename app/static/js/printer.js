@@ -197,7 +197,10 @@ function generateReceiptPlainText(saleData) {
     footerLines.forEach(fl => lines.push(centerText(fl, width, offset)));
   }
   lines.push(centerText("*** COMPROBANTE DE PAGO ***", width, offset));
-  lines.push("\n\n\n\n"); // Avance de papel para no cortar el texto
+  // Margen inferior generoso (8 líneas de avance) para expulsar el ticket completamente más allá de la cuchilla
+  for (let i = 0; i < 8; i++) {
+    lines.push("");
+  }
 
   return lines.join("\n");
 }
@@ -309,14 +312,17 @@ function getRawbtIntentUrl(saleData) {
   const shouldAutoCut = settings.autoCut !== false;
 
   // 1. Comando de corte de papel para DIG-K200L (Corte parcial por guillotina)
-  // 3 avances de línea para librar la cuchilla + GS V 66 0 + GS V 1 + ESC i
+  // GS V 66 0 + GS V 1 + GS V 0 + ESC i + ESC m
   let cutBytes = new Uint8Array(0);
   if (shouldAutoCut) {
     cutBytes = new Uint8Array([
-      0x0a, 0x0a, 0x0a,
+      0x0a, 0x0a,
       0x1d, 0x56, 0x42, 0x00,
       0x1d, 0x56, 0x01,
-      0x1b, 0x69
+      0x1d, 0x56, 0x00,
+      0x1b, 0x69,
+      0x1b, 0x6d,
+      0x0a
     ]);
   }
 
@@ -590,15 +596,12 @@ function showSaleSuccessModal(saleData) {
 
   modal.classList.remove('hidden');
 
-  // 4. Disparo INMEDIATO del impulso de gaveta monedero e impresión de ticket
+  // 4. Impresión de ticket y apertura de cajón
   const settings = getPrinterSettings();
 
   if (settings.autoPrint) {
-    // Si auto-imprimir está activo, printReceipt ya incluye el impulso del cajón + el ticket
+    // Si auto-imprimir está activo en ajustes, se imprime la tirilla, se corta y se abre el cajón
     printReceipt(saleData);
-  } else if (settings.openDrawer && isCash) {
-    // Si auto-imprimir está apagado pero es pago en efectivo, abrir el cajón inmediatamente al cobrar
-    openCashDrawer();
   }
 }
 
