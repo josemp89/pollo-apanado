@@ -156,7 +156,7 @@ def surtir_presas(payload: SurtirPresasRequest):
         now = datetime.now()
         now_str = now.isoformat()
 
-        # 1. Descontar presas de las canecas crudas en Nevera y sumarlas a Vitrina
+        # 1. Descontar presas de las canecas crudas en Bodega y sumarlas a Vitrina
         if payload.pechugas > 0:
             cursor.execute("UPDATE inventory SET stock = MAX(0, stock - ?), updated_at = ? WHERE item_key = 'pechuga_nevera'", (payload.pechugas, now_str))
             cursor.execute("UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE item_key = 'pechuga_vitrina'", (payload.pechugas, now_str))
@@ -176,12 +176,12 @@ def surtir_presas(payload: SurtirPresasRequest):
                 contramuslos_yield, alas_yield, caldo_bases_yield, notes
             ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)
         """, (
-            now_str, payload.operator, 0, payload.pechugas, payload.muslos, payload.contramuslos, payload.alas, payload.notes or "Pase de caneca en nevera a vitrina"
+            now_str, payload.operator, 0, payload.pechugas, payload.muslos, payload.contramuslos, payload.alas, payload.notes or "Pase de caneca en bodega a vitrina"
         ))
 
         conn.commit()
 
-        # Obtener nuevo stock de cada presa (vitrina y canecas en nevera)
+        # Obtener nuevo stock de cada presa (vitrina y canecas en bodega)
         rows = cursor.execute("""
             SELECT item_key, stock 
             FROM inventory 

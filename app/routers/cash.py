@@ -96,13 +96,19 @@ CLOSING_ZONES_SPEC = {
         "contramuslo_vitrina",
         "ala_vitrina"
     ],
-    "nevera": [
-        # Las 4 Canecas de Presas Crudas Adobadas
+    "bodega": [
+        # Las 4 Canecas de Presas Crudas Adobadas en Bodega
         "pechuga_nevera",
         "contramuslo_nevera",
         "muslo_nevera",
         "ala_nevera",
-        # Bebidas Postobón Oficiales (Inventario Inicial de Gaseosas)
+        # Pollo entero crudo y abarrotes secos
+        "pollo_entero_crudo",
+        "harina_apanar_kg",
+        "aceite_fritura_lt"
+    ],
+    "nevera": [
+        # Bebidas Postobón Oficiales (Inventario de Gaseosas exclusivamente)
         "GAS-TEA-DUR-500",
         "GAS-TEA-LIM-500",
         "GAS-HIT-TRO-500",
@@ -127,11 +133,6 @@ CLOSING_ZONES_SPEC = {
         "GAS-COL-15L",
         "GAS-MAN-15L",
         "GAS-COC-15L"
-    ],
-    "bodega": [
-        "pollo_entero_crudo",
-        "harina_apanar_kg",
-        "aceite_fritura_lt"
     ],
     "insumos": [
         "papas_raciones",

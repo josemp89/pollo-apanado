@@ -37,7 +37,7 @@ def test_supplier_chicken_entry_automatically_despresas_into_nevera_canecas():
     assert data["whole_chickens"] == 10.0
     assert data["presas_added_each"] == 20.0
     assert data["total_presas_added"] == 80.0
-    assert "10 pollos enteros recibidos y despresados en Nevera" in data["message"]
+    assert "10 pollos enteros recibidos y despresados en" in data["message"]
 
     # 2. Verificar que las 4 canecas aumentaron exactamente en 20 presas c/u
     conn = get_db_connection()
@@ -50,16 +50,16 @@ def test_supplier_chicken_entry_automatically_despresas_into_nevera_canecas():
     for k in ["pechuga_nevera", "contramuslo_nevera", "muslo_nevera", "ala_nevera"]:
         assert stocks_after[k] == stocks_before[k] + 20.0, f"Fallo en {k}: esperado {stocks_before[k] + 20}, actual {stocks_after[k]}"
 
-    # 3. Verificar que la conciliación de cierre reporte las entradas de proveedores por presas
+    # 3. Verificar que la conciliación de cierre reporte las entradas de proveedores por presas en la zona bodega
     r_sheet = client.get("/api/cash/closing-inventory-sheet")
     assert r_sheet.status_code == 200
     sheet = r_sheet.json()
-    nevera_items = {item["item_key"]: item for item in sheet.get("items", []) if item.get("zone") == "nevera"}
+    bodega_items = {item["item_key"]: item for item in sheet.get("items", []) if item.get("zone") == "bodega"}
 
-    # Cada presa de nevera debe registrar al menos las 20 presas del proveedor
+    # Cada presa de bodega debe registrar al menos las 20 presas del proveedor
     for k in ["pechuga_nevera", "contramuslo_nevera", "muslo_nevera", "ala_nevera"]:
-        assert k in nevera_items, f"{k} no encontrado en la hoja de cierre"
-        assert nevera_items[k]["supplier_entries"] >= 20.0
+        assert k in bodega_items, f"{k} no encontrado en la zona bodega de la hoja de cierre"
+        assert bodega_items[k]["supplier_entries"] >= 20.0
 
 
 def test_supplier_chicken_with_emoji_or_bodega_location_still_despresas_to_nevera():

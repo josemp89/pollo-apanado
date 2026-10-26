@@ -440,24 +440,24 @@
 
   <!-- ==================== MODALES OPERATIVOS ==================== -->
 
-  <!-- MODAL: PASAR PRESAS DE NEVERA A VITRINA CALIENTE (DESDE CAJA) -->
+  <!-- MODAL: PASAR PRESAS DE BODEGA A VITRINA CALIENTE (DESDE CAJA) -->
   <div id="modalSacarPolloCash" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
     <div class="bg-slate-900 border border-amber-500/50 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4 animate-scale-up my-auto">
       <div class="flex items-center justify-between border-b border-slate-800 pb-2">
         <h3 class="font-black text-base text-amber-400 flex items-center space-x-2">
           <span>🍗</span>
-          <span>Pasar Presas a Vitrina Caliente</span>
+          <span>Pasar Presas de Bodega a Vitrina Caliente</span>
         </h3>
         <button onclick="closeSacarPolloCashModal()" class="text-slate-400 hover:text-white font-bold text-xl select-none">&times;</button>
       </div>
 
       <p class="text-xs text-slate-300">
-        Saca presas de las <strong>4 canecas adobadas en nevera</strong> para freír y abastecer la vitrina caliente. Se descuentan automáticamente de Nevera y se suman a Vitrina.
+        Saca presas de las <strong>4 canecas adobadas en bodega</strong> para freír y abastecer la vitrina caliente. Se descuentan automáticamente de Bodega y se suman a Vitrina.
       </p>
 
-      <!-- Estado en tiempo real de las 4 Canecas en Nevera -->
+      <!-- Estado en tiempo real de las 4 Canecas en Bodega -->
       <div class="flex items-center justify-between text-xs px-1 text-slate-300">
-        <span class="font-bold text-slate-400">Total en Nevera: <strong class="text-amber-300"><span id="modalNeveraCashPresasTotal">240</span> presas</strong></span>
+        <span class="font-bold text-slate-400">Total en Bodega: <strong class="text-amber-300"><span id="modalNeveraCashPresasTotal">240</span> presas</strong></span>
         <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-500/40 text-[11px] font-black flex items-center space-x-1">
           <span>🍗</span>
           <span>=</span>
@@ -469,22 +469,22 @@
         <div class="space-y-0.5">
           <span class="text-[10px] text-blue-400 font-bold block">Pechugas</span>
           <span id="stockNeveraCashPechuga" class="text-sm font-black text-white">60</span>
-          <span class="text-[9px] text-slate-500 block">en caneca</span>
+          <span class="text-[9px] text-slate-500 block">en caneca (Bodega)</span>
         </div>
         <div class="space-y-0.5">
           <span class="text-[10px] text-amber-400 font-bold block">Contramuslos</span>
           <span id="stockNeveraCashContramuslo" class="text-sm font-black text-white">60</span>
-          <span class="text-[9px] text-slate-500 block">en caneca</span>
+          <span class="text-[9px] text-slate-500 block">en caneca (Bodega)</span>
         </div>
         <div class="space-y-0.5">
           <span class="text-[10px] text-orange-400 font-bold block">Muslos</span>
           <span id="stockNeveraCashMuslo" class="text-sm font-black text-white">60</span>
-          <span class="text-[9px] text-slate-500 block">en caneca</span>
+          <span class="text-[9px] text-slate-500 block">en caneca (Bodega)</span>
         </div>
         <div class="space-y-0.5">
           <span class="text-[10px] text-yellow-400 font-bold block">Alas</span>
           <span id="stockNeveraCashAla" class="text-sm font-black text-white">60</span>
-          <span class="text-[9px] text-slate-500 block">en caneca</span>
+          <span class="text-[9px] text-slate-500 block">en caneca (Bodega)</span>
         </div>
       </div>
 
@@ -793,7 +793,7 @@
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
             <div>
               <div class="text-xs font-black text-slate-200">Panel de Conteo Físico por Zonas Operativas</div>
-              <div class="text-[11px] text-slate-400">Verifica existencias en Vitrina, Nevera, Bodega e Insumos</div>
+              <div class="text-[11px] text-slate-400">Verifica existencias en Vitrina, Bodega, Nevera (Bebidas) e Insumos</div>
             </div>
             <button type="button" onclick="copyAllExpectedToPhysical()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex items-center space-x-1.5 self-start sm:self-auto select-none" title="Rellena todos los campos con lo esperado si el negocio no presenta mermas ni faltantes">
               <span>⚡</span>
@@ -804,16 +804,16 @@
           <!-- Filtro de Zonas -->
           <div class="flex items-center flex-wrap gap-1.5 text-xs">
             <button id="zoneFilterBtn_all" onclick="filterClosingZone('all')" class="px-3 py-1.5 rounded-lg font-bold border transition bg-amber-500 text-slate-950 border-amber-400">
-              Todas (20)
+              Todas (24)
             </button>
             <button id="zoneFilterBtn_vitrina" onclick="filterClosingZone('vitrina')" class="px-3 py-1.5 rounded-lg font-bold border transition bg-slate-800 text-slate-300 border-slate-700 hover:text-white">
               🍗 Vitrina Caliente (4)
             </button>
-            <button id="zoneFilterBtn_nevera" onclick="filterClosingZone('nevera')" class="px-3 py-1.5 rounded-lg font-bold border transition bg-slate-800 text-slate-300 border-slate-700 hover:text-white">
-              🥤 Nevera Bebidas (8)
-            </button>
             <button id="zoneFilterBtn_bodega" onclick="filterClosingZone('bodega')" class="px-3 py-1.5 rounded-lg font-bold border transition bg-slate-800 text-slate-300 border-slate-700 hover:text-white">
-              📦 Bodega (3)
+              📦 Bodega (7)
+            </button>
+            <button id="zoneFilterBtn_nevera" onclick="filterClosingZone('nevera')" class="px-3 py-1.5 rounded-lg font-bold border transition bg-slate-800 text-slate-300 border-slate-700 hover:text-white">
+              🥤 Nevera Bebidas (12)
             </button>
             <button id="zoneFilterBtn_insumos" onclick="filterClosingZone('insumos')" class="px-3 py-1.5 rounded-lg font-bold border transition bg-slate-800 text-slate-300 border-slate-700 hover:text-white">
               🥣 Insumos Principales (5)
@@ -832,7 +832,7 @@
                     <span>Arqueo Rápido de Pollo (Método Canecas & Vitrina)</span>
                     <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30">Santiago</span>
                   </h4>
-                  <p class="text-[11px] text-slate-400">Calcula automáticamente sumando canecas cerradas, caneca abierta y pollo frito que queda para mañana</p>
+                  <p class="text-[11px] text-slate-400">Calcula automáticamente sumando canecas de bodega y pollo frito en vitrina que queda para mañana</p>
                 </div>
               </div>
               <button type="button" onclick="toggleSantiagoAssistant()" id="btnToggleSantiagoAssistant" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition">
@@ -841,14 +841,14 @@
             </div>
 
             <div id="santiagoAssistantContent" class="space-y-3 text-xs">
-              <!-- SECCIÓN 1: LAS 4 CANECAS EN NEVERA (PRESAS CRUDAS ADOBADAS) -->
+              <!-- SECCIÓN 1: LAS 4 CANECAS EN BODEGA (PRESAS CRUDAS ADOBADAS) -->
               <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-2">
                 <div class="flex items-center justify-between">
                   <div class="font-bold text-slate-200 flex items-center space-x-1.5">
                     <span>🧊</span>
-                    <span>1. Nevera / 4 Canecas de Presas Crudas Adobadas (Restantes en frío)</span>
+                    <span>1. Bodega / 4 Canecas de Presas Crudas Adobadas (Restantes en frío)</span>
                   </div>
-                  <span class="text-[11px] text-slate-400">Presas contadas en cada caneca</span>
+                  <span class="text-[11px] text-slate-400">Presas contadas en cada caneca de bodega</span>
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 text-center">
@@ -915,7 +915,7 @@
                     <span>Alas: <strong id="sc_total_ala" class="text-yellow-400 font-mono">0</strong></span>
                   </div>
                   <div class="text-[10px] text-amber-300 font-medium">
-                    Nevera cruda: <strong id="sc_total_crudo_sum" class="font-black text-white">0</strong> presas &bull; Vitrina frita para mañana: <strong id="sc_equiv_frito_total" class="font-black text-white">0</strong> presas &bull; Eq. total: <strong id="sc_equiv_pollos" class="font-black">0.0</strong> pollos
+                    Bodega cruda: <strong id="sc_total_crudo_sum" class="font-black text-white">0</strong> presas &bull; Vitrina frita para mañana: <strong id="sc_equiv_frito_total" class="font-black text-white">0</strong> presas &bull; Eq. total: <strong id="sc_equiv_pollos" class="font-black">0.0</strong> pollos
                   </div>
                 </div>
                 <button type="button" onclick="applySantiagoChickenTotals()" class="h-11 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex items-center justify-center space-x-1.5 select-none self-end sm:self-auto">
@@ -1506,7 +1506,7 @@
 
       // Trazabilidad del pollo en las notas de cierre
       const notesEl = document.getElementById('closeClosingNotes');
-      const fritoSummary = `[POLLO FRITO VITRINA: ${totals.frito.total} presas (${totals.frito.pechuga}P, ${totals.frito.contramuslo}C, ${totals.frito.muslo}M, ${totals.frito.ala}A). NEVERA CRUDO: ${totals.crudo.total} presas en canecas].`;
+      const fritoSummary = `[POLLO FRITO VITRINA: ${totals.frito.total} presas (${totals.frito.pechuga}P, ${totals.frito.contramuslo}C, ${totals.frito.muslo}M, ${totals.frito.ala}A). BODEGA CRUDO: ${totals.crudo.total} presas en canecas].`;
       if (notesEl) {
         if (!notesEl.value.includes('[POLLO FRITO VITRINA:')) {
           notesEl.value = (notesEl.value ? notesEl.value + ' ' : '') + fritoSummary;
@@ -1517,7 +1517,7 @@
 
       updateStep2Summaries();
       alert(`✅ Conteos de pollo aplicados exitosamente al arqueo:\n\n` +
-            `🧊 Nevera (Canecas crudas): ${totals.crudo.total} presas\n` +
+            `🧊 Bodega (Canecas crudas): ${totals.crudo.total} presas\n` +
             `🍗 Vitrina (Frito para mañana): ${totals.frito.total} presas\n\n` +
             `Ambas zonas quedaron actualizadas en la planilla de cierre.`);
     }
@@ -1566,7 +1566,7 @@
       const zoneNames = {
         'vitrina': '🍗 Vitrina Caliente (Presas Listas)',
         'nevera': '🥤 Nevera Bebidas (Gaseosas)',
-        'bodega': '📦 Bodega (Frío / Seco)',
+        'bodega': '📦 Bodega (4 Canecas de Pollo Crudo / Secos)',
         'insumos': '🥣 Insumos Principales (Cocina)'
       };
 
@@ -2721,8 +2721,8 @@
           <div>
             <label class="block font-bold text-slate-300 mb-1">Ubicación:</label>
             <select id="supplierLocationSelect" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-100 focus:outline-none focus:border-blue-500">
-              <option value="Nevera" selected>Nevera (Canecas / Bebidas)</option>
-              <option value="Bodega">Bodega (Frío / Seco)</option>
+              <option value="Bodega" selected>Bodega (Pollo Crudo / Insumos Secos)</option>
+              <option value="Nevera">Nevera (Bebidas y Gaseosas)</option>
               <option value="Cocina">Cocina (Insumos)</option>
               <option value="Vitrina">Vitrina (Térmica)</option>
             </select>
@@ -2734,7 +2734,7 @@
           <div class="space-y-1">
             <select id="supplierItemSelect" onchange="onSupplierItemSelectChange()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-100 focus:outline-none focus:border-blue-500">
               <option value="">-- Seleccionar insumo existente o escribir abajo --</option>
-              <option value="pollos_enteros_nevera" data-loc="Nevera" selected>🍗 Pollos Enteros (Recibir y Despresar a Nevera: 8 presas c/u)</option>
+              <option value="pollos_enteros_bodega" data-loc="Bodega" selected>🍗 Pollos Enteros (Recibir y Despresar a Bodega: 8 presas c/u)</option>
               <option value="pollo_entero_crudo" data-loc="Bodega">Pollos Enteros Crudos (Bodega)</option>
               <option value="harina_apanar_kg" data-loc="Bodega">Harina Apanador (Bodega)</option>
               <option value="aceite_fritura_lt" data-loc="Bodega">Aceite para Freidoras (Bodega)</option>
@@ -2758,7 +2758,7 @@
             <label id="supplierQuantityLabel" class="block font-bold text-slate-300 mb-1">Cantidad de Pollos Enteros:</label>
             <input type="number" id="supplierQuantityInput" oninput="onSupplierQtyChange()" required min="0.1" step="any" placeholder="Ej. 20" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-black text-amber-400 focus:outline-none focus:border-blue-500 tabular-nums">
             <span id="supplierPresasHelper" class="text-[10px] text-amber-300 font-bold mt-1 block">
-              ⚡ Se despresan en Nevera: 8 presas c/u (2P · 2C · 2M · 2A)
+              ⚡ Se despresan en Bodega: 8 presas c/u (2P · 2C · 2M · 2A)
             </span>
           </div>
           <div>
@@ -2797,11 +2797,11 @@
         fb.textContent = '';
       }
       const sel = document.getElementById('supplierItemSelect');
-      if (sel) sel.value = 'pollos_enteros_nevera';
+      if (sel) sel.value = 'pollos_enteros_bodega';
       const custom = document.getElementById('supplierItemCustomInput');
       if (custom) custom.value = '';
       const locSel = document.getElementById('supplierLocationSelect');
-      if (locSel) locSel.value = 'Nevera';
+      if (locSel) locSel.value = 'Bodega';
       onSupplierItemSelectChange();
     }
 
@@ -2824,7 +2824,9 @@
         locSel.value = opt.dataset.loc;
       }
 
-      const isChicken = sel.value === 'pollos_enteros_nevera' || (locSel && locSel.value === 'Nevera' && (custom?.value || '').toLowerCase().includes('pollo'));
+      const isChicken = (sel.value === 'pollos_enteros_bodega' || sel.value === 'pollos_enteros_nevera') || 
+                        ((locSel && (locSel.value === 'Bodega' || locSel.value === 'Nevera')) && 
+                         ((custom?.value || sel?.value || '').toLowerCase().includes('pollo')));
       if (isChicken) {
         if (qLabel) qLabel.textContent = 'Cantidad de Pollos Enteros:';
         if (helper) helper.classList.remove('hidden');
@@ -2842,16 +2844,18 @@
       const helper = document.getElementById('supplierPresasHelper');
       const qInp = document.getElementById('supplierQuantityInput');
 
-      const isChicken = (sel?.value === 'pollos_enteros_nevera') || (locSel?.value === 'Nevera' && ((custom?.value || '') + (sel?.value || '')).toLowerCase().includes('pollo'));
+      const isChicken = (sel?.value === 'pollos_enteros_bodega' || sel?.value === 'pollos_enteros_nevera') || 
+                        ((locSel?.value === 'Bodega' || locSel?.value === 'Nevera') && 
+                         ((custom?.value || '') + (sel?.value || '')).toLowerCase().includes('pollo'));
       if (!isChicken || !helper) return;
 
       const qty = parseFloat(qInp?.value || '0');
       if (qty > 0) {
         const p = qty * 2;
         const total = qty * 8;
-        helper.innerHTML = `⚡ <strong>${qty} pollos</strong> = +${total} presas en Nevera (<span class="text-amber-200">+${p} Pechugas, +${p} Contramuslos, +${p} Muslos, +${p} Alas</span>)`;
+        helper.innerHTML = `⚡ <strong>${qty} pollos</strong> = +${total} presas en Bodega (<span class="text-amber-200">+${p} Pechugas, +${p} Contramuslos, +${p} Muslos, +${p} Alas</span>)`;
       } else {
-        helper.innerHTML = `⚡ Se despresan en Nevera: 8 presas c/u (2P · 2C · 2M · 2A)`;
+        helper.innerHTML = `⚡ Se despresan en Bodega: 8 presas c/u (2P · 2C · 2M · 2A)`;
       }
     }
 
