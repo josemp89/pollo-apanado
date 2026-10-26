@@ -306,17 +306,19 @@ function getRawbtIntentUrl(saleData) {
   const isCash = (saleData.payment_method || '').toLowerCase() === 'efectivo';
   const shouldKickDrawer = settings.openDrawer && isCash;
 
-  // Disparo universal de apertura para gaveta monedero RJ11 estándar (24V)
-  // Pin 2 (\x00 y '0') + Pin 5 (\x01 y '1') + DLE DC4 con avance \n para vaciado inmediato de búfer
+  // Secuencia de pulso para cajón monedero 24V (DIG-4101 con DIG-K200L):
+  // Pin 2 (100ms), Pin 5 (100ms), ASCII, Star, DLE DC4 tiempo real, BEL y vaciado LF (\n)
   let drawerBytes = new Uint8Array(0);
   if (shouldKickDrawer) {
     drawerBytes = new Uint8Array([
-      0x1b, 0x40,
-      0x1b, 0x70, 0x00, 0x19, 0xfa, 0x0a,
-      0x1b, 0x70, 0x01, 0x19, 0xfa, 0x0a,
-      0x1b, 0x70, 0x30, 0x19, 0xfa, 0x0a,
-      0x1b, 0x70, 0x31, 0x19, 0xfa, 0x0a,
-      0x10, 0x14, 0x01, 0x00, 0x05, 0x0a
+      0x1b, 0x70, 0x00, 0x32, 0xfa,
+      0x1b, 0x70, 0x01, 0x32, 0xfa,
+      0x1b, 0x70, 0x30, 0x32, 0xfa,
+      0x1b, 0x70, 0x31, 0x32, 0xfa,
+      0x1b, 0x78, 0x01,
+      0x10, 0x14, 0x01, 0x00, 0x01,
+      0x07,
+      0x0a
     ]);
   }
 
@@ -324,9 +326,11 @@ function getRawbtIntentUrl(saleData) {
     ? new TextEncoder().encode(plainText)
     : new Uint8Array(plainText.split('').map(c => c.charCodeAt(0)));
 
-  const combined = new Uint8Array(drawerBytes.length + textBytes.length);
-  combined.set(drawerBytes, 0);
-  combined.set(textBytes, drawerBytes.length);
+  // Ponemos los bytes del cajón al FINAL de la impresión (después del avance de papel)
+  // para que el corte y apertura se ejecuten al finalizar el ticket
+  const combined = new Uint8Array(textBytes.length + drawerBytes.length);
+  combined.set(textBytes, 0);
+  combined.set(drawerBytes, textBytes.length);
 
   let binary = '';
   const chunkSize = 8192;
@@ -336,8 +340,8 @@ function getRawbtIntentUrl(saleData) {
   }
   const base64Data = btoa(binary);
 
-  const rawbtIntentScheme = "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
-  return "intent://base64," + base64Data + rawbtIntentScheme;
+  // Esquema nativo oficial de RawBT para envío directo de bytes ESC/POS en base64
+  return "rawbt:base64," + base64Data;
 }
 
 /**
@@ -433,17 +437,26 @@ function printReceipt(saleData, preferredMethod = null) {
 
 /**
  * Envía el pulso ESC/POS para abrir la gaveta monedero RJ11 conectada a la impresora
- * Pulso cuádruple universal: Pin 2 (m=0 y m=48) y Pin 5 (m=1 y m=49) a 24V con 500ms OFF
- * Transmitido vía Base64 para evitar truncamiento por bytes nulos (%00) en el parser de intents de Android
+ * Comandos oficiales Digital POS DIG-K200L / DIG-4101:
+ * - ESC p 0 50 250 (Pin 2, pulso de 100ms para solenoide de trabajo pesado a 24V)
+ * - ESC p 1 50 250 (Pin 5, pulso alternativo de 100ms a 24V)
+ * - ESC p '0' y '1' (variantes ASCII)
+ * - Star x 1 (emulación Star)
+ * - DLE DC4 1 0 1 (Apertura en tiempo real DIG-K200L)
+ * - BEL \x07 (Disparo acústico/apertura)
+ * - LF \x0a (Vaciado inmediato de búfer)
+ * Protocolo: rawbt:base64, (esquema nativo oficial de RawBT para bytes ESC/POS directos)
  */
 function openCashDrawer() {
   const bytes = [
-    0x1b, 0x40,
-    0x1b, 0x70, 0x00, 0x19, 0xfa, 0x0a,
-    0x1b, 0x70, 0x01, 0x19, 0xfa, 0x0a,
-    0x1b, 0x70, 0x30, 0x19, 0xfa, 0x0a,
-    0x1b, 0x70, 0x31, 0x19, 0xfa, 0x0a,
-    0x10, 0x14, 0x01, 0x00, 0x05, 0x0a
+    0x1b, 0x70, 0x00, 0x32, 0xfa,
+    0x1b, 0x70, 0x01, 0x32, 0xfa,
+    0x1b, 0x70, 0x30, 0x32, 0xfa,
+    0x1b, 0x70, 0x31, 0x32, 0xfa,
+    0x1b, 0x78, 0x01,
+    0x10, 0x14, 0x01, 0x00, 0x01,
+    0x07,
+    0x0a
   ];
   let binary = '';
   for (let i = 0; i < bytes.length; i++) {
@@ -451,15 +464,8 @@ function openCashDrawer() {
   }
   const base64Data = btoa(binary);
 
-  // Esquema 1: Intent nativo de Android hacia RawBT con base64 puro
-  const rawbtIntentScheme = "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
-  const intentUrl = "intent://base64," + base64Data + rawbtIntentScheme;
-
-  try {
-    window.location.href = intentUrl;
-  } catch (e) {
-    window.location.href = "rawbt:base64," + base64Data;
-  }
+  // Esquema nativo oficial de RawBT para envío de bytes binarios directos sin pasar por filtro de texto
+  window.location.href = "rawbt:base64," + base64Data;
   return true;
 }
 
