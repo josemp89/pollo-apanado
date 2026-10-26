@@ -603,6 +603,24 @@ def seed_initial_data(conn):
         VALUES (?, ?, ?, ?, ?, ?, ?);
         """, initial_inventory)
 
+        cursor.execute("""
+            UPDATE inventory 
+            SET location = CASE 
+                WHEN category = 'bodega' THEN 'Bodega'
+                WHEN category = 'vitrina' THEN 'Vitrina'
+                WHEN category = 'nevera' THEN 'Nevera'
+                WHEN category = 'cocina' THEN 'Cocina'
+                ELSE 'Bodega'
+            END,
+            item_name = COALESCE(item_name, name)
+            WHERE location IS NULL OR item_name IS NULL;
+        """)
+        cursor.execute("""
+            UPDATE inventory 
+            SET category = 'bodega', location = 'Bodega' 
+            WHERE item_key IN ('pechuga_nevera', 'contramuslo_nevera', 'muslo_nevera', 'ala_nevera');
+        """)
+
     # Parámetros del sistema
     cursor.execute("SELECT COUNT(*) FROM system_settings;")
     if cursor.fetchone()[0] == 0:
