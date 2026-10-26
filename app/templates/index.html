@@ -98,10 +98,10 @@
 
     <!-- Reloj en vivo, Botón de Impresora y Status -->
     <div class="flex items-center space-x-2 flex-shrink-0">
-      <a href="rawbt:base64,G0AbcAAy+htwATL6G3AwMvobcDEy+hAUAQABBwo=" onclick="openCashDrawer(event)" class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 text-xs font-black flex items-center space-x-1.5 transition shadow select-none cursor-pointer" title="Abrir Cajón Monedero sin Imprimir Factura">
+      <button type="button" onclick="openCashDrawer(event)" class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 text-xs font-black flex items-center space-x-1.5 transition shadow select-none cursor-pointer" title="Abrir Cajón Monedero">
         <span>⚡</span>
         <span class="font-black">Cajón</span>
-      </a>
+      </button>
       <button type="button" onclick="openPrinterSettingsModal()" class="px-2.5 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-700 active:scale-95 text-amber-400 border border-slate-700 text-xs font-bold flex items-center space-x-1.5 transition shadow" title="Configurar Impresora POS, Nombre del Negocio y Márgenes">
         <span>🖨️</span>
         <span class="hidden md:inline font-bold">Impresora</span>
@@ -1048,10 +1048,10 @@
         </a>
 
         <div class="grid grid-cols-2 gap-2">
-          <a href="rawbt:base64,G0AbcAAy+htwATL6G3AwMvobcDEy+hAUAQABBwo=" onclick="openCashDrawer(event)" class="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-300 font-bold text-xs transition flex items-center justify-center space-x-1 select-none border border-amber-500/30 cursor-pointer" title="Disparar pulso manual de apertura de cajón sin imprimir">
+          <button type="button" onclick="openCashDrawer(event)" class="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-300 font-bold text-xs transition flex items-center justify-center space-x-1 select-none border border-amber-500/30 cursor-pointer" title="Abrir Cajón Monedero">
             <span>⚡</span>
             <span>Abrir Cajón</span>
-          </a>
+          </button>
           <button type="button" onclick="printCurrentSuccessTicket('browser', event)" class="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-cyan-300 font-bold text-xs transition flex items-center justify-center space-x-1 select-none border border-cyan-500/30">
             <span>🌐</span>
             <span>Navegador</span>
@@ -1161,10 +1161,10 @@
             <span>📏</span>
             <span>Calibrar</span>
           </button>
-          <a href="rawbt:base64,G0AbcAAy+htwATL6G3AwMvobcDEy+hAUAQABBwo=" onclick="openCashDrawer(event)" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-300 font-bold text-xs transition border border-slate-700 flex items-center justify-center space-x-1 cursor-pointer select-none" title="Probar apertura inmediata de gaveta monedero sin imprimir">
+          <button type="button" onclick="openCashDrawer(event)" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-300 font-bold text-xs transition border border-slate-700 flex items-center justify-center space-x-1 cursor-pointer select-none" title="Probar apertura inmediata de gaveta monedero">
             <span>⚡</span>
             <span>Cajón</span>
-          </a>
+          </button>
           <button type="button" onclick="printTestTicket()" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs transition border border-slate-700 flex items-center justify-center space-x-1" title="Imprimir ticket de prueba">
             <span>🖨️</span>
             <span>Ticket</span>
@@ -1182,7 +1182,7 @@
   <div id="thermalReceiptPrintArea" class="hidden"></div>
 
   <!-- SCRIPTS -->
-  <script src="/static/js/printer.js?v=20261025_v15"></script>
+  <script src="/static/js/printer.js?v=20261025_v16"></script>
   <script src="/static/js/pos.js?v=20261021_v5"></script>
 </body>
 </html>

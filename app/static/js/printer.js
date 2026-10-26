@@ -436,39 +436,57 @@ function printReceipt(saleData, preferredMethod = null) {
 }
 
 /**
- * Esquema nativo oficial de RawBT para apertura inmediata de cajón monedero (sin imprimir)
- * Comandos oficiales Digital POS DIG-K200L / DIG-4101:
- * - ESC @ (0x1b 0x40): Inicializar / limpiar búfer
- * - ESC p 0 50 250 (0x1b 0x70 0x00 0x32 0xfa): Pin 2 (100ms a 24V)
- * - ESC p 1 50 250 (0x1b 0x70 0x01 0x32 0xfa): Pin 5 (100ms a 24V)
- * - ESC p '0' y '1' (variantes ASCII)
- * - DLE DC4 1 0 1 (Apertura en tiempo real DIG-K200L)
- * - BEL \x07 (Disparo acústico/apertura)
- * - LF \x0a (Vaciado inmediato de búfer)
- * Base64: G0AbcAAy+htwATL6G3AwMvobcDEy+hAUAQABBwo=
+ * Envía la orden de apertura de cajón monedero a través de RawBT
+ * RawBT valida que exista contenido de texto imprimible (!text.trim().isEmpty());
+ * si se envían solo bytes binarios sin texto, RawBT cancela la transmisión y
+ * muestra en pantalla "Nada para imprimir".
+ * Por ello, enviamos un mini-comprobante limpio de apertura de cajón ("No Sale / Apertura Manual").
  */
-const RAWBT_DRAWER_URL = "rawbt:base64,G0AbcAAy+htwATL6G3AwMvobcDEy+hAUAQABBwo=";
-
 function openCashDrawer(event = null) {
-  // Si fue disparado desde un enlace <a> con href nativo a rawbt:, permitir navegación nativa del navegador
-  if (event && event.currentTarget && event.currentTarget.tagName === 'A') {
-    return true;
-  }
+  if (event && event.preventDefault) event.preventDefault();
 
-  // Para disparos por código JS o eventos no directos, simular click en anchor nativo
-  // Esto evita que Chrome en Android bloquee window.location.href hacia esquemas personalizados
-  try {
-    const a = document.createElement('a');
-    a.href = RAWBT_DRAWER_URL;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      try { document.body.removeChild(a); } catch (e) {}
-    }, 500);
-  } catch (e) {
-    window.location.href = RAWBT_DRAWER_URL;
+  const settings = getPrinterSettings();
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('es-CO');
+  const dateStr = now.toLocaleDateString('es-CO');
+
+  const miniSlip = [
+    "================================",
+    "      ⚡ APERTURA DE CAJON",
+    `        ${settings.storeName || 'YO SOY DON POLLO'}`,
+    `      ${dateStr} - ${timeStr}`,
+    "================================",
+    "\n\n"
+  ].join("\n");
+
+  const drawerBytes = new Uint8Array([
+    0x1b, 0x70, 0x00, 0x32, 0xfa,
+    0x1b, 0x70, 0x01, 0x32, 0xfa,
+    0x1b, 0x70, 0x30, 0x32, 0xfa,
+    0x1b, 0x70, 0x31, 0x32, 0xfa,
+    0x1b, 0x78, 0x01,
+    0x10, 0x14, 0x01, 0x00, 0x01,
+    0x07,
+    0x0a
+  ]);
+
+  const textBytes = (typeof TextEncoder !== 'undefined')
+    ? new TextEncoder().encode(miniSlip)
+    : new Uint8Array(miniSlip.split('').map(c => c.charCodeAt(0)));
+
+  const combined = new Uint8Array(textBytes.length + drawerBytes.length);
+  combined.set(textBytes, 0);
+  combined.set(drawerBytes, textBytes.length);
+
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < combined.length; i += chunkSize) {
+    const chunk = combined.subarray(i, i + chunkSize);
+    binary += String.fromCharCode.apply(null, chunk);
   }
+  const base64Data = btoa(binary);
+
+  window.location.href = "rawbt:base64," + base64Data;
   return true;
 }
 
