@@ -113,10 +113,10 @@
       <span id="lastSaleText" class="font-bold text-emerald-200">Venta registrada con éxito</span>
     </div>
     <div class="flex items-center space-x-2">
-      <button id="btnPrintLastSale" onclick="printCurrentSuccessTicket()" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold px-3 py-1 rounded-lg text-xs shadow transition flex items-center space-x-1" title="Imprimir comprobante de la última venta">
+      <a id="btnPrintLastSale" href="#" onclick="printCurrentSuccessTicket('rawbt', event)" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold px-3 py-1 rounded-lg text-xs shadow transition flex items-center space-x-1 cursor-pointer" title="Imprimir comprobante de la última venta">
         <span>🖨️</span>
         <span class="hidden sm:inline">Imprimir Ticket</span>
-      </button>
+      </a>
       <button id="btnUndoSale" onclick="cancelLastSale()" class="bg-red-600/90 hover:bg-red-700 active:scale-95 text-white font-bold px-3 py-1 rounded-lg text-xs shadow transition flex items-center space-x-1" title="Deshacer venta con PIN">
         <span>↩️</span>
         <span>Deshacer</span>
@@ -1034,12 +1034,12 @@
 
       <!-- Botones de Acción Táctil -->
       <div class="space-y-2 pt-1">
-        <button type="button" onclick="printCurrentSuccessTicket('rawbt')" class="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-sm shadow-xl transition flex items-center justify-center space-x-2 select-none border border-emerald-400/40">
+        <a id="btnModalRawbtLink" href="#" onclick="printCurrentSuccessTicket('rawbt', event)" class="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-sm shadow-xl transition flex items-center justify-center space-x-2 select-none border border-emerald-400/40 cursor-pointer">
           <span class="text-lg">⚡</span>
-          <span>IMPRIMIR CON RAWBT (Directo POS)</span>
-        </button>
+          <span>IMPRIMIR CON RAWBT (Directo USB)</span>
+        </a>
 
-        <button type="button" onclick="printCurrentSuccessTicket('browser')" class="w-full h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-cyan-300 font-bold text-xs transition flex items-center justify-center space-x-2 select-none border border-cyan-500/30">
+        <button type="button" onclick="printCurrentSuccessTicket('browser', event)" class="w-full h-10 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-cyan-300 font-bold text-xs transition flex items-center justify-center space-x-2 select-none border border-cyan-500/30">
           <span>🌐</span>
           <span>Imprimir por Diálogo de Android / Navegador</span>
         </button>

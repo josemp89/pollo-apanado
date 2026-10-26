@@ -231,9 +231,10 @@ function generateReceiptHTML(saleData) {
 // ==================== MÉTODOS DE IMPRESIÓN ====================
 
 /**
- * Vía 1: Envío directo a RawBT en Android (Abre RawBT e imprime al instante)
+ * Genera la URL de Intent oficial de Android para RawBT
  */
-function printReceiptViaRawBT(saleData) {
+function getRawbtIntentUrl(saleData) {
+  if (!saleData) return '#';
   const plainText = generateReceiptPlainText(saleData);
   const settings = getPrinterSettings();
 
@@ -242,17 +243,21 @@ function printReceiptViaRawBT(saleData) {
   const kickDrawerCmd = shouldKickDrawer ? "\x1b\x70\x00\x19\xfa" : "";
   const fullContent = kickDrawerCmd + plainText;
 
-  try {
-    // Protocolo oficial RawBT para Android:
-    // rawbt:base64,<contenido_en_base64>
-    const b64 = btoa(unescape(encodeURIComponent(fullContent)));
-    window.location.href = "rawbt:base64," + b64;
-    return true;
-  } catch (err) {
-    console.warn("Fallo al codificar en base64, usando URI encode:", err);
-    window.location.href = "rawbt:data:text/plain;charset=utf-8," + encodeURIComponent(fullContent);
+  // Intent oficial Android para abrir RawBT directamente
+  const rawbtIntentScheme = "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
+  return "intent:" + encodeURIComponent(fullContent) + rawbtIntentScheme;
+}
+
+/**
+ * Vía 1: Envío directo a RawBT en Android (Abre RawBT e imprime al instante vía USB/Bluetooth)
+ */
+function printReceiptViaRawBT(saleData) {
+  const intentUrl = getRawbtIntentUrl(saleData);
+  if (intentUrl && intentUrl !== '#') {
+    window.location.href = intentUrl;
     return true;
   }
+  return false;
 }
 
 /**
@@ -337,7 +342,7 @@ function printReceipt(saleData, preferredMethod = null) {
 /**
  * Impresión de prueba desde ajustes
  */
-async function printTestTicket() {
+function printTestTicket() {
   const testSale = {
     sale_id: 9999,
     sale_code: 'TEST-0001',
@@ -348,11 +353,11 @@ async function printTestTicket() {
     cash_received: 20000,
     change_returned: 4000,
     items: [
-      { product_name: 'Almuerzo Completo', quantity: 1, unit_price: 16000, subtotal: 16000, chosen_presa: 'pechuga' }
+      { product_name: 'Almuerzo Completo (Pechuga)', quantity: 1, unit_price: 16000, subtotal: 16000, chosen_presa: 'pechuga' }
     ]
   };
 
-  await printReceipt(testSale);
+  printReceiptViaRawBT(testSale);
 }
 
 // ==================== MODAL DE VENTA EXITOSA Y TICKET ====================
@@ -395,9 +400,20 @@ function showSaleSuccessModal(saleData) {
     preview.innerHTML = generateReceiptHTML(saleData);
   }
 
+  // 3. Configurar el enlace directo de Intent para RawBT
+  const intentUrl = getRawbtIntentUrl(saleData);
+  const rawbtLink = document.getElementById('btnModalRawbtLink');
+  if (rawbtLink) {
+    rawbtLink.href = intentUrl;
+  }
+  const bannerLink = document.getElementById('btnPrintLastSale');
+  if (bannerLink) {
+    bannerLink.href = intentUrl;
+  }
+
   modal.classList.remove('hidden');
 
-  // 3. Auto-imprimir si está habilitado en ajustes
+  // 4. Auto-imprimir si está habilitado en ajustes
   const settings = getPrinterSettings();
   if (settings.autoPrint) {
     printReceipt(saleData);
@@ -410,11 +426,13 @@ function closeSaleSuccessModal() {
   currentSuccessSaleData = null;
 }
 
-function printCurrentSuccessTicket(method = null) {
+function printCurrentSuccessTicket(method = null, event = null) {
   if (currentSuccessSaleData) {
     if (method === 'rawbt') {
+      // Si fue invocado por click en enlace <a> con href de intent, el navegador lo procesa de forma nativa
       printReceiptViaRawBT(currentSuccessSaleData);
     } else if (method === 'browser') {
+      if (event) event.preventDefault();
       printReceiptViaBrowser(currentSuccessSaleData);
     } else {
       printReceipt(currentSuccessSaleData);
