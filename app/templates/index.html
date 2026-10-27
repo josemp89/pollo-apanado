@@ -820,7 +820,13 @@
             <p class="text-xs text-slate-400">Edita los precios de venta en el mostrador ($ COP)</p>
           </div>
         </div>
-        <button onclick="closeModal('priceEditorModal')" class="text-slate-400 hover:text-white font-bold text-xl select-none">&times;</button>
+        <div class="flex items-center space-x-2">
+          <a href="/cartel-precios" target="_blank" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-lg transition flex items-center space-x-1 shadow" title="Abrir e imprimir cartel para pegar en la pared">
+            <span>📄</span>
+            <span>Cartel Pared</span>
+          </a>
+          <button onclick="closeModal('priceEditorModal')" class="text-slate-400 hover:text-white font-bold text-xl select-none">&times;</button>
+        </div>
       </div>
 
       <!-- PIN de Seguridad -->

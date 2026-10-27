@@ -72,6 +72,11 @@ def get_cash_view(request: Request):
 def get_tutorial_view(request: Request):
     return templates.TemplateResponse(request=request, name="tutorial.html", context={"view": "tutorial"})
 
+@app.get("/precios", response_class=HTMLResponse)
+@app.get("/cartel-precios", response_class=HTMLResponse)
+def get_precios_view(request: Request):
+    return templates.TemplateResponse(request=request, name="cartel_precios.html", context={"view": "precios"})
+
 @app.get("/manifest.json")
 def get_manifest():
     manifest_path = os.path.join(STATIC_DIR, "manifest.json")

@@ -12,21 +12,21 @@ Valida:
 import pytest
 
 EXPECTED_POSTOBON_PRODUCTS = {
-    "GAS-TEA-DUR-500": {"name": "Mr Tea Durazno 500ml", "stock": 12, "cost": 1125, "price": 3500},
-    "GAS-TEA-LIM-500": {"name": "Mr Tea Limón 500ml", "stock": 12, "cost": 1125, "price": 3500},
-    "GAS-HIT-TRO-500": {"name": "Hit Frutas Tropicales 500ml", "stock": 12, "cost": 1250, "price": 3500},
-    "GAS-HIT-MAN-500": {"name": "Hit Mango 500ml", "stock": 12, "cost": 1250, "price": 3500},
-    "GAS-HIT-MOR-500": {"name": "Hit Mora 500ml", "stock": 12, "cost": 1250, "price": 3500},
-    "GAS-HIT-NP-500": {"name": "Hit Naranja Piña 500ml", "stock": 12, "cost": 1250, "price": 3500},
-    "GAS-H2O-LIM-600": {"name": "H2OH! Lima Limón 600ml", "stock": 15, "cost": 722, "price": 3500},
-    "GAS-H2O-LTA-600": {"name": "H2OH! Limonata 600ml", "stock": 15, "cost": 722, "price": 3500},
-    "GAS-H2O-MAR-600": {"name": "H2OH! Maracuyá 600ml", "stock": 15, "cost": 722, "price": 3500},
-    "GAS-COL-250": {"name": "Colombiana 250ml", "stock": 12, "cost": 1250, "price": 2500},
-    "GAS-MAN-250": {"name": "Manzana Postobón 250ml", "stock": 12, "cost": 1250, "price": 2500},
-    "GAS-HIT-MAN-1L": {"name": "Hit Mango 1L Tetra", "stock": 12, "cost": 1908, "price": 6000},
-    "GAS-HIT-NP-1L": {"name": "Hit Naranja Piña 1L Tetra", "stock": 12, "cost": 1908, "price": 6000},
-    "GAS-MAN-175L": {"name": "Manzana Postobón 1.75L", "stock": 12, "cost": 1875, "price": 7500},
-    "GAS-PEP-175L": {"name": "Pepsi 1.75L", "stock": 12, "cost": 1875, "price": 7500},
+    "GAS-TEA-DUR-500": {"name": "Mr Tea Durazno 500ml", "stock": 12, "cost": 1500, "price": 3500},
+    "GAS-TEA-LIM-500": {"name": "Mr Tea Limón 500ml", "stock": 12, "cost": 1500, "price": 3500},
+    "GAS-HIT-TRO-500": {"name": "Hit Frutas Tropicales 500ml", "stock": 12, "cost": 2500, "price": 4000},
+    "GAS-HIT-MAN-500": {"name": "Hit Mango 500ml", "stock": 12, "cost": 2500, "price": 4000},
+    "GAS-HIT-MOR-500": {"name": "Hit Mora 500ml", "stock": 12, "cost": 2500, "price": 4000},
+    "GAS-HIT-NP-500": {"name": "Hit Naranja Piña 500ml", "stock": 12, "cost": 2500, "price": 4000},
+    "GAS-H2O-LIM-600": {"name": "H2OH! Lima Limón 600ml", "stock": 15, "cost": 1500, "price": 3500},
+    "GAS-H2O-LTA-600": {"name": "H2OH! Limonata 600ml", "stock": 15, "cost": 1500, "price": 3500},
+    "GAS-H2O-MAR-600": {"name": "H2OH! Maracuyá 600ml", "stock": 15, "cost": 1500, "price": 3500},
+    "GAS-COL-250": {"name": "Colombiana 250ml", "stock": 12, "cost": 1250, "price": 2000},
+    "GAS-MAN-250": {"name": "Manzana Postobón 250ml", "stock": 12, "cost": 1250, "price": 2000},
+    "GAS-HIT-MAN-1L": {"name": "Hit Mango 1L Tetra", "stock": 12, "cost": 2500, "price": 6500},
+    "GAS-HIT-NP-1L": {"name": "Hit Naranja Piña 1L Tetra", "stock": 12, "cost": 2500, "price": 6500},
+    "GAS-MAN-175L": {"name": "Manzana Postobón 1.75L", "stock": 12, "cost": 3750, "price": 6500},
+    "GAS-PEP-175L": {"name": "Pepsi 1.75L", "stock": 12, "cost": 3750, "price": 6500},
 }
 
 def test_postobon_products_and_inventory_specs(client, db_conn):

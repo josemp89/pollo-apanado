@@ -431,21 +431,21 @@ def init_db():
 
     # Sincronización oficial de las 15 bebidas Postobón del Inventario Inicial
     postobon_products = [
-        ('GAS-TEA-DUR-500', 'Mr Tea Durazno 500ml', 'gaseosas', 3500, 1125, 0, '🧃', 'amber', 1),
-        ('GAS-TEA-LIM-500', 'Mr Tea Limón 500ml', 'gaseosas', 3500, 1125, 0, '🧃', 'lime', 1),
-        ('GAS-HIT-TRO-500', 'Hit Frutas Tropicales 500ml', 'gaseosas', 3500, 1250, 0, '🧃', 'orange', 1),
-        ('GAS-HIT-MAN-500', 'Hit Mango 500ml', 'gaseosas', 3500, 1250, 0, '🧃', 'amber', 1),
-        ('GAS-HIT-MOR-500', 'Hit Mora 500ml', 'gaseosas', 3500, 1250, 0, '🧃', 'purple', 1),
-        ('GAS-HIT-NP-500', 'Hit Naranja Piña 500ml', 'gaseosas', 3500, 1250, 0, '🧃', 'orange', 1),
-        ('GAS-H2O-LIM-600', 'H2OH! Lima Limón 600ml', 'gaseosas', 3500, 722, 0, '🥤', 'lime', 1),
-        ('GAS-H2O-LTA-600', 'H2OH! Limonata 600ml', 'gaseosas', 3500, 722, 0, '🥤', 'yellow', 1),
-        ('GAS-H2O-MAR-600', 'H2OH! Maracuyá 600ml', 'gaseosas', 3500, 722, 0, '🥤', 'amber', 1),
-        ('GAS-COL-250', 'Colombiana 250ml', 'gaseosas', 2500, 1250, 0, '🥤', 'red', 1),
-        ('GAS-MAN-250', 'Manzana Postobón 250ml', 'gaseosas', 2500, 1250, 0, '🥤', 'pink', 1),
-        ('GAS-HIT-MAN-1L', 'Hit Mango 1L Tetra', 'gaseosas', 6000, 1908, 0, '🧃', 'amber', 1),
-        ('GAS-HIT-NP-1L', 'Hit Naranja Piña 1L Tetra', 'gaseosas', 6000, 1908, 0, '🧃', 'orange', 1),
-        ('GAS-MAN-175L', 'Manzana Postobón 1.75L', 'gaseosas', 7500, 1875, 0, '🍾', 'pink', 1),
-        ('GAS-PEP-175L', 'Pepsi 1.75L', 'gaseosas', 7500, 1875, 0, '🍾', 'blue', 1),
+        ('GAS-TEA-DUR-500', 'Mr Tea Durazno 500ml', 'gaseosas', 3500, 1500, 0, '🧃', 'amber', 1),
+        ('GAS-TEA-LIM-500', 'Mr Tea Limón 500ml', 'gaseosas', 3500, 1500, 0, '🧃', 'lime', 1),
+        ('GAS-HIT-TRO-500', 'Hit Frutas Tropicales 500ml', 'gaseosas', 4000, 2500, 0, '🧃', 'orange', 1),
+        ('GAS-HIT-MAN-500', 'Hit Mango 500ml', 'gaseosas', 4000, 2500, 0, '🧃', 'amber', 1),
+        ('GAS-HIT-MOR-500', 'Hit Mora 500ml', 'gaseosas', 4000, 2500, 0, '🧃', 'purple', 1),
+        ('GAS-HIT-NP-500', 'Hit Naranja Piña 500ml', 'gaseosas', 4000, 2500, 0, '🧃', 'orange', 1),
+        ('GAS-H2O-LIM-600', 'H2OH! Lima Limón 600ml', 'gaseosas', 3500, 1500, 0, '🥤', 'lime', 1),
+        ('GAS-H2O-LTA-600', 'H2OH! Limonata 600ml', 'gaseosas', 3500, 1500, 0, '🥤', 'yellow', 1),
+        ('GAS-H2O-MAR-600', 'H2OH! Maracuyá 600ml', 'gaseosas', 3500, 1500, 0, '🥤', 'amber', 1),
+        ('GAS-COL-250', 'Colombiana 250ml', 'gaseosas', 2000, 1250, 0, '🥤', 'red', 1),
+        ('GAS-MAN-250', 'Manzana Postobón 250ml', 'gaseosas', 2000, 1250, 0, '🥤', 'pink', 1),
+        ('GAS-HIT-MAN-1L', 'Hit Mango 1L Tetra', 'gaseosas', 6500, 2500, 0, '🧃', 'amber', 1),
+        ('GAS-HIT-NP-1L', 'Hit Naranja Piña 1L Tetra', 'gaseosas', 6500, 2500, 0, '🧃', 'orange', 1),
+        ('GAS-MAN-175L', 'Manzana Postobón 1.75L', 'gaseosas', 6500, 3750, 0, '🍾', 'pink', 1),
+        ('GAS-PEP-175L', 'Pepsi 1.75L', 'gaseosas', 6500, 3750, 0, '🍾', 'blue', 1),
     ]
     for p in postobon_products:
         cursor.execute("""
