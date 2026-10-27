@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual Oficial de Freído - YO SOY DON POLLO</title>
+  <link rel="icon" type="image/png" href="/static/img/icon-192.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
+    
+    body {
+      font-family: 'Montserrat', sans-serif;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    @media print {
+      @page {
+        size: letter portrait;
+        margin: 5mm;
+      }
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+      }
+      .page-container {
+        border: 4px solid #b45309 !important;
+        box-shadow: none !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 16px !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen py-4 px-2 sm:px-6 flex flex-col items-center justify-center">
+
+  <!-- BARRA DE ACCIÓN SUPERIOR (SOLO EN PANTALLA) -->
+  <div class="no-print w-full max-w-4xl mb-3 flex flex-wrap items-center justify-between gap-3 bg-slate-800/90 border border-slate-700 p-3 rounded-2xl shadow-xl">
+    <div class="flex items-center space-x-2 text-sm text-slate-300">
+      <a href="/" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-bold transition flex items-center space-x-1">
+        <span>⬅️</span>
+        <span>Volver al POS</span>
+      </a>
+      <span class="text-xs text-amber-400 font-bold hidden sm:inline">📋 Guía Operativa de Cocina para Pegar en Pared</span>
+    </div>
+    <div class="flex items-center space-x-2">
+      <a href="/cartel-precios" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-bold text-slate-200 transition">
+        📄 Cartel Precios
+      </a>
+      <button onclick="window.print()" class="px-5 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 active:scale-95 text-slate-950 font-black text-sm rounded-xl shadow-lg transition flex items-center space-x-2">
+        <span class="text-lg">🖨️</span>
+        <span>IMPRIMIR GUÍA (Ctrl + P)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTENEDOR DEL MANUAL DE PARED (TAMAÑO CARTA EXACTO) -->
+  <div class="page-container w-full max-w-4xl bg-white text-slate-900 rounded-3xl p-6 sm:p-7 shadow-2xl border-4 border-amber-500 relative overflow-hidden">
+    
+    <!-- ENCABEZADO INSTITUCIONAL -->
+    <header class="border-b-4 border-amber-500 pb-3 mb-4 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-14 h-14 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center text-3xl font-black shadow-md border-2 border-amber-600">
+          🍗
+        </div>
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-amber-600 uppercase leading-none">
+            YO SOY DON POLLO
+          </h1>
+          <p class="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider mt-0.5">
+            Manual Oficial de Apanado y Tiempos de Freído
+          </p>
+          <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            Instrucción Obligatoria para el Personal de Cocina
+          </p>
+        </div>
+      </div>
+      <div class="text-right">
+        <div class="inline-block px-3 py-1 bg-red-600 text-white font-black text-xs uppercase rounded-full tracking-wider shadow-sm">
+          ⏱️ Tiempos Exactos
+        </div>
+        <p class="text-[10px] font-bold text-slate-500 mt-1">Calidad, Jugosidad y Crocancia</p>
+      </div>
+    </header>
+
+    <!-- ETAPA 1: EL PROTOCOLO DE APANADO Y REPOSO DE 5 MINUTOS (CLAVE) -->
+    <div class="bg-amber-50 border-2 border-amber-400 rounded-2xl p-4 mb-4 shadow-sm">
+      <div class="flex items-center space-x-2 border-b-2 border-amber-300 pb-1.5 mb-2.5">
+        <span class="text-2xl">🥣</span>
+        <h2 class="text-sm sm:text-base font-black text-amber-950 uppercase tracking-wide">
+          Paso 1: Apanado y Reposo Obligatorio de 5 Minutos
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+        
+        <div class="bg-white p-3 rounded-xl border border-amber-300 shadow-sm space-y-1">
+          <div class="flex items-center space-x-1.5 text-amber-800 font-black text-xs">
+            <span class="w-5 h-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-[10px] font-black">1</span>
+            <span>Sacar del Adobo</span>
+          </div>
+          <p class="text-slate-600 leading-snug">
+            Retirar las presas marinadas del líquido permitiendo un escurrido breve para evitar exceso de caldo en la harina.
+          </p>
+        </div>
+
+        <div class="bg-white p-3 rounded-xl border border-amber-300 shadow-sm space-y-1">
+          <div class="flex items-center space-x-1.5 text-amber-800 font-black text-xs">
+            <span class="w-5 h-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-[10px] font-black">2</span>
+            <span>Mezcla de Harinas</span>
+          </div>
+          <p class="text-slate-600 leading-snug">
+            Aplicar la mezcla de harinas asegurando cobertura al 100% en todos los pliegues y bajo la piel de cada presa.
+          </p>
+        </div>
+
+        <div class="bg-amber-500 text-slate-950 p-3 rounded-xl border-2 border-amber-600 shadow-md space-y-1">
+          <div class="flex items-center space-x-1.5 font-black text-xs uppercase">
+            <span class="w-5 h-5 rounded-full bg-slate-950 text-amber-400 flex items-center justify-center text-[10px] font-black">3</span>
+            <span>⏱️ REPOSAR 5 MINUTOS</span>
+          </div>
+          <p class="font-extrabold text-[11px] leading-snug">
+            ¡REGLA DE ORO! Dejar reposar 5 min antes de freír para que el apanado se hidrate y no se desprenda en el aceite.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ETAPA 2: FORMA DE INTRODUCCIÓN A LA FREIDORA -->
+    <div class="bg-slate-900 text-white rounded-2xl p-3.5 mb-4 shadow-md flex items-center justify-between border-2 border-slate-800">
+      <div class="flex items-center space-x-3">
+        <div class="text-3xl">🧺</div>
+        <div>
+          <h3 class="text-xs sm:text-sm font-black text-amber-400 uppercase tracking-wider">
+            Regla de Entrada: Presa por Presa y Separadas por Tipo
+          </h3>
+          <p class="text-[11px] text-slate-300 leading-snug">
+            Las presas se meten a la freidora <b>una por una</b>, separando <b>alas, muslos, contramuslos y pechugas</b>. No mezclar tipos en la misma canastilla si tienen tiempos distintos.
+          </p>
+        </div>
+      </div>
+      <div class="hidden sm:block text-right flex-shrink-0 pl-3">
+        <span class="px-3 py-1 bg-red-600 text-white font-black text-[11px] uppercase rounded-lg">
+          Aceite a 160°C - 165°C
+        </span>
+      </div>
+    </div>
+
+    <!-- ETAPA 3: TABLA MAESTRA DE TIEMPOS EXACTOS (4 COLUMNAS DE ALTO IMPACTO) -->
+    <div class="mb-4">
+      <div class="flex items-center space-x-2 border-b-2 border-slate-300 pb-1.5 mb-2.5">
+        <span class="text-xl">⏱️</span>
+        <h2 class="text-base font-black text-slate-900 uppercase tracking-wide">
+          Tiempos Exactos de Freído por Presa
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+
+        <!-- ALAS: 11 MINUTOS -->
+        <div class="bg-emerald-50 border-2 border-emerald-500 rounded-2xl p-3.5 text-center shadow-md relative overflow-hidden">
+          <div class="absolute top-1.5 right-2 text-[9px] font-black bg-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded uppercase">
+            Rápida
+          </div>
+          <div class="text-3xl mb-1">🍗</div>
+          <h3 class="text-sm font-black text-slate-900 uppercase">Alas</h3>
+          <div class="text-3xl font-black text-emerald-700 my-1.5 tabular-nums">11 MIN</div>
+          <div class="inline-block px-2 py-0.5 bg-emerald-600 text-white font-black text-[10px] rounded-full uppercase tracking-wider mb-1">
+            Exactos
+          </div>
+          <p class="text-[10px] font-semibold text-slate-600 leading-snug">
+            Retirar a los 11 min para evitar resecamiento en puntas. Crocancia dorada.
+          </p>
+        </div>
+
+        <!-- MUSLOS: 12 MINUTOS -->
+        <div class="bg-yellow-50 border-2 border-yellow-500 rounded-2xl p-3.5 text-center shadow-md relative overflow-hidden">
+          <div class="absolute top-1.5 right-2 text-[9px] font-black bg-yellow-200 text-yellow-900 px-1.5 py-0.5 rounded uppercase">
+            Cilíndrico
+          </div>
+          <div class="text-3xl mb-1">🍗</div>
+          <h3 class="text-sm font-black text-slate-900 uppercase">Muslos</h3>
+          <div class="text-3xl font-black text-amber-700 my-1.5 tabular-nums">12 MIN</div>
+          <div class="inline-block px-2 py-0.5 bg-amber-600 text-white font-black text-[10px] rounded-full uppercase tracking-wider mb-1">
+            Exactos
+          </div>
+          <p class="text-[10px] font-semibold text-slate-600 leading-snug">
+            Cocción uniforme. Piel crocante de color ámbar y carne suave al hueso.
+          </p>
+        </div>
+
+        <!-- CONTRAMUSLOS: 14 MINUTOS -->
+        <div class="bg-orange-50 border-2 border-orange-500 rounded-2xl p-3.5 text-center shadow-md relative overflow-hidden">
+          <div class="absolute top-1.5 right-2 text-[9px] font-black bg-orange-200 text-orange-900 px-1.5 py-0.5 rounded uppercase">
+            Hueso Fémur
+          </div>
+          <div class="text-3xl mb-1">🍗</div>
+          <h3 class="text-sm font-black text-slate-900 uppercase">Contramuslos</h3>
+          <div class="text-3xl font-black text-red-600 my-1.5 tabular-nums">14 MIN</div>
+          <div class="inline-block px-2 py-0.5 bg-red-600 text-white font-black text-[10px] rounded-full uppercase tracking-wider mb-1">
+            Exactos
+          </div>
+          <p class="text-[10px] font-semibold text-slate-600 leading-snug">
+            Pieza gruesa. Los 14 min garantizan que no quede sangre en la articulación.
+          </p>
+        </div>
+
+        <!-- PECHUGAS: 14 MINUTOS -->
+        <div class="bg-rose-50 border-2 border-rose-500 rounded-2xl p-3.5 text-center shadow-md relative overflow-hidden">
+          <div class="absolute top-1.5 right-2 text-[9px] font-black bg-rose-200 text-rose-900 px-1.5 py-0.5 rounded uppercase">
+            Carne Densa
+          </div>
+          <div class="text-3xl mb-1">🍗</div>
+          <h3 class="text-sm font-black text-slate-900 uppercase">Pechugas</h3>
+          <div class="text-3xl font-black text-red-600 my-1.5 tabular-nums">14 MIN</div>
+          <div class="inline-block px-2 py-0.5 bg-red-600 text-white font-black text-[10px] rounded-full uppercase tracking-wider mb-1">
+            Exactos
+          </div>
+          <p class="text-[10px] font-semibold text-slate-600 leading-snug">
+            Volumen mayor. 14 min para asegurar cocción completa hasta la quilla.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ETAPA 4: PROTOCOLO POST-FRITURA Y CONTROL DE CALIDAD -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs mb-3">
+      
+      <div class="bg-slate-50 border-2 border-slate-300 rounded-xl p-3 space-y-1">
+        <div class="font-black text-slate-900 uppercase flex items-center space-x-1.5">
+          <span>⏳</span>
+          <span>1. Escurrido en Gancho</span>
+        </div>
+        <p class="text-slate-600 text-[11px] leading-snug">
+          Al cumplirse el tiempo, suspender la canastilla en el gancho de la freidora de <b>1 a 2 minutos</b> para eliminar el exceso de grasa antes de servir.
+        </p>
+      </div>
+
+      <div class="bg-slate-50 border-2 border-slate-300 rounded-xl p-3 space-y-1">
+        <div class="font-black text-slate-900 uppercase flex items-center space-x-1.5">
+          <span>💡</span>
+          <span>2. Vitrina Térmica</span>
+        </div>
+        <p class="text-slate-600 text-[11px] leading-snug">
+          Mantener la vitrina a <b>65°C - 70°C</b>. No encimar presas calientes para evitar que el vapor ablande el apanado crocante.
+        </p>
+      </div>
+
+      <div class="bg-slate-50 border-2 border-slate-300 rounded-xl p-3 space-y-1">
+        <div class="font-black text-rose-800 uppercase flex items-center space-x-1.5">
+          <span>🚫</span>
+          <span>3. Cuidado del Aceite</span>
+        </div>
+        <p class="text-slate-600 text-[11px] leading-snug">
+          <b>¡Prohibido salar sobre la freidora!</b> La sal degrada y quema el aceite. Colar residuos de harina dos veces al día para mantener aceite limpio.
+        </p>
+      </div>
+
+    </div>
+
+    <!-- PIE DE PÁGINA -->
+    <footer class="pt-2.5 border-t-2 border-slate-200 flex flex-wrap items-center justify-between text-[11px] text-slate-500 font-semibold">
+      <div class="flex items-center space-x-1.5">
+        <span class="font-black text-slate-900">YO SOY DON POLLO</span>
+        <span>•</span>
+        <span>Área de Cocina y Freidoras</span>
+      </div>
+      <div>
+        <span>Manual Oficial de Operaciones • Sistema POS</span>
+      </div>
+      <div class="w-full text-center mt-1 text-[9px] text-slate-400">
+        Cartel de consulta permanente para ubicar en la zona de freidoras y apanado.
+      </div>
+    </footer>
+
+  </div>
+
+</body>
+</html>

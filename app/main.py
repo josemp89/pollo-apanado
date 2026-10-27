@@ -77,6 +77,11 @@ def get_tutorial_view(request: Request):
 def get_precios_view(request: Request):
     return templates.TemplateResponse(request=request, name="cartel_precios.html", context={"view": "precios"})
 
+@app.get("/guia-fritura", response_class=HTMLResponse)
+@app.get("/fritura", response_class=HTMLResponse)
+def get_guia_fritura_view(request: Request):
+    return templates.TemplateResponse(request=request, name="guia_fritura.html", context={"view": "fritura"})
+
 @app.get("/manifest.json")
 def get_manifest():
     manifest_path = os.path.join(STATIC_DIR, "manifest.json")
