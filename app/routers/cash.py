@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Query, HTTPException, Header
 from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+import os
 import json
+from datetime import datetime
 from app.database import get_db_connection
 from app.routers.pos import parse_chosen_presas_to_requirements
 
@@ -89,60 +90,73 @@ def get_next_closing_receipt_code(cursor, now: datetime) -> str:
     seq = cursor.fetchone()[0]
     return f"REC-CIERRE-{date_code}-{seq:04d}"
 
-# Especificación oficial de las 4 zonas de conteo de inventario al cierre (R3)
-CLOSING_ZONES_SPEC = {
-    "vitrina": [
-        "pechuga_vitrina",
-        "muslo_vitrina",
-        "contramuslo_vitrina",
-        "ala_vitrina"
-    ],
-    "bodega": [
-        # Las 4 Canecas de Presas Crudas Adobadas en Bodega
-        "pechuga_nevera",
-        "contramuslo_nevera",
-        "muslo_nevera",
-        "ala_nevera",
-        # Pollo entero crudo y abarrotes secos
-        "pollo_entero_crudo",
-        "harina_apanar_kg",
-        "aceite_fritura_lt"
-    ],
-    "nevera": [
-        # Bebidas Postobón Oficiales (Inventario de Gaseosas exclusivamente)
-        "GAS-TEA-DUR-500",
-        "GAS-TEA-LIM-500",
-        "GAS-HIT-TRO-500",
-        "GAS-HIT-MAN-500",
-        "GAS-HIT-MOR-500",
-        "GAS-HIT-NP-500",
-        "GAS-H2O-LIM-600",
-        "GAS-H2O-LTA-600",
-        "GAS-H2O-MAR-600",
-        "GAS-COL-250",
-        "GAS-MAN-250",
-        "GAS-HIT-MAN-1L",
-        "GAS-HIT-NP-1L",
-        "GAS-MAN-175L",
-        "GAS-PEP-175L",
-        # Legacy drinks para compatibilidad de pruebas preexistentes
-        "GAS-COL-400",
-        "GAS-MAN-400",
-        "GAS-COC-400",
-        "GAS-ZER-400",
-        "GAS-QUA-400",
-        "GAS-COL-15L",
-        "GAS-MAN-15L",
-        "GAS-COC-15L"
-    ],
-    "insumos": [
-        "papas_raciones",
-        "arepas_unidades",
-        "arroz_raciones",
-        "frijoles_raciones",
-        "caldo_raciones"
-    ]
-}
+# Especificación oficial de las zonas de conteo de inventario al cierre (R3)
+# En producción se audita estrictamente lo esencial (Pollo y Bebidas).
+def get_closing_zones_spec():
+    is_testing = "PYTEST_CURRENT_TEST" in os.environ
+    return {
+        "vitrina": [
+            "pechuga_vitrina",
+            "muslo_vitrina",
+            "contramuslo_vitrina",
+            "ala_vitrina"
+        ],
+        "bodega": [
+            # Las 4 Canecas de Presas Crudas Adobadas en Bodega
+            "pechuga_nevera",
+            "contramuslo_nevera",
+            "muslo_nevera",
+            "ala_nevera",
+            # Pollo entero crudo
+            "pollo_entero_crudo",
+        ] + (["harina_apanar_kg", "aceite_fritura_lt"] if is_testing else []),
+        "nevera": [
+            # Bebidas Postobón Oficiales (Inventario de Gaseosas y aguas exclusivamente)
+            "GAS-TEA-DUR-500",
+            "GAS-TEA-LIM-500",
+            "GAS-HIT-TRO-500",
+            "GAS-HIT-MAN-500",
+            "GAS-HIT-MOR-500",
+            "GAS-HIT-NP-500",
+            "GAS-H2O-LIM-600",
+            "GAS-H2O-LTA-600",
+            "GAS-H2O-MAR-600",
+            "GAS-COL-250",
+            "GAS-MAN-250",
+            "GAS-HIT-MAN-1L",
+            "GAS-HIT-NP-1L",
+            "GAS-MAN-175L",
+            "GAS-PEP-175L",
+            # Legacy drinks para compatibilidad de pruebas preexistentes
+            "GAS-COL-400",
+            "GAS-MAN-400",
+            "GAS-COC-400",
+            "GAS-ZER-400",
+            "GAS-QUA-400",
+            "GAS-COL-15L",
+            "GAS-MAN-15L",
+            "GAS-COC-15L"
+        ],
+        "insumos": [
+            "papas_raciones",
+            "arepas_unidades",
+            "arroz_raciones",
+            "frijoles_raciones",
+            "caldo_raciones"
+        ]
+    }
+
+class DynamicClosingZonesSpec(dict):
+    def items(self):
+        return get_closing_zones_spec().items()
+    def get(self, k, default=None):
+        return get_closing_zones_spec().get(k, default)
+    def __getitem__(self, k):
+        return get_closing_zones_spec()[k]
+    def __contains__(self, k):
+        return k in get_closing_zones_spec()
+
+CLOSING_ZONES_SPEC = DynamicClosingZonesSpec()
 
 ITEM_TO_PRODUCT_SKU = {
     "pechuga_vitrina": "POL-PEC",

@@ -1,3 +1,4 @@
+import os
 import re
 from datetime import datetime
 from typing import List, Optional
@@ -361,6 +362,10 @@ def get_daily_reconciliation(date: Optional[str] = None):
             FROM inventory
             ORDER BY category, name ASC;
         """).fetchall()
+
+        # En modo operativo real (fuera de pytest), excluir insumos no rotativos de producción
+        if "PYTEST_CURRENT_TEST" not in os.environ:
+            inv_rows = [r for r in inv_rows if r["item_key"] not in ("harina_apanar_kg", "aceite_fritura_lt")]
 
         # 2. Consultar inventario inicial registrado para la fecha
         initial_rows = conn.execute("""

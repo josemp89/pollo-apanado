@@ -41,11 +41,13 @@ def reset_inventory():
     today_str = datetime.now().strftime("%Y-%m-%d")
 
     # 2. Reiniciar inventario en Bodega, Vitrina, Cocina y Nevera
-    # Bodega
+    # Eliminar insumos de producción no rotativos (harina y aceite) del inventario activo
+    cursor.execute('DELETE FROM inventory WHERE item_key IN ("harina_apanar_kg", "aceite_fritura_lt")')
+    cursor.execute('DELETE FROM daily_initial_inventory WHERE item_name IN ("harina_apanar_kg", "aceite_fritura_lt", "Harina Apanador", "Aceite para Freidoras")')
+
+    # Bodega (Estrictamente pollo: 30 pollos enteros crudos y 0 en canecas crudas)
     cursor.execute('UPDATE inventory SET stock = 30.0, updated_at = ? WHERE item_key = "pollo_entero_crudo"', (now_iso,))
     cursor.execute('UPDATE inventory SET stock = 0.0, updated_at = ? WHERE item_key IN ("pechuga_nevera", "contramuslo_nevera", "muslo_nevera", "ala_nevera")', (now_iso,))
-    cursor.execute('UPDATE inventory SET stock = 25.0, updated_at = ? WHERE item_key = "harina_apanar_kg"', (now_iso,))
-    cursor.execute('UPDATE inventory SET stock = 40.0, updated_at = ? WHERE item_key = "aceite_fritura_lt"', (now_iso,))
 
     # Vitrina
     cursor.execute('UPDATE inventory SET stock = 0.0, updated_at = ? WHERE item_key IN ("pechuga_vitrina", "muslo_vitrina", "contramuslo_vitrina", "ala_vitrina")', (now_iso,))
