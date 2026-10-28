@@ -133,7 +133,7 @@ def parse_chosen_presas_to_requirements(chosen_presa_str: Optional[str]) -> dict
         'contramuslo_vitrina': 0.0,
         'ala_vitrina': 0.0
     }
-    tokens = [t.strip() for t in str(chosen_presa_str).split(',') if t.strip()]
+    tokens = [t.strip() for t in re.split(r'[,|]', str(chosen_presa_str)) if t.strip()]
     for token in tokens:
         match = re.match(r'^(\d+)\s*x?\s*(.+)$', token, re.IGNORECASE)
         if match:
@@ -217,6 +217,21 @@ def calculate_order_inventory_requirements(items_data):
                 add_req('muslo_vitrina', 2.0 * qty)
                 add_req('contramuslo_vitrina', 2.0 * qty)
             add_req('papas_raciones', 2.0 * qty)
+
+        # 3. Combo Personal con Papas y Gaseosa 250ml (Promocional $9.000 COP)
+        elif sku == 'POL-PER':
+            presa_reqs = parse_chosen_presas_to_requirements(chosen_presa)
+            if presa_reqs:
+                for k, v in presa_reqs.items():
+                    add_req(k, v * qty)
+            else:
+                add_req('muslo_vitrina', qty)
+            add_req('papas_raciones', qty)
+            chosen_str = (chosen_presa or "").lower()
+            if 'colombiana' in chosen_str:
+                add_req('GAS-COL-250', qty)
+            else:
+                add_req('GAS-MAN-250', qty)
 
         # 3. Almuerzo Completo (Descuento estricto de la presa elegida + guarniciones)
         elif sku == 'ALM-COMP':
@@ -588,7 +603,7 @@ def cancel_sale(
             sku = item.get("product_sku")
             qty = int(item.get("quantity", 0))
             presa = item.get("chosen_presa")
-            custom_reqs = parse_chosen_presas_to_requirements(presa) if sku in ("POL-14", "POL-12", "POL-ENT") else {}
+            custom_reqs = parse_chosen_presas_to_requirements(presa) if sku in ("POL-14", "POL-12", "POL-ENT", "POL-PER") else {}
             if custom_reqs:
                 presas_restored["pechugas"] += int(custom_reqs.get("pechuga_vitrina", 0) * qty)
                 presas_restored["muslos"] += int(custom_reqs.get("muslo_vitrina", 0) * qty)
@@ -615,6 +630,8 @@ def cancel_sale(
                 presas_restored["alas"] += 2 * qty
                 presas_restored["muslos"] += 2 * qty
                 presas_restored["contramuslos"] += 2 * qty
+            elif sku == "POL-PER":
+                presas_restored["muslos"] += qty
 
         presas_restored["total_presas"] = (
             presas_restored["pechugas"] + presas_restored["muslos"] + presas_restored["contramuslos"] + presas_restored["alas"]

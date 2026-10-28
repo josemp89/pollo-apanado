@@ -5,6 +5,7 @@ let currentCategory = 'todos';
 let cart = []; // { product, quantity, chosen_presa }
 let pendingPresaProduct = null;
 let comboSelectedPresas = []; // Presas seleccionadas para combo dinámico (estilo Frisby)
+let comboPersonalDrink = null; // Gaseosa seleccionada para Combo Personal (250ml)
 let pendingDigitalMethod = null;
 let lastSaleId = null;
 let undoBannerTimeout = null;
@@ -191,6 +192,13 @@ function getProductStockInfo(product, summary) {
     stock = Math.min(Math.floor(totalPresas / 8), papas);
     label = 'Enteros';
     color = 'rose';
+  } else if (product.sku === 'POL-PER') {
+    const totalPresas = getStock('pechuga_vitrina') + getStock('muslo_vitrina') + getStock('contramuslo_vitrina') + getStock('ala_vitrina');
+    const papas = getStock('papas_raciones');
+    const sodas = getStock('GAS-MAN-250') + getStock('GAS-COL-250');
+    stock = Math.min(totalPresas, papas, sodas);
+    label = 'Combos';
+    color = 'teal';
   }
 
   // 3. Almuerzo Completo
@@ -386,10 +394,11 @@ function renderProducts() {
   });
 }
 
-// Helper: Determina cuántas presas requiere un producto (Almuerzo = 1, 1/4 Pollo = 2, 1/2 Pollo = 4, Entero = 8)
+// Helper: Determina cuántas presas requiere un producto (Almuerzo = 1, Combo Personal = 1, 1/4 Pollo = 2, 1/2 Pollo = 4, Entero = 8)
 function getRequiredPresasCount(product) {
   if (!product) return 0;
   if (product.sku === 'ALM-COMP' || product.requires_presa_selection == 1) return 1;
+  if (product.sku === 'POL-PER') return 1;
   if (product.sku === 'POL-14') return 2;
   if (product.sku === 'POL-12') return 4;
   if (product.sku === 'POL-ENT') return 8;
@@ -455,21 +464,48 @@ function openPresaModal(product = null) {
   if (!pendingPresaProduct) return;
 
   comboSelectedPresas = [];
+  comboPersonalDrink = null;
   const reqCount = getRequiredPresasCount(pendingPresaProduct);
 
   const titleEl = document.getElementById('presaModalTitle');
   const subtitleEl = document.getElementById('presaModalSubtitle');
   const comboBarEl = document.getElementById('comboSelectionBar');
   const comboActionsEl = document.getElementById('comboActions');
+  const drinkSectionEl = document.getElementById('comboPersonalDrinkSection');
+  const choicesLabelEl = document.getElementById('presaChoicesLabel');
 
-  if (reqCount === 1) {
+  if (pendingPresaProduct.sku === 'POL-PER') {
+    if (titleEl) titleEl.textContent = '🍱 Combo Personal con Papas ($9.000)';
+    if (subtitleEl) subtitleEl.textContent = '1 Presa de Pollo + Papas Francesa + Gaseosa 250ml';
+    if (choicesLabelEl) choicesLabelEl.classList.remove('hidden');
+    if (drinkSectionEl) drinkSectionEl.classList.remove('hidden');
+    if (comboBarEl) comboBarEl.classList.add('hidden');
+    if (comboActionsEl) comboActionsEl.classList.remove('hidden');
+
+    updateDrinkBadgesInModal();
+    const selDrinkBadge = document.getElementById('selectedDrinkBadge');
+    if (selDrinkBadge) {
+      selDrinkBadge.textContent = 'Sin seleccionar';
+      selDrinkBadge.className = 'text-xs font-bold text-amber-400';
+    }
+    const confirmBtn = document.getElementById('btnConfirmComboSelection');
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.className = 'flex-[2] py-2.5 rounded-xl bg-slate-800 text-slate-500 font-black text-sm border border-slate-700 cursor-not-allowed transition';
+      confirmBtn.innerHTML = '<span>Elige 1 presa y 1 gaseosa</span>';
+    }
+  } else if (reqCount === 1) {
     if (titleEl) titleEl.textContent = '¿Qué Presa Lleva el Almuerzo?';
     if (subtitleEl) subtitleEl.textContent = 'Selecciona la presa para descontar exactamente del inventario';
+    if (choicesLabelEl) choicesLabelEl.classList.add('hidden');
+    if (drinkSectionEl) drinkSectionEl.classList.add('hidden');
     if (comboBarEl) comboBarEl.classList.add('hidden');
     if (comboActionsEl) comboActionsEl.classList.add('hidden');
   } else {
     if (titleEl) titleEl.textContent = `Elige las ${reqCount} Presas del Combo`;
     if (subtitleEl) subtitleEl.textContent = `${pendingPresaProduct.name} - Puedes combinar las presas a tu gusto`;
+    if (choicesLabelEl) choicesLabelEl.classList.add('hidden');
+    if (drinkSectionEl) drinkSectionEl.classList.add('hidden');
     if (comboBarEl) comboBarEl.classList.remove('hidden');
     if (comboActionsEl) comboActionsEl.classList.remove('hidden');
     renderComboSelectionUI();
@@ -494,17 +530,115 @@ function openPresaModal(product = null) {
   document.getElementById('presaModal').classList.remove('hidden');
 }
 
+function updateDrinkBadgesInModal() {
+  const drinks = [
+    { sku: 'GAS-MAN-250', badgeId: 'stock-manzana250-badge', btnId: 'btn-drink-manzana', color: 'pink' },
+    { sku: 'GAS-COL-250', badgeId: 'stock-colombiana250-badge', btnId: 'btn-drink-colombiana', color: 'red' }
+  ];
+
+  drinks.forEach(d => {
+    const badgeEl = document.getElementById(d.badgeId);
+    const btnEl = document.getElementById(d.btnId);
+    if (!badgeEl || !btnEl) return;
+
+    btnEl.classList.remove('border-pink-500', 'border-red-500', 'border-emerald-500', 'ring-2', 'ring-emerald-500');
+    btnEl.classList.add('border-slate-700');
+
+    const stockItem = stockSummary[d.sku];
+    const liveStock = stockItem ? Number(stockItem.stock) : 0;
+    const reservedInCart = cart.reduce((sum, it) => (it.product && it.product.sku === d.sku ? sum + it.quantity : sum), 0);
+    const net = Math.max(0, liveStock - reservedInCart);
+
+    if (net <= 0) {
+      btnEl.disabled = true;
+      btnEl.classList.add('opacity-50', 'cursor-not-allowed');
+      badgeEl.textContent = '❌ Agotada';
+      badgeEl.className = 'text-[10px] text-red-400 font-bold';
+    } else {
+      btnEl.disabled = false;
+      btnEl.classList.remove('opacity-50', 'cursor-not-allowed');
+      badgeEl.textContent = `Quedan ${net} frías`;
+      badgeEl.className = `text-[10px] text-${d.color}-400 font-bold`;
+    }
+  });
+}
+
+function selectPersonalDrink(sku, name) {
+  const stockItem = stockSummary[sku];
+  const liveStock = stockItem ? Number(stockItem.stock) : 0;
+  const reservedInCart = cart.reduce((sum, it) => (it.product && it.product.sku === sku ? sum + it.quantity : sum), 0);
+  if (liveStock - reservedInCart <= 0) {
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    alert(`La gaseosa ${name} está agotada en la nevera.`);
+    return;
+  }
+
+  if (navigator.vibrate) navigator.vibrate(25);
+  comboPersonalDrink = { sku, name };
+
+  const btnMan = document.getElementById('btn-drink-manzana');
+  const btnCol = document.getElementById('btn-drink-colombiana');
+  if (btnMan) {
+    btnMan.classList.remove('ring-2', 'ring-emerald-500', 'border-pink-500');
+    if (sku === 'GAS-MAN-250') btnMan.classList.add('ring-2', 'ring-emerald-500', 'border-pink-500');
+  }
+  if (btnCol) {
+    btnCol.classList.remove('ring-2', 'ring-emerald-500', 'border-red-500');
+    if (sku === 'GAS-COL-250') btnCol.classList.add('ring-2', 'ring-emerald-500', 'border-red-500');
+  }
+
+  const selDrinkBadge = document.getElementById('selectedDrinkBadge');
+  if (selDrinkBadge) {
+    selDrinkBadge.textContent = `✅ ${name}`;
+    selDrinkBadge.className = 'text-xs font-black text-emerald-400';
+  }
+
+  checkPersonalComboReady();
+}
+
+function checkPersonalComboReady() {
+  const confirmBtn = document.getElementById('btnConfirmComboSelection');
+  if (!confirmBtn) return;
+
+  const hasPresa = comboSelectedPresas.length > 0;
+  const hasDrink = comboPersonalDrink !== null;
+
+  if (hasPresa && hasDrink) {
+    confirmBtn.disabled = false;
+    confirmBtn.className = 'flex-[2] py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow-lg shadow-emerald-600/30 active:scale-95 transition cursor-pointer flex items-center justify-center gap-1.5';
+    confirmBtn.innerHTML = `<span>✅ Agregar Combo Personal al Pedido</span>`;
+  } else if (!hasPresa) {
+    confirmBtn.disabled = true;
+    confirmBtn.className = 'flex-[2] py-2.5 rounded-xl bg-slate-800 text-slate-500 font-black text-sm border border-slate-700 cursor-not-allowed transition';
+    confirmBtn.innerHTML = '<span>Falta elegir la Presa</span>';
+  } else {
+    confirmBtn.disabled = true;
+    confirmBtn.className = 'flex-[2] py-2.5 rounded-xl bg-slate-800 text-slate-500 font-black text-sm border border-slate-700 cursor-not-allowed transition';
+    confirmBtn.innerHTML = '<span>Falta elegir la Gaseosa 250ml</span>';
+  }
+}
+
 function closePresaModal() {
   document.getElementById('presaModal').classList.add('hidden');
   pendingPresaProduct = null;
   comboSelectedPresas = [];
+  comboPersonalDrink = null;
   ['pechuga', 'muslo', 'contramuslo', 'ala'].forEach(k => {
     const b = document.getElementById(`badge-count-${k}`);
     if (b) {
       b.classList.add('hidden');
       b.textContent = '0';
     }
+    const btn = document.getElementById(`btn-presa-${k}`);
+    if (btn) {
+      btn.classList.remove('ring-2', 'ring-emerald-500', 'border-emerald-500');
+    }
   });
+
+  const btnMan = document.getElementById('btn-drink-manzana');
+  const btnCol = document.getElementById('btn-drink-colombiana');
+  if (btnMan) btnMan.classList.remove('ring-2', 'ring-emerald-500', 'border-pink-500');
+  if (btnCol) btnCol.classList.remove('ring-2', 'ring-emerald-500', 'border-red-500');
 }
 
 function updateStockBadgesInModal() {
@@ -512,6 +646,8 @@ function updateStockBadgesInModal() {
     const badgeEl = document.getElementById(item.badgeId);
     const btnEl = document.getElementById(item.btnId) || badgeEl?.closest('button');
     if (!badgeEl || !btnEl) return;
+
+    btnEl.classList.remove('ring-2', 'ring-emerald-500', 'border-emerald-500');
 
     const stockItem = stockSummary[item.key];
     const liveStock = stockItem ? Number(stockItem.stock) : 0;
@@ -543,10 +679,40 @@ function getSkuForPresa(presa) {
   return map[presa] || null;
 }
 
-// Clic en presa (compatible tanto para 1 presa como para combos dinámicos)
+// Clic en presa (compatible para Almuerzo Completo, Combo Personal y Combos estilo Frisby)
 function handlePresaClick(presa) {
   if (!presa || !pendingPresaProduct) {
     closePresaModal();
+    return;
+  }
+
+  // 1. Caso Combo Personal (1 presa + 1 gaseosa 250ml)
+  if (pendingPresaProduct.sku === 'POL-PER') {
+    const presaKey = `${presa.trim().toLowerCase()}_vitrina`;
+    const currentStock = (stockSummary[presaKey] && typeof stockSummary[presaKey].stock === 'number')
+      ? stockSummary[presaKey].stock
+      : 0;
+    const reservedInCart = getReservedPresaCountInCart(presa);
+    if (reservedInCart >= currentStock) {
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      alert(`Solo quedan ${currentStock} unidad(es) de ${presa} disponibles en vitrina.`);
+      return;
+    }
+
+    if (navigator.vibrate) navigator.vibrate(25);
+    comboSelectedPresas = [presa];
+
+    PRESA_MAP.forEach(item => {
+      const btn = document.getElementById(item.btnId);
+      if (btn) {
+        btn.classList.remove('ring-2', 'ring-emerald-500', 'border-emerald-500');
+        if (item.name === presa) {
+          btn.classList.add('ring-2', 'ring-emerald-500', 'border-emerald-500');
+        }
+      }
+    });
+
+    checkPersonalComboReady();
     return;
   }
 
@@ -556,7 +722,7 @@ function handlePresaClick(presa) {
     return;
   }
 
-  // Combos de múltiples presas
+  // Combos de múltiples presas (1/4, 1/2, Entero)
   if (comboSelectedPresas.length >= reqCount) {
     if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
     alert(`Ya has seleccionado las ${reqCount} presas requeridas. Presiona "Agregar al Pedido" o toca una presa arriba para quitarla.`);
@@ -659,7 +825,26 @@ function removeComboPresaAtIndex(idx) {
 function resetComboSelection() {
   if (navigator.vibrate) navigator.vibrate(25);
   comboSelectedPresas = [];
-  renderComboSelectionUI();
+  comboPersonalDrink = null;
+
+  if (pendingPresaProduct && pendingPresaProduct.sku === 'POL-PER') {
+    PRESA_MAP.forEach(item => {
+      const btn = document.getElementById(item.btnId);
+      if (btn) btn.classList.remove('ring-2', 'ring-emerald-500', 'border-emerald-500');
+    });
+    const btnMan = document.getElementById('btn-drink-manzana');
+    const btnCol = document.getElementById('btn-drink-colombiana');
+    if (btnMan) btnMan.classList.remove('ring-2', 'ring-emerald-500', 'border-pink-500');
+    if (btnCol) btnCol.classList.remove('ring-2', 'ring-emerald-500', 'border-red-500');
+    const selDrinkBadge = document.getElementById('selectedDrinkBadge');
+    if (selDrinkBadge) {
+      selDrinkBadge.textContent = 'Sin seleccionar';
+      selDrinkBadge.className = 'text-xs font-bold text-amber-400';
+    }
+    checkPersonalComboReady();
+  } else {
+    renderComboSelectionUI();
+  }
 }
 
 function formatPresasSummary(presasList) {
@@ -687,6 +872,24 @@ function formatPresasSummary(presasList) {
 
 function confirmComboSelection() {
   if (!pendingPresaProduct) return;
+
+  // Manejo de Combo Personal (1 presa + 1 gaseosa 250ml)
+  if (pendingPresaProduct.sku === 'POL-PER') {
+    if (comboSelectedPresas.length === 0) {
+      alert("Por favor selecciona la presa de pollo.");
+      return;
+    }
+    if (!comboPersonalDrink) {
+      alert("Por favor selecciona la gaseosa de 250ml (Manzana o Colombiana).");
+      return;
+    }
+    const formattedStr = `${comboSelectedPresas[0]} | ${comboPersonalDrink.name}`;
+    if (navigator.vibrate) navigator.vibrate(30);
+    addToCart(pendingPresaProduct, formattedStr);
+    closePresaModal();
+    return;
+  }
+
   const reqCount = getRequiredPresasCount(pendingPresaProduct);
   if (comboSelectedPresas.length !== reqCount) {
     alert(`Debes seleccionar exactamente ${reqCount} presas.`);
@@ -699,7 +902,7 @@ function confirmComboSelection() {
   closePresaModal();
 }
 
-// Confirmación para productos de 1 presa (Almuerzo Completo)
+// Confirmación para productos de 1 presa directa (Almuerzo Completo)
 function confirmPresaChoice(presa) {
   if (!presa || !pendingPresaProduct) {
     closePresaModal();
@@ -734,6 +937,7 @@ function confirmPresaChoice(presa) {
 
 // Exponer funciones en window para invocación desde HTML onclick
 window.handlePresaClick = handlePresaClick;
+window.selectPersonalDrink = selectPersonalDrink;
 window.removeComboPresaAtIndex = removeComboPresaAtIndex;
 window.resetComboSelection = resetComboSelection;
 window.confirmComboSelection = confirmComboSelection;

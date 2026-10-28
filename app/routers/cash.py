@@ -356,6 +356,19 @@ def build_closing_inventory_sheet(conn, target_date: str) -> Dict[str, Any]:
                 add_consumed('muslo_vitrina', 2.0 * qty)
                 add_consumed('contramuslo_vitrina', 2.0 * qty)
             add_consumed('papas_raciones', 2.0 * qty)
+        elif sku == 'POL-PER':
+            presa_reqs = parse_chosen_presas_to_requirements(chosen)
+            if presa_reqs:
+                for k, v in presa_reqs.items():
+                    add_consumed(k, v * qty)
+            else:
+                add_consumed('muslo_vitrina', qty)
+            add_consumed('papas_raciones', qty)
+            chosen_str = (chosen or "").lower()
+            if 'colombiana' in chosen_str:
+                add_consumed('GAS-COL-250', qty)
+            else:
+                add_consumed('GAS-MAN-250', qty)
         elif sku == 'ALM-COMP':
             if chosen:
                 presa_key = f"{chosen.strip().lower()}_vitrina"

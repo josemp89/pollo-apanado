@@ -473,6 +473,19 @@ def get_daily_reconciliation(date: Optional[str] = None):
                     add_consumption('muslo_vitrina', 2.0 * qty)
                     add_consumption('contramuslo_vitrina', 2.0 * qty)
                 add_consumption('papas_raciones', 2.0 * qty)
+            elif sku == 'POL-PER':
+                presa_reqs = parse_chosen_presas_to_requirements(chosen)
+                if presa_reqs:
+                    for k, v in presa_reqs.items():
+                        add_consumption(k, v * qty)
+                else:
+                    add_consumption('muslo_vitrina', qty)
+                add_consumption('papas_raciones', qty)
+                chosen_str = (chosen or "").lower()
+                if 'colombiana' in chosen_str:
+                    add_consumption('GAS-COL-250', qty)
+                else:
+                    add_consumption('GAS-MAN-250', qty)
             elif sku == 'ALM-COMP':
                 if chosen:
                     presa_key = f"{chosen.strip().lower()}_vitrina"

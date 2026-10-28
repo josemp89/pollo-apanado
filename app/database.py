@@ -499,6 +499,18 @@ def init_db():
                 item_name = excluded.item_name;
         """, (inv[0], inv[1], inv[2], inv[3], inv[4], inv[5], now_sync, inv[6], inv[7]))
 
+    # Registrar Combo Personal promocional ($9.000 COP)
+    cursor.execute("""
+        INSERT INTO products (sku, name, category, price, cost, requires_presa_selection, icon, badge_color, active)
+        VALUES ('POL-PER', 'Combo Personal (Presa + Papas + Gaseosa 250ml)', 'pollo', 9000, 3725, 0, '🍗', 'teal', 1)
+        ON CONFLICT(sku) DO UPDATE SET
+            name = excluded.name,
+            category = excluded.category,
+            price = excluded.price,
+            cost = excluded.cost,
+            active = 1;
+    """)
+
     # Precios y costos acordados para presas de pollo en producción ($463.250 / 30 pollos)
     import os
     if not os.environ.get('PYTEST_CURRENT_TEST'):
@@ -551,6 +563,9 @@ def seed_initial_data(conn):
             ('GAS-ZER-400', 'Coca-Cola Zero 400ml', 'gaseosas', 4000, 2500, 0, '🥤', 'slate'),
             ('GAS-QUA-400', 'Quatro Toronja 400ml', 'gaseosas', 4000, 2500, 0, '🥤', 'green'),
             ('GAS-COC-15L', 'Coca-Cola 1.5L', 'gaseosas', 8500, 5500, 0, '🍾', 'red'),
+
+            # Promoción Combo Personal
+            ('POL-PER', 'Combo Personal (Presa + Papas + Gaseosa 250ml)', 'pollo', 9000, 3725, 0, '🍗', 'teal'),
         ]
 
         cursor.executemany("""

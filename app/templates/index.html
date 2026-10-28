@@ -469,6 +469,7 @@
         </div>
       </div>
 
+      <div id="presaChoicesLabel" class="hidden text-xs font-bold text-slate-300">1. Elige tu Presa de Pollo:</div>
       <div class="grid grid-cols-2 gap-3" id="presaChoices">
         <button type="button" id="btn-presa-pechuga" data-presa="Pechuga" onclick="handlePresaClick('Pechuga')" class="p-4 rounded-xl bg-slate-800 hover:bg-blue-600/30 border border-slate-700 hover:border-blue-500 active:scale-95 text-center transition space-y-1 relative">
           <div class="text-2xl">🍗</div>
@@ -502,6 +503,26 @@
           </div>
           <div id="stock-ala-badge" class="text-[11px] text-yellow-400 font-bold">Cargando...</div>
         </button>
+      </div>
+
+      <!-- Sección de Selección de Bebida 250ml para Combo Personal -->
+      <div id="comboPersonalDrinkSection" class="hidden space-y-2 pt-2 border-t border-slate-800">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-300">2. Elige tu Gaseosa 250ml:</span>
+          <span id="selectedDrinkBadge" class="text-xs font-bold text-amber-400">Sin seleccionar</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button type="button" id="btn-drink-manzana" onclick="selectPersonalDrink('GAS-MAN-250', 'Manzana 250ml')" class="p-3 rounded-xl bg-slate-800 hover:bg-pink-600/30 border border-slate-700 hover:border-pink-500 active:scale-95 text-center transition space-y-1">
+            <div class="text-xl">🌸</div>
+            <div class="font-bold text-xs text-slate-100">Manzana 250ml</div>
+            <div id="stock-manzana250-badge" class="text-[10px] text-pink-400 font-bold">Cargando...</div>
+          </button>
+          <button type="button" id="btn-drink-colombiana" onclick="selectPersonalDrink('GAS-COL-250', 'Colombiana 250ml')" class="p-3 rounded-xl bg-slate-800 hover:bg-red-600/30 border border-slate-700 hover:border-red-500 active:scale-95 text-center transition space-y-1">
+            <div class="text-xl">🥤</div>
+            <div class="font-bold text-xs text-slate-100">Colombiana 250ml</div>
+            <div id="stock-colombiana250-badge" class="text-[10px] text-red-400 font-bold">Cargando...</div>
+          </button>
+        </div>
       </div>
 
       <!-- Acciones de confirmación para combos de múltiples presas -->
