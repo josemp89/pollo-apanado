@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Header, Query
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
+import re
 import json
 import secrets
 import os
@@ -119,10 +120,44 @@ def get_next_sale_code(cursor, now: datetime) -> str:
         if not exists:
             return code
 
+def parse_chosen_presas_to_requirements(chosen_presa_str: Optional[str]) -> dict:
+    """
+    Parsea una cadena de presas elegidas (ej: 'Pechuga, Muslo', '2x Muslo', '2 Muslos', '1 Pechuga, 1 Ala', 'Pechuga')
+    y devuelve un diccionario con los requerimientos exactos de vitrina: {'pechuga_vitrina': 1.0, ...}.
+    """
+    if not chosen_presa_str or not str(chosen_presa_str).strip():
+        return {}
+    counts = {
+        'pechuga_vitrina': 0.0,
+        'muslo_vitrina': 0.0,
+        'contramuslo_vitrina': 0.0,
+        'ala_vitrina': 0.0
+    }
+    tokens = [t.strip() for t in str(chosen_presa_str).split(',') if t.strip()]
+    for token in tokens:
+        match = re.match(r'^(\d+)\s*x?\s*(.+)$', token, re.IGNORECASE)
+        if match:
+            multiplier = float(match.group(1))
+            name = match.group(2).lower()
+        else:
+            multiplier = 1.0
+            name = token.lower()
+        
+        if 'pechuga' in name:
+            counts['pechuga_vitrina'] += multiplier
+        elif 'contramuslo' in name:
+            counts['contramuslo_vitrina'] += multiplier
+        elif 'muslo' in name:
+            counts['muslo_vitrina'] += multiplier
+        elif 'ala' in name:
+            counts['ala_vitrina'] += multiplier
+    return {k: v for k, v in counts.items() if v > 0}
+
 def calculate_order_inventory_requirements(items_data):
     """
     Calcula de forma exacta y simétrica los insumos y presas requeridos
     para una lista de productos vendidos o a restaurar.
+    Soporta combos con presas elegidas a la carta (estilo Frisby) o asignación estándar tradicional.
     """
     requirements = {}
     
@@ -147,25 +182,40 @@ def calculate_order_inventory_requirements(items_data):
         elif sku == 'POL-ALA':
             add_req('ala_vitrina', qty)
 
-        # 2. Combos de Pollo (Descuentan presas surtidas y papas)
+        # 2. Combos de Pollo (Descuentan presas surtidas o elegidas y papas)
         elif sku == 'POL-14':
-            # 1/4 Pollo = 1 muslo + 1 contramuslo + 1 papas
-            add_req('muslo_vitrina', qty)
-            add_req('contramuslo_vitrina', qty)
+            presa_reqs = parse_chosen_presas_to_requirements(chosen_presa)
+            if presa_reqs:
+                for k, v in presa_reqs.items():
+                    add_req(k, v * qty)
+            else:
+                # 1/4 Pollo = 1 muslo + 1 contramuslo + 1 papas (fallback tradicional)
+                add_req('muslo_vitrina', qty)
+                add_req('contramuslo_vitrina', qty)
             add_req('papas_raciones', qty)
         elif sku == 'POL-12':
-            # 1/2 Pollo = 1 pechuga + 1 ala + 1 muslo + 1 contramuslo + 1 papas
-            add_req('pechuga_vitrina', qty)
-            add_req('ala_vitrina', qty)
-            add_req('muslo_vitrina', qty)
-            add_req('contramuslo_vitrina', qty)
+            presa_reqs = parse_chosen_presas_to_requirements(chosen_presa)
+            if presa_reqs:
+                for k, v in presa_reqs.items():
+                    add_req(k, v * qty)
+            else:
+                # 1/2 Pollo = 1 pechuga + 1 ala + 1 muslo + 1 contramuslo + 1 papas (fallback tradicional)
+                add_req('pechuga_vitrina', qty)
+                add_req('ala_vitrina', qty)
+                add_req('muslo_vitrina', qty)
+                add_req('contramuslo_vitrina', qty)
             add_req('papas_raciones', qty)
         elif sku == 'POL-ENT':
-            # Pollo Entero = 2 pechugas + 2 alas + 2 muslos + 2 contramuslos + 2 papas
-            add_req('pechuga_vitrina', 2.0 * qty)
-            add_req('ala_vitrina', 2.0 * qty)
-            add_req('muslo_vitrina', 2.0 * qty)
-            add_req('contramuslo_vitrina', 2.0 * qty)
+            presa_reqs = parse_chosen_presas_to_requirements(chosen_presa)
+            if presa_reqs:
+                for k, v in presa_reqs.items():
+                    add_req(k, v * qty)
+            else:
+                # Pollo Entero = 2 pechugas + 2 alas + 2 muslos + 2 contramuslos + 2 papas (fallback tradicional)
+                add_req('pechuga_vitrina', 2.0 * qty)
+                add_req('ala_vitrina', 2.0 * qty)
+                add_req('muslo_vitrina', 2.0 * qty)
+                add_req('contramuslo_vitrina', 2.0 * qty)
             add_req('papas_raciones', 2.0 * qty)
 
         # 3. Almuerzo Completo (Descuento estricto de la presa elegida + guarniciones)
@@ -538,7 +588,13 @@ def cancel_sale(
             sku = item.get("product_sku")
             qty = int(item.get("quantity", 0))
             presa = item.get("chosen_presa")
-            if sku == "POL-PEC" or presa == "Pechuga":
+            custom_reqs = parse_chosen_presas_to_requirements(presa) if sku in ("POL-14", "POL-12", "POL-ENT") else {}
+            if custom_reqs:
+                presas_restored["pechugas"] += int(custom_reqs.get("pechuga_vitrina", 0) * qty)
+                presas_restored["muslos"] += int(custom_reqs.get("muslo_vitrina", 0) * qty)
+                presas_restored["contramuslos"] += int(custom_reqs.get("contramuslo_vitrina", 0) * qty)
+                presas_restored["alas"] += int(custom_reqs.get("ala_vitrina", 0) * qty)
+            elif sku == "POL-PEC" or presa == "Pechuga":
                 presas_restored["pechugas"] += qty
             elif sku == "POL-MUS" or presa == "Muslo":
                 presas_restored["muslos"] += qty

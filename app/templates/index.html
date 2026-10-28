@@ -449,35 +449,68 @@
     </div>
   </div>
 
-  <!-- MODAL RÁPIDO DE SELECCIÓN DE PRESA PARA ALMUERZO -->
+  <!-- MODAL RÁPIDO DE SELECCIÓN DE PRESA PARA COMBOS Y ALMUERZO -->
   <div id="presaModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-850 bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 animate-scale-up">
       <div class="text-center space-y-1">
-        <span class="text-3xl">🍽️</span>
-        <h3 class="text-lg font-black text-amber-400">¿Qué Presa Lleva el Almuerzo?</h3>
-        <p class="text-xs text-slate-400">Selecciona la presa para descontar exactamente del inventario</p>
+        <span class="text-3xl" id="presaModalIcon">🍗</span>
+        <h3 class="text-lg font-black text-amber-400" id="presaModalTitle">¿Qué Presa Lleva el Almuerzo?</h3>
+        <p class="text-xs text-slate-400" id="presaModalSubtitle">Selecciona la presa para descontar exactamente del inventario</p>
+      </div>
+
+      <!-- Barra de selección interactiva para combos con múltiples presas (1/4 Pollo, 1/2 Pollo, Pollo Entero) -->
+      <div id="comboSelectionBar" class="hidden bg-slate-800/90 border border-slate-700 rounded-xl p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-300">Presas elegidas:</span>
+          <span id="comboCounterBadge" class="text-xs font-black px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40">0 / 2 presas</span>
+        </div>
+        <div id="comboChipsContainer" class="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-slate-950/60 rounded-lg border border-slate-800 items-center">
+          <span class="text-[11px] text-slate-500 italic">Toca las presas abajo para agregarlas...</span>
+        </div>
       </div>
 
       <div class="grid grid-cols-2 gap-3" id="presaChoices">
-        <button type="button" id="btn-presa-pechuga" data-presa="Pechuga" onclick="confirmPresaChoice('Pechuga')" class="p-4 rounded-xl bg-slate-800 hover:bg-blue-600/30 border border-slate-700 hover:border-blue-500 active:scale-95 text-center transition space-y-1">
+        <button type="button" id="btn-presa-pechuga" data-presa="Pechuga" onclick="handlePresaClick('Pechuga')" class="p-4 rounded-xl bg-slate-800 hover:bg-blue-600/30 border border-slate-700 hover:border-blue-500 active:scale-95 text-center transition space-y-1 relative">
           <div class="text-2xl">🍗</div>
-          <div class="font-black text-sm text-slate-100">Pechuga</div>
+          <div class="font-black text-sm text-slate-100 flex items-center justify-center gap-1.5">
+            <span>Pechuga</span>
+            <span id="badge-count-pechuga" class="hidden text-xs bg-blue-600 text-white font-black px-1.5 py-0.2 rounded-full">0</span>
+          </div>
           <div id="stock-pechuga-badge" class="text-[11px] text-blue-400 font-bold">Cargando...</div>
         </button>
-        <button type="button" id="btn-presa-muslo" data-presa="Muslo" onclick="confirmPresaChoice('Muslo')" class="p-4 rounded-xl bg-slate-800 hover:bg-orange-600/30 border border-slate-700 hover:border-orange-500 active:scale-95 text-center transition space-y-1">
+        <button type="button" id="btn-presa-muslo" data-presa="Muslo" onclick="handlePresaClick('Muslo')" class="p-4 rounded-xl bg-slate-800 hover:bg-orange-600/30 border border-slate-700 hover:border-orange-500 active:scale-95 text-center transition space-y-1 relative">
           <div class="text-2xl">🍗</div>
-          <div class="font-black text-sm text-slate-100">Muslo</div>
+          <div class="font-black text-sm text-slate-100 flex items-center justify-center gap-1.5">
+            <span>Muslo</span>
+            <span id="badge-count-muslo" class="hidden text-xs bg-orange-600 text-white font-black px-1.5 py-0.2 rounded-full">0</span>
+          </div>
           <div id="stock-muslo-badge" class="text-[11px] text-orange-400 font-bold">Cargando...</div>
         </button>
-        <button type="button" id="btn-presa-contramuslo" data-presa="Contramuslo" onclick="confirmPresaChoice('Contramuslo')" class="p-4 rounded-xl bg-slate-800 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500 active:scale-95 text-center transition space-y-1">
+        <button type="button" id="btn-presa-contramuslo" data-presa="Contramuslo" onclick="handlePresaClick('Contramuslo')" class="p-4 rounded-xl bg-slate-800 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500 active:scale-95 text-center transition space-y-1 relative">
           <div class="text-2xl">🍗</div>
-          <div class="font-black text-sm text-slate-100">Contramuslo</div>
+          <div class="font-black text-sm text-slate-100 flex items-center justify-center gap-1.5">
+            <span>Contramuslo</span>
+            <span id="badge-count-contramuslo" class="hidden text-xs bg-amber-600 text-white font-black px-1.5 py-0.2 rounded-full">0</span>
+          </div>
           <div id="stock-contramuslo-badge" class="text-[11px] text-amber-400 font-bold">Cargando...</div>
         </button>
-        <button type="button" id="btn-presa-ala" data-presa="Ala" onclick="confirmPresaChoice('Ala')" class="p-4 rounded-xl bg-slate-800 hover:bg-yellow-600/30 border border-slate-700 hover:border-yellow-500 active:scale-95 text-center transition space-y-1">
+        <button type="button" id="btn-presa-ala" data-presa="Ala" onclick="handlePresaClick('Ala')" class="p-4 rounded-xl bg-slate-800 hover:bg-yellow-600/30 border border-slate-700 hover:border-yellow-500 active:scale-95 text-center transition space-y-1 relative">
           <div class="text-2xl">🍗</div>
-          <div class="font-black text-sm text-slate-100">Ala</div>
+          <div class="font-black text-sm text-slate-100 flex items-center justify-center gap-1.5">
+            <span>Ala</span>
+            <span id="badge-count-ala" class="hidden text-xs bg-yellow-500 text-slate-950 font-black px-1.5 py-0.2 rounded-full">0</span>
+          </div>
           <div id="stock-ala-badge" class="text-[11px] text-yellow-400 font-bold">Cargando...</div>
+        </button>
+      </div>
+
+      <!-- Acciones de confirmación para combos de múltiples presas -->
+      <div id="comboActions" class="hidden pt-1 flex gap-2">
+        <button type="button" id="btnResetComboSelection" onclick="resetComboSelection()" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-600 transition">
+          🔄 Reiniciar
+        </button>
+        <button type="button" id="btnConfirmComboSelection" onclick="confirmComboSelection()" disabled class="flex-[2] py-2.5 rounded-xl bg-slate-800 text-slate-500 font-black text-sm border border-slate-700 cursor-not-allowed transition">
+          Agregar al Pedido
         </button>
       </div>
 

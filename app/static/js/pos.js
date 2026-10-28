@@ -4,6 +4,7 @@ let stockSummary = {};
 let currentCategory = 'todos';
 let cart = []; // { product, quantity, chosen_presa }
 let pendingPresaProduct = null;
+let comboSelectedPresas = []; // Presas seleccionadas para combo dinámico (estilo Frisby)
 let pendingDigitalMethod = null;
 let lastSaleId = null;
 let undoBannerTimeout = null;
@@ -171,30 +172,23 @@ function getProductStockInfo(product, summary) {
     color = 'yellow';
   }
 
-  // 2. Combos de pollo
+  // 2. Combos de pollo (selección a la carta: 1/4 = 2 presas, 1/2 = 4 presas, Entero = 8 presas)
   else if (product.sku === 'POL-14') {
-    const muslo = getStock('muslo_vitrina');
-    const contra = getStock('contramuslo_vitrina');
+    const totalPresas = getStock('pechuga_vitrina') + getStock('muslo_vitrina') + getStock('contramuslo_vitrina') + getStock('ala_vitrina');
     const papas = getStock('papas_raciones');
-    stock = Math.min(muslo, contra, papas);
+    stock = Math.min(Math.floor(totalPresas / 2), papas);
     label = 'Combos';
     color = 'indigo';
   } else if (product.sku === 'POL-12') {
-    const pec = getStock('pechuga_vitrina');
-    const ala = getStock('ala_vitrina');
-    const mus = getStock('muslo_vitrina');
-    const con = getStock('contramuslo_vitrina');
+    const totalPresas = getStock('pechuga_vitrina') + getStock('muslo_vitrina') + getStock('contramuslo_vitrina') + getStock('ala_vitrina');
     const papas = getStock('papas_raciones');
-    stock = Math.min(pec, ala, mus, con, papas);
+    stock = Math.min(Math.floor(totalPresas / 4), papas);
     label = 'Combos';
     color = 'purple';
   } else if (product.sku === 'POL-ENT') {
-    const pec = Math.floor(getStock('pechuga_vitrina') / 2);
-    const ala = Math.floor(getStock('ala_vitrina') / 2);
-    const mus = Math.floor(getStock('muslo_vitrina') / 2);
-    const con = Math.floor(getStock('contramuslo_vitrina') / 2);
+    const totalPresas = getStock('pechuga_vitrina') + getStock('muslo_vitrina') + getStock('contramuslo_vitrina') + getStock('ala_vitrina');
     const papas = Math.floor(getStock('papas_raciones') / 2);
-    stock = Math.min(pec, ala, mus, con, papas);
+    stock = Math.min(Math.floor(totalPresas / 8), papas);
     label = 'Enteros';
     color = 'rose';
   }
@@ -392,6 +386,47 @@ function renderProducts() {
   });
 }
 
+// Helper: Determina cuántas presas requiere un producto (Almuerzo = 1, 1/4 Pollo = 2, 1/2 Pollo = 4, Entero = 8)
+function getRequiredPresasCount(product) {
+  if (!product) return 0;
+  if (product.sku === 'ALM-COMP' || product.requires_presa_selection == 1) return 1;
+  if (product.sku === 'POL-14') return 2;
+  if (product.sku === 'POL-12') return 4;
+  if (product.sku === 'POL-ENT') return 8;
+  return 0;
+}
+
+// Helper: Cuenta cuántas unidades de una presa específica están comprometidas en la comanda actual
+function getReservedPresaCountInCart(presaName) {
+  if (!presaName || !cart || cart.length === 0) return 0;
+  const targetLower = presaName.toLowerCase();
+  let count = 0;
+  cart.forEach(it => {
+    // 1. Presa sola directa
+    if (it.product && it.product.sku === getSkuForPresa(presaName)) {
+      count += it.quantity;
+      return;
+    }
+    // 2. Presa elegida en almuerzo o combo
+    if (it.chosen_presa) {
+      const tokens = String(it.chosen_presa).split(',');
+      tokens.forEach(tok => {
+        const m = tok.trim().match(/^(\d+)\s*x?\s*(.+)$/i);
+        let multiplier = 1;
+        let name = tok.trim().toLowerCase();
+        if (m) {
+          multiplier = parseInt(m[1], 10) || 1;
+          name = m[2].trim().toLowerCase();
+        }
+        if (name.includes(targetLower)) {
+          count += multiplier * it.quantity;
+        }
+      });
+    }
+  });
+  return count;
+}
+
 // Clic en producto
 function onProductClick(product) {
   const stockInfo = getProductStockInfo(product, stockSummary);
@@ -404,26 +439,54 @@ function onProductClick(product) {
   // Vibración táctil si el dispositivo la soporta
   if (navigator.vibrate) navigator.vibrate(25);
 
-  if (product.requires_presa_selection) {
-    // Abrir modal de selección de presa (Almuerzo Completo)
+  const requiredCount = getRequiredPresasCount(product);
+  if (requiredCount > 0) {
+    // Abrir modal de selección de presas (Almuerzo o Combos a la carta estilo Frisby)
     pendingPresaProduct = product;
-    openPresaModal();
+    openPresaModal(product);
   } else {
     addToCart(product);
   }
 }
 
-// Modal de Selección de Presa
-function openPresaModal() {
-  updateStockBadgesInModal();
-  const hasAvailablePresas = PRESA_MAP.some(item => {
-    const s = stockSummary[item.key];
-    return s && Number(s.stock) > 0;
-  });
+// Modal de Selección de Presas
+function openPresaModal(product = null) {
+  if (product) pendingPresaProduct = product;
+  if (!pendingPresaProduct) return;
 
-  if (!hasAvailablePresas) {
+  comboSelectedPresas = [];
+  const reqCount = getRequiredPresasCount(pendingPresaProduct);
+
+  const titleEl = document.getElementById('presaModalTitle');
+  const subtitleEl = document.getElementById('presaModalSubtitle');
+  const comboBarEl = document.getElementById('comboSelectionBar');
+  const comboActionsEl = document.getElementById('comboActions');
+
+  if (reqCount === 1) {
+    if (titleEl) titleEl.textContent = '¿Qué Presa Lleva el Almuerzo?';
+    if (subtitleEl) subtitleEl.textContent = 'Selecciona la presa para descontar exactamente del inventario';
+    if (comboBarEl) comboBarEl.classList.add('hidden');
+    if (comboActionsEl) comboActionsEl.classList.add('hidden');
+  } else {
+    if (titleEl) titleEl.textContent = `Elige las ${reqCount} Presas del Combo`;
+    if (subtitleEl) subtitleEl.textContent = `${pendingPresaProduct.name} - Puedes combinar las presas a tu gusto`;
+    if (comboBarEl) comboBarEl.classList.remove('hidden');
+    if (comboActionsEl) comboActionsEl.classList.remove('hidden');
+    renderComboSelectionUI();
+  }
+
+  updateStockBadgesInModal();
+
+  const totalPresas = PRESA_MAP.reduce((sum, item) => {
+    const s = stockSummary[item.key];
+    const live = s ? Number(s.stock) : 0;
+    const reserved = getReservedPresaCountInCart(item.name);
+    return sum + Math.max(0, live - reserved);
+  }, 0);
+
+  if (totalPresas < reqCount) {
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-    alert("Todas las presas de pollo están agotadas en vitrina térmica. No es posible agregar Almuerzo Completo en este momento.");
+    alert(`No hay suficientes presas en vitrina térmica (se requieren ${reqCount}, disponibles: ${totalPresas}).`);
     pendingPresaProduct = null;
     return;
   }
@@ -434,6 +497,14 @@ function openPresaModal() {
 function closePresaModal() {
   document.getElementById('presaModal').classList.add('hidden');
   pendingPresaProduct = null;
+  comboSelectedPresas = [];
+  ['pechuga', 'muslo', 'contramuslo', 'ala'].forEach(k => {
+    const b = document.getElementById(`badge-count-${k}`);
+    if (b) {
+      b.classList.add('hidden');
+      b.textContent = '0';
+    }
+  });
 }
 
 function updateStockBadgesInModal() {
@@ -443,9 +514,11 @@ function updateStockBadgesInModal() {
     if (!badgeEl || !btnEl) return;
 
     const stockItem = stockSummary[item.key];
-    const stock = stockItem ? Number(stockItem.stock) : 0;
+    const liveStock = stockItem ? Number(stockItem.stock) : 0;
+    const reserved = getReservedPresaCountInCart(item.name);
+    const netAvailable = Math.max(0, liveStock - reserved);
 
-    if (stock <= 0) {
+    if (netAvailable <= 0) {
       btnEl.disabled = true;
       btnEl.setAttribute('aria-disabled', 'true');
       btnEl.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
@@ -459,7 +532,7 @@ function updateStockBadgesInModal() {
       btnEl.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
       btnEl.classList.add('active:scale-95');
 
-      badgeEl.textContent = `Quedan ${stock} listas`;
+      badgeEl.textContent = `Quedan ${netAvailable} listas`;
       badgeEl.className = `text-[11px] ${item.colorClass} font-bold`;
     }
   });
@@ -470,6 +543,163 @@ function getSkuForPresa(presa) {
   return map[presa] || null;
 }
 
+// Clic en presa (compatible tanto para 1 presa como para combos dinámicos)
+function handlePresaClick(presa) {
+  if (!presa || !pendingPresaProduct) {
+    closePresaModal();
+    return;
+  }
+
+  const reqCount = getRequiredPresasCount(pendingPresaProduct);
+  if (reqCount <= 1) {
+    confirmPresaChoice(presa);
+    return;
+  }
+
+  // Combos de múltiples presas
+  if (comboSelectedPresas.length >= reqCount) {
+    if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+    alert(`Ya has seleccionado las ${reqCount} presas requeridas. Presiona "Agregar al Pedido" o toca una presa arriba para quitarla.`);
+    return;
+  }
+
+  const presaKey = `${presa.trim().toLowerCase()}_vitrina`;
+  const currentStock = (stockSummary[presaKey] && typeof stockSummary[presaKey].stock === 'number')
+    ? stockSummary[presaKey].stock
+    : 0;
+
+  const reservedInCart = getReservedPresaCountInCart(presa);
+  const currentlySelectedInModal = comboSelectedPresas.filter(p => p.toLowerCase() === presa.toLowerCase()).length;
+
+  if (reservedInCart + currentlySelectedInModal >= currentStock) {
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    alert(`Solo quedan ${currentStock} unidad(es) de ${presa} disponibles en vitrina.`);
+    return;
+  }
+
+  if (navigator.vibrate) navigator.vibrate(25);
+  comboSelectedPresas.push(presa);
+  renderComboSelectionUI();
+}
+
+function renderComboSelectionUI() {
+  if (!pendingPresaProduct) return;
+  const reqCount = getRequiredPresasCount(pendingPresaProduct);
+
+  // 1. Contador badge
+  const counterEl = document.getElementById('comboCounterBadge');
+  if (counterEl) {
+    counterEl.textContent = `${comboSelectedPresas.length} / ${reqCount} presas`;
+    if (comboSelectedPresas.length === reqCount) {
+      counterEl.className = 'text-xs font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse';
+    } else {
+      counterEl.className = 'text-xs font-black px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40';
+    }
+  }
+
+  // 2. Badges numéricos sobre botones de presa
+  const counts = { pechuga: 0, muslo: 0, contramuslo: 0, ala: 0 };
+  comboSelectedPresas.forEach(p => {
+    const k = p.toLowerCase();
+    if (counts[k] !== undefined) counts[k]++;
+  });
+
+  ['pechuga', 'muslo', 'contramuslo', 'ala'].forEach(k => {
+    const badge = document.getElementById(`badge-count-${k}`);
+    if (badge) {
+      if (counts[k] > 0) {
+        badge.textContent = counts[k];
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+        badge.textContent = '0';
+      }
+    }
+  });
+
+  // 3. Chips interactivos de presas seleccionadas
+  const chipsContainer = document.getElementById('comboChipsContainer');
+  if (chipsContainer) {
+    if (comboSelectedPresas.length === 0) {
+      chipsContainer.innerHTML = '<span class="text-[11px] text-slate-500 italic">Toca las presas abajo para agregarlas...</span>';
+    } else {
+      chipsContainer.innerHTML = comboSelectedPresas.map((presa, idx) => `
+        <button type="button" onclick="removeComboPresaAtIndex(${idx})" class="group inline-flex items-center gap-1.5 bg-amber-500/20 hover:bg-red-500/25 border border-amber-500/40 hover:border-red-500/50 text-amber-300 hover:text-red-300 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95" title="Toca para quitar esta presa">
+          <span>🍗 ${presa}</span>
+          <span class="text-xs group-hover:rotate-90 transition-transform">&times;</span>
+        </button>
+      `).join('');
+    }
+  }
+
+  // 4. Botón de confirmación
+  const confirmBtn = document.getElementById('btnConfirmComboSelection');
+  if (confirmBtn) {
+    if (comboSelectedPresas.length === reqCount) {
+      confirmBtn.disabled = false;
+      confirmBtn.className = 'flex-[2] py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow-lg shadow-emerald-600/30 active:scale-95 transition cursor-pointer flex items-center justify-center gap-1.5';
+      confirmBtn.innerHTML = `<span>✅ Agregar Combo al Pedido</span>`;
+    } else {
+      confirmBtn.disabled = true;
+      confirmBtn.className = 'flex-[2] py-2.5 rounded-xl bg-slate-800 text-slate-500 font-black text-sm border border-slate-700 cursor-not-allowed transition';
+      const remaining = reqCount - comboSelectedPresas.length;
+      confirmBtn.innerHTML = `<span>Falta${remaining > 1 ? 'n' : ''} ${remaining} presa${remaining > 1 ? 's' : ''}</span>`;
+    }
+  }
+}
+
+function removeComboPresaAtIndex(idx) {
+  if (idx >= 0 && idx < comboSelectedPresas.length) {
+    if (navigator.vibrate) navigator.vibrate(20);
+    comboSelectedPresas.splice(idx, 1);
+    renderComboSelectionUI();
+  }
+}
+
+function resetComboSelection() {
+  if (navigator.vibrate) navigator.vibrate(25);
+  comboSelectedPresas = [];
+  renderComboSelectionUI();
+}
+
+function formatPresasSummary(presasList) {
+  if (!presasList || presasList.length === 0) return '';
+  const counts = {};
+  presasList.forEach(p => {
+    counts[p] = (counts[p] || 0) + 1;
+  });
+
+  const parts = [];
+  const order = ['Pechuga', 'Muslo', 'Contramuslo', 'Ala'];
+  order.forEach(p => {
+    if (counts[p]) {
+      const c = counts[p];
+      if (c === 1) {
+        parts.push(`1 ${p}`);
+      } else {
+        const plural = p === 'Contramuslo' ? 'Contramuslos' : `${p}s`;
+        parts.push(`${c} ${plural}`);
+      }
+    }
+  });
+  return parts.join(', ');
+}
+
+function confirmComboSelection() {
+  if (!pendingPresaProduct) return;
+  const reqCount = getRequiredPresasCount(pendingPresaProduct);
+  if (comboSelectedPresas.length !== reqCount) {
+    alert(`Debes seleccionar exactamente ${reqCount} presas.`);
+    return;
+  }
+
+  const formattedStr = formatPresasSummary(comboSelectedPresas);
+  if (navigator.vibrate) navigator.vibrate(30);
+  addToCart(pendingPresaProduct, formattedStr);
+  closePresaModal();
+}
+
+// Confirmación para productos de 1 presa (Almuerzo Completo)
 function confirmPresaChoice(presa) {
   if (!presa || !pendingPresaProduct) {
     closePresaModal();
@@ -490,13 +720,8 @@ function confirmPresaChoice(presa) {
   }
 
   // Comprobar si ya se agregaron a la comanda todas las presas disponibles
-  const cartPresaCount = cart.reduce((sum, it) => {
-    if (it.chosen_presa === presa) return sum + it.quantity;
-    if (it.product.sku === getSkuForPresa(presa)) return sum + it.quantity;
-    return sum;
-  }, 0);
-
-  if (cartPresaCount >= currentStock) {
+  const reservedInCart = getReservedPresaCountInCart(presa);
+  if (reservedInCart >= currentStock) {
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     alert(`Solo quedan ${currentStock} unidad(es) de ${presa} en vitrina, y ya están agregadas a la comanda.`);
     return;
@@ -506,6 +731,14 @@ function confirmPresaChoice(presa) {
   addToCart(pendingPresaProduct, presa);
   closePresaModal();
 }
+
+// Exponer funciones en window para invocación desde HTML onclick
+window.handlePresaClick = handlePresaClick;
+window.removeComboPresaAtIndex = removeComboPresaAtIndex;
+window.resetComboSelection = resetComboSelection;
+window.confirmComboSelection = confirmComboSelection;
+window.confirmPresaChoice = confirmPresaChoice;
+window.closePresaModal = closePresaModal;
 
 // Agregar al carrito / comanda
 function addToCart(product, chosen_presa = null) {

@@ -4,6 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from app.database import get_db_connection
+from app.routers.pos import parse_chosen_presas_to_requirements
 
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
@@ -442,20 +443,35 @@ def get_daily_reconciliation(date: Optional[str] = None):
             elif sku == 'POL-ALA':
                 add_consumption('ala_vitrina', qty)
             elif sku == 'POL-14':
-                add_consumption('muslo_vitrina', qty)
-                add_consumption('contramuslo_vitrina', qty)
+                presa_reqs = parse_chosen_presas_to_requirements(chosen)
+                if presa_reqs:
+                    for k, v in presa_reqs.items():
+                        add_consumption(k, v * qty)
+                else:
+                    add_consumption('muslo_vitrina', qty)
+                    add_consumption('contramuslo_vitrina', qty)
                 add_consumption('papas_raciones', qty)
             elif sku == 'POL-12':
-                add_consumption('pechuga_vitrina', qty)
-                add_consumption('ala_vitrina', qty)
-                add_consumption('muslo_vitrina', qty)
-                add_consumption('contramuslo_vitrina', qty)
+                presa_reqs = parse_chosen_presas_to_requirements(chosen)
+                if presa_reqs:
+                    for k, v in presa_reqs.items():
+                        add_consumption(k, v * qty)
+                else:
+                    add_consumption('pechuga_vitrina', qty)
+                    add_consumption('ala_vitrina', qty)
+                    add_consumption('muslo_vitrina', qty)
+                    add_consumption('contramuslo_vitrina', qty)
                 add_consumption('papas_raciones', qty)
             elif sku == 'POL-ENT':
-                add_consumption('pechuga_vitrina', 2.0 * qty)
-                add_consumption('ala_vitrina', 2.0 * qty)
-                add_consumption('muslo_vitrina', 2.0 * qty)
-                add_consumption('contramuslo_vitrina', 2.0 * qty)
+                presa_reqs = parse_chosen_presas_to_requirements(chosen)
+                if presa_reqs:
+                    for k, v in presa_reqs.items():
+                        add_consumption(k, v * qty)
+                else:
+                    add_consumption('pechuga_vitrina', 2.0 * qty)
+                    add_consumption('ala_vitrina', 2.0 * qty)
+                    add_consumption('muslo_vitrina', 2.0 * qty)
+                    add_consumption('contramuslo_vitrina', 2.0 * qty)
                 add_consumption('papas_raciones', 2.0 * qty)
             elif sku == 'ALM-COMP':
                 if chosen:
