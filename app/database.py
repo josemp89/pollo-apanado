@@ -417,14 +417,15 @@ def init_db():
         INSERT OR IGNORE INTO inventory (item_key, name, category, stock, unit, min_threshold, updated_at)
         VALUES ('arepas_unidades', 'Arepas Disponibles', 'cocina', 50, 'unidad', 10, ?)
     """, (now_str,))
-    cursor.execute("""
-        INSERT OR IGNORE INTO inventory (item_key, name, category, stock, unit, min_threshold, updated_at)
-        VALUES ('harina_apanar_kg', 'Harina Apanador', 'bodega', 25, 'kg', 10, ?)
-    """, (now_str,))
-    cursor.execute("""
-        INSERT OR IGNORE INTO inventory (item_key, name, category, stock, unit, min_threshold, updated_at)
-        VALUES ('aceite_fritura_lt', 'Aceite para Freidoras', 'bodega', 40, 'litro', 15, ?)
-    """, (now_str,))
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        cursor.execute("""
+            INSERT OR IGNORE INTO inventory (item_key, name, category, stock, unit, min_threshold, updated_at)
+            VALUES ('harina_apanar_kg', 'Harina Apanador', 'bodega', 25, 'kg', 10, ?)
+        """, (now_str,))
+        cursor.execute("""
+            INSERT OR IGNORE INTO inventory (item_key, name, category, stock, unit, min_threshold, updated_at)
+            VALUES ('aceite_fritura_lt', 'Aceite para Freidoras', 'bodega', 40, 'litro', 15, ?)
+        """, (now_str,))
     
     # Saneamiento preventivo de inventario: restablecer cualquier stock negativo residual
     cursor.execute("UPDATE inventory SET stock = 15 WHERE stock < 0;")
@@ -512,7 +513,6 @@ def init_db():
     """)
 
     # Precios y costos acordados para presas de pollo en producción ($463.250 / 30 pollos)
-    import os
     if not os.environ.get('PYTEST_CURRENT_TEST'):
         cursor.execute("UPDATE products SET price = 6500, cost = 2641 WHERE sku = 'POL-PEC'")
         cursor.execute("UPDATE products SET price = 4500, cost = 1829 WHERE sku = 'POL-CON'")
