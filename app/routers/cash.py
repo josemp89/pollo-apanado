@@ -139,6 +139,7 @@ def get_closing_zones_spec():
             "GAS-PEP-175L",
             "GAS-COL-175L",
             "GAS-AGU-CRI-600",
+            "GAS-AGU-CRI-300",
             # Legacy drinks para compatibilidad de pruebas preexistentes
             "GAS-COL-400",
             "GAS-MAN-400",
@@ -194,6 +195,7 @@ ITEM_TO_PRODUCT_SKU = {
     "GAS-PEP-175L": "GAS-PEP-175L",
     "GAS-COL-175L": "GAS-COL-175L",
     "GAS-AGU-CRI-600": "GAS-AGU-CRI-600",
+    "GAS-AGU-CRI-300": "GAS-AGU-CRI-300",
     # Mapeo de bebidas legacy
     "GAS-COL-400": "GAS-COL-400",
     "GAS-MAN-400": "GAS-MAN-400",
@@ -240,7 +242,8 @@ DEFAULT_ITEM_VALUATION = {
     "GAS-MAN-175L": {"price": 6500, "cost": 3750},
     "GAS-PEP-175L": {"price": 6500, "cost": 3750},
     "GAS-COL-175L": {"price": 6500, "cost": 3750},
-    "GAS-AGU-CRI-600": {"price": 3000, "cost": 1200}
+    "GAS-AGU-CRI-600": {"price": 2500, "cost": 1000},
+    "GAS-AGU-CRI-300": {"price": 1000, "cost": 500}
 }
 
 def build_closing_inventory_sheet(conn, target_date: str) -> Dict[str, Any]:

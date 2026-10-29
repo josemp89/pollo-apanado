@@ -572,7 +572,8 @@ def init_db():
         ('GAS-PEP-175L', 'Pepsi 1.75L', 'gaseosas', 6500, 3750, 0, '🍾', 'blue', 1),
         ('GAS-COL-175L', 'Postobón Colombiana 1.75L', 'gaseosas', 6500, 3750, 0, '🍾', 'rose', 1),
         ('GAS-HIT-TRO-1L', 'Hit Frutas Tropicales 1L Tetra', 'gaseosas', 6500, 2500, 0, '🧃', 'orange', 1),
-        ('GAS-AGU-CRI-600', 'Agua Cristal 600ml', 'gaseosas', 3000, 1200, 0, '💧', 'sky', 1),
+        ('GAS-AGU-CRI-600', 'Agua Cristal 600ml', 'gaseosas', 2500, 1000, 0, '💧', 'sky', 1),
+        ('GAS-AGU-CRI-300', 'Agua Cristal 300ml', 'gaseosas', 1000, 500, 0, '💧', 'sky', 1),
     ]
     for p in postobon_products:
         cursor.execute("""
@@ -616,7 +617,8 @@ def init_db():
         ('GAS-PEP-175L', 'Pepsi 1.75L', 'nevera', 12, 'unidad', 4, 'Nevera', 'Pepsi 1.75L'),
         ('GAS-COL-175L', 'Postobón Colombiana 1.75L', 'nevera', 2, 'unidad', 4, 'Nevera', 'Postobón Colombiana 1.75L'),
         ('GAS-HIT-TRO-1L', 'Hit Frutas Tropicales 1L Tetra', 'nevera', 1, 'unidad', 4, 'Nevera', 'Hit Frutas Tropicales 1L Tetra'),
-        ('GAS-AGU-CRI-600', 'Agua Cristal 600ml', 'nevera', 17, 'unidad', 5, 'Nevera', 'Agua Cristal 600ml'),
+        ('GAS-AGU-CRI-600', 'Agua Cristal 600ml', 'nevera', 10, 'unidad', 5, 'Nevera', 'Agua Cristal 600ml'),
+        ('GAS-AGU-CRI-300', 'Agua Cristal 300ml', 'nevera', 7, 'unidad', 3, 'Nevera', 'Agua Cristal 300ml'),
     ]
     now_sync = datetime.now().isoformat()
     for inv in postobon_inventory:
