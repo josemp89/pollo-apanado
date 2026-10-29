@@ -330,6 +330,42 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_closing_receipts_date ON daily_closing_receipts(date_str);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_closing_receipts_shift ON daily_closing_receipts(shift_id);")
 
+    # 17. Comandas de Mesas (1 a 5) y Consumo en Sala
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS table_orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        table_number INTEGER NOT NULL CHECK (table_number BETWEEN 1 AND 5),
+        status TEXT NOT NULL DEFAULT 'abierta' CHECK (status IN ('abierta', 'cobrada', 'cancelada')),
+        total_amount INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        sale_id INTEGER REFERENCES sales(id)
+    );
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS table_order_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        table_order_id INTEGER NOT NULL,
+        product_id INTEGER NOT NULL,
+        product_sku TEXT NOT NULL,
+        product_name TEXT NOT NULL,
+        quantity INTEGER NOT NULL CHECK (quantity > 0),
+        unit_price INTEGER NOT NULL,
+        subtotal INTEGER NOT NULL,
+        chosen_presa TEXT,
+        category TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (table_order_id) REFERENCES table_orders (id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES products (id)
+    );
+    """)
+
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_table_orders_active 
+    ON table_orders(table_number, status);
+    """)
+
     # Migración idempotente: asegurar columnas location e item_name en la tabla inventory
     inv_cols = [r["name"] for r in cursor.execute("PRAGMA table_info(inventory);").fetchall()]
     if "location" not in inv_cols:

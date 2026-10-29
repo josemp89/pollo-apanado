@@ -669,3 +669,449 @@ def cancel_sale(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         conn.close()
+
+# ==================== MÓDULO DE GESTIÓN DE MESAS (1 A 5) ====================
+
+class TableItemsPayload(BaseModel):
+    items: List[CartItem]
+
+class TableCheckoutPayload(BaseModel):
+    payment_method: str  # 'efectivo', 'nequi_daviplata', 'datafono'
+    cash_received: Optional[int] = 0
+    notes: Optional[str] = None
+
+class CancelTablePayload(BaseModel):
+    pin: Optional[str] = None
+    reason: Optional[str] = "Cancelación por comensal o error de asignación"
+
+@router.get("/tables")
+def get_tables_status():
+    """Retorna el estado en tiempo real de las 5 mesas del establecimiento."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        tables = []
+        for t_num in range(1, 6):
+            order = cursor.execute("""
+                SELECT id, table_number, status, total_amount, created_at, updated_at
+                FROM table_orders
+                WHERE table_number = ? AND status = 'abierta'
+                ORDER BY id DESC LIMIT 1
+            """, (t_num,)).fetchone()
+
+            if order:
+                items_rows = cursor.execute("""
+                    SELECT id, product_id, product_sku, product_name, quantity, unit_price, subtotal, chosen_presa, category, created_at
+                    FROM table_order_items
+                    WHERE table_order_id = ?
+                    ORDER BY id ASC
+                """, (order["id"],)).fetchall()
+
+                tables.append({
+                    "table_number": t_num,
+                    "status": "ocupada",
+                    "order": {
+                        "id": order["id"],
+                        "table_number": t_num,
+                        "status": order["status"],
+                        "total_amount": order["total_amount"],
+                        "created_at": order["created_at"],
+                        "updated_at": order["updated_at"],
+                        "items_count": len(items_rows),
+                        "items": [dict(it) for it in items_rows]
+                    }
+                })
+            else:
+                tables.append({
+                    "table_number": t_num,
+                    "status": "libre",
+                    "order": None
+                })
+        return tables
+    finally:
+        conn.close()
+
+@router.get("/tables/{table_number}")
+def get_table_detail(table_number: int):
+    """Consulta los ítems y estado de la comanda activa de una mesa específica (1 a 5)."""
+    if table_number < 1 or table_number > 5:
+        raise HTTPException(status_code=400, detail="Número de mesa inválido. El local cuenta con mesas del 1 al 5.")
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        order = cursor.execute("""
+            SELECT id, table_number, status, total_amount, created_at, updated_at
+            FROM table_orders
+            WHERE table_number = ? AND status = 'abierta'
+            ORDER BY id DESC LIMIT 1
+        """, (table_number,)).fetchone()
+
+        if not order:
+            return {
+                "table_number": table_number,
+                "status": "libre",
+                "order": None
+            }
+
+        items_rows = cursor.execute("""
+            SELECT id, product_id, product_sku, product_name, quantity, unit_price, subtotal, chosen_presa, category, created_at
+            FROM table_order_items
+            WHERE table_order_id = ?
+            ORDER BY id ASC
+        """, (order["id"],)).fetchall()
+
+        return {
+            "table_number": table_number,
+            "status": "ocupada",
+            "order": {
+                "id": order["id"],
+                "table_number": table_number,
+                "status": order["status"],
+                "total_amount": order["total_amount"],
+                "created_at": order["created_at"],
+                "updated_at": order["updated_at"],
+                "items_count": len(items_rows),
+                "items": [dict(it) for it in items_rows]
+            }
+        }
+    finally:
+        conn.close()
+
+@router.post("/tables/{table_number}/items")
+def add_items_to_table(table_number: int, payload: TableItemsPayload):
+    """
+    Adiciona productos a una mesa abierta o la inicializa si estaba libre.
+    Descuenta de forma inmediata y atómica el inventario (vitrina, nevera, cocina)
+    con piso no negativo para evitar vender producto inexistente en mostrador.
+    """
+    if table_number < 1 or table_number > 5:
+        raise HTTPException(status_code=400, detail="Número de mesa inválido. El local cuenta con mesas del 1 al 5.")
+    if not payload.items:
+        raise HTTPException(status_code=400, detail="No se enviaron productos para adicionar a la mesa.")
+
+    for item in payload.items:
+        if item.quantity <= 0:
+            raise HTTPException(status_code=400, detail="La cantidad debe ser mayor a 0.")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        now = datetime.now()
+        now_iso = now.isoformat()
+
+        # 1. Validar productos y calcular subtotal
+        items_to_save = []
+        for item in payload.items:
+            product = cursor.execute("SELECT * FROM products WHERE id = ?", (item.product_id,)).fetchone()
+            if not product:
+                raise HTTPException(status_code=404, detail=f"Producto con ID {item.product_id} no encontrado.")
+
+            if product["requires_presa_selection"] and not item.chosen_presa:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"El producto '{product['name']}' requiere elegir la presa exacta para no descuadrar el inventario."
+                )
+
+            subtotal = product["price"] * item.quantity
+            items_to_save.append({
+                "product_id": product["id"],
+                "product_sku": product["sku"],
+                "product_name": product["name"],
+                "quantity": item.quantity,
+                "unit_price": product["price"],
+                "subtotal": subtotal,
+                "chosen_presa": item.chosen_presa,
+                "category": product["category"]
+            })
+
+        # 2. Validar requerimientos de inventario para estos nuevos ítems
+        required_inventory = calculate_order_inventory_requirements(items_to_save)
+        for item_key, needed in required_inventory.items():
+            row = cursor.execute("SELECT stock, name FROM inventory WHERE item_key = ?", (item_key,)).fetchone()
+            if not row:
+                raise HTTPException(status_code=400, detail=f"El insumo '{item_key}' no está registrado en inventario.")
+            if row["stock"] < needed:
+                avail_disp = int(row["stock"]) if float(row["stock"]).is_integer() else row["stock"]
+                needed_disp = int(needed) if float(needed).is_integer() else needed
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Stock insuficiente para '{row['name']}'. Disponible: {avail_disp}, requerido: {needed_disp}."
+                )
+
+        # 3. Descontar en vivo atómicamente con piso no negativo
+        for item_key, needed in required_inventory.items():
+            cursor.execute("""
+                UPDATE inventory 
+                SET stock = stock - ?, updated_at = ?
+                WHERE item_key = ? AND stock >= ?
+            """, (needed, now_iso, item_key, needed))
+            if cursor.rowcount == 0:
+                row = cursor.execute("SELECT stock, name FROM inventory WHERE item_key = ?", (item_key,)).fetchone()
+                current_stock = row["stock"] if row else 0
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Stock insuficiente para '{row['name'] if row else item_key}'. Disponible: {current_stock}, requerido: {needed}."
+                )
+
+        # 4. Obtener orden abierta de la mesa o crear una nueva
+        order = cursor.execute("""
+            SELECT id, total_amount FROM table_orders
+            WHERE table_number = ? AND status = 'abierta'
+            ORDER BY id DESC LIMIT 1
+        """, (table_number,)).fetchone()
+
+        if order:
+            order_id = order["id"]
+        else:
+            cursor.execute("""
+                INSERT INTO table_orders (table_number, status, total_amount, created_at, updated_at)
+                VALUES (?, 'abierta', 0, ?, ?)
+            """, (table_number, now_iso, now_iso))
+            order_id = cursor.lastrowid
+
+        # 5. Insertar ítems en table_order_items
+        for it in items_to_save:
+            cursor.execute("""
+                INSERT INTO table_order_items (
+                    table_order_id, product_id, product_sku, product_name,
+                    quantity, unit_price, subtotal, chosen_presa, category, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                order_id, it["product_id"], it["product_sku"], it["product_name"],
+                it["quantity"], it["unit_price"], it["subtotal"], it["chosen_presa"],
+                it["category"], now_iso
+            ))
+
+        # 6. Actualizar total de la orden
+        cursor.execute("""
+            UPDATE table_orders
+            SET total_amount = (SELECT COALESCE(SUM(subtotal), 0) FROM table_order_items WHERE table_order_id = ?),
+                updated_at = ?
+            WHERE id = ?
+        """, (order_id, now_iso, order_id))
+
+        conn.commit()
+
+        # Retornar estado actualizado de la mesa
+        updated_order = cursor.execute("SELECT * FROM table_orders WHERE id = ?", (order_id,)).fetchone()
+        all_items = cursor.execute("""
+            SELECT * FROM table_order_items WHERE table_order_id = ? ORDER BY id ASC
+        """, (order_id,)).fetchall()
+
+        return {
+            "success": True,
+            "message": f"Productos adicionados a Mesa {table_number} exitosamente.",
+            "table_number": table_number,
+            "order": {
+                "id": updated_order["id"],
+                "table_number": table_number,
+                "status": updated_order["status"],
+                "total_amount": updated_order["total_amount"],
+                "created_at": updated_order["created_at"],
+                "updated_at": updated_order["updated_at"],
+                "items_count": len(all_items),
+                "items": [dict(it) for it in all_items]
+            }
+        }
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@router.post("/tables/{table_number}/checkout")
+def checkout_table(table_number: int, payload: TableCheckoutPayload):
+    """
+    Cobra y cierra la orden de una mesa cuando los comensales se acercan a la caja.
+    Registra la venta en sales y sale_items con shift_id para el cuadre perfecto de caja.
+    NO descuenta inventario por segunda vez, ya que fue descontado en vivo al asignarse a la mesa.
+    """
+    if table_number < 1 or table_number > 5:
+        raise HTTPException(status_code=400, detail="Número de mesa inválido. El local cuenta con mesas del 1 al 5.")
+
+    VALID_PAYMENT_METHODS = {"efectivo", "nequi_daviplata", "datafono"}
+    raw_method = payload.payment_method.strip().lower() if payload.payment_method else ""
+    if raw_method not in VALID_PAYMENT_METHODS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Método de pago no válido: '{payload.payment_method}'. Métodos permitidos: efectivo, nequi_daviplata, datafono."
+        )
+    payment_method = raw_method
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        now = datetime.now()
+        date_str = now.strftime("%Y-%m-%d")
+        time_str = now.strftime("%H:%M:%S")
+        hour_of_day = now.hour
+        day_of_week = now.weekday()
+
+        # 1. Buscar orden abierta
+        order = cursor.execute("""
+            SELECT id, total_amount FROM table_orders
+            WHERE table_number = ? AND status = 'abierta'
+            ORDER BY id DESC LIMIT 1
+        """, (table_number,)).fetchone()
+        if not order:
+            raise HTTPException(status_code=400, detail=f"No hay una orden activa abierta en la Mesa {table_number}.")
+
+        order_id = order["id"]
+        total_amount = order["total_amount"]
+        if total_amount <= 0:
+            raise HTTPException(status_code=400, detail=f"La orden de la Mesa {table_number} no tiene un total válido a cobrar.")
+
+        # 2. Validar efectivo recibido
+        if payment_method == "efectivo":
+            if payload.cash_received is None or payload.cash_received < total_amount:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Monto en efectivo insuficiente para cubrir el total de la mesa."
+                )
+
+        change_returned = (payload.cash_received - total_amount) if payment_method == "efectivo" else 0
+        saved_cash_received = payload.cash_received if payment_method == "efectivo" else (payload.cash_received or 0)
+
+        # 3. Obtener turno activo
+        active_shift = cursor.execute("""
+            SELECT id FROM cash_shifts WHERE status = 'abierto' ORDER BY id DESC LIMIT 1
+        """).fetchone()
+        shift_id = active_shift["id"] if active_shift else None
+
+        # 4. Generar código de venta
+        sale_code = get_next_sale_code(cursor, now)
+
+        # 5. Obtener los ítems de la comanda de la mesa
+        items_rows = cursor.execute("""
+            SELECT product_id, product_sku, product_name, quantity, unit_price, subtotal, chosen_presa, category
+            FROM table_order_items
+            WHERE table_order_id = ?
+            ORDER BY id ASC
+        """, (order_id,)).fetchall()
+        if not items_rows:
+            raise HTTPException(status_code=400, detail=f"La orden de la Mesa {table_number} no tiene productos registrados.")
+
+        # 6. Insertar en sales
+        note_text = f"Consumo en Mesa {table_number}" + (f" - {payload.notes.strip()}" if payload.notes and payload.notes.strip() else "")
+        cursor.execute("""
+            INSERT INTO sales (
+                sale_code, timestamp, date_str, time_str, hour_of_day, day_of_week,
+                total_amount, payment_method, cash_received, change_returned, notes, status, shift_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completada', ?)
+        """, (
+            sale_code, now.isoformat(), date_str, time_str, hour_of_day, day_of_week,
+            total_amount, payment_method, saved_cash_received, change_returned,
+            note_text, shift_id
+        ))
+        sale_id = cursor.lastrowid
+
+        # 7. Insertar en sale_items
+        for it in items_rows:
+            cursor.execute("""
+                INSERT INTO sale_items (
+                    sale_id, product_id, product_name, quantity, unit_price, subtotal, chosen_presa
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                sale_id, it["product_id"], it["product_name"],
+                it["quantity"], it["unit_price"], it["subtotal"],
+                it["chosen_presa"]
+            ))
+
+        # 8. Marcar table_orders como cobrada y asociar el sale_id
+        cursor.execute("""
+            UPDATE table_orders
+            SET status = 'cobrada', sale_id = ?, updated_at = ?
+            WHERE id = ?
+        """, (sale_id, now.isoformat(), order_id))
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "sale_id": sale_id,
+            "sale_code": sale_code,
+            "table_number": table_number,
+            "total_amount": total_amount,
+            "cash_received": saved_cash_received,
+            "change_returned": change_returned,
+            "payment_method": payment_method,
+            "timestamp": now.isoformat(),
+            "time_str": time_str,
+            "items": [dict(it) for it in items_rows]
+        }
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@router.post("/tables/{table_number}/cancel")
+def cancel_table_order(table_number: int, payload: Optional[CancelTablePayload] = None):
+    """
+    Cancela la comanda abierta de una mesa y restaura el 100% del inventario
+    previamente descontado a vitrina y nevera. La mesa pasa de inmediato a estado libre.
+    """
+    if table_number < 1 or table_number > 5:
+        raise HTTPException(status_code=400, detail="Número de mesa inválido. El local cuenta con mesas del 1 al 5.")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        now = datetime.now()
+        now_iso = now.isoformat()
+
+        order = cursor.execute("""
+            SELECT id FROM table_orders
+            WHERE table_number = ? AND status = 'abierta'
+            ORDER BY id DESC LIMIT 1
+        """, (table_number,)).fetchone()
+        if not order:
+            raise HTTPException(status_code=400, detail=f"No hay una orden abierta en la Mesa {table_number} para cancelar.")
+
+        order_id = order["id"]
+        items_rows = cursor.execute("""
+            SELECT product_id, product_sku, product_name, quantity, unit_price, subtotal, chosen_presa, category
+            FROM table_order_items
+            WHERE table_order_id = ?
+        """, (order_id,)).fetchall()
+
+        # Restaurar inventario descontado
+        items_list = [dict(it) for it in items_rows]
+        restorations = calculate_order_inventory_requirements(items_list)
+        for item_key, qty in restorations.items():
+            cursor.execute("""
+                UPDATE inventory 
+                SET stock = stock + ?, updated_at = ?
+                WHERE item_key = ?
+            """, (qty, now_iso, item_key))
+
+        # Marcar orden como cancelada
+        cursor.execute("""
+            UPDATE table_orders
+            SET status = 'cancelada', updated_at = ?
+            WHERE id = ?
+        """, (now_iso, order_id))
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": f"Orden de la Mesa {table_number} cancelada exitosamente. Stock devuelto a vitrina y nevera.",
+            "table_number": table_number,
+            "restored_items_count": len(items_list)
+        }
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()

@@ -225,12 +225,51 @@
             <span>Cerrar</span>
           </button>
           <span class="text-xl">📝</span>
-          <span class="font-black text-sm uppercase tracking-wider text-slate-200">Ticket en Curso</span>
+          <span id="cartHeaderTitle" class="font-black text-sm uppercase tracking-wider text-slate-200">Ticket en Curso</span>
         </div>
-        <button onclick="clearCart()" class="text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg transition active:scale-95 flex items-center space-x-1">
+        <button id="btnClearOrCancelOrderBtn" onclick="handleClearOrCancel()" class="text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg transition active:scale-95 flex items-center space-x-1">
           <span>🗑️</span>
-          <span>Vaciar</span>
+          <span id="clearCartBtnText">Vaciar</span>
         </button>
+      </div>
+
+      <!-- BARRA SELECTORA DE DESTINO: PARA LLEVAR O MESAS 1 A 5 -->
+      <div class="px-3 py-2 bg-slate-950/70 border-b border-slate-800 flex-shrink-0">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Destino del Pedido</span>
+          <span id="activeDestinationLabel" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">🛍️ Para Llevar</span>
+        </div>
+        <div class="grid grid-cols-6 gap-1" id="tableSelectorTabs">
+          <button type="button" onclick="selectTableDestination(null)" id="tab-takeout" class="table-tab py-1.5 px-0.5 rounded-lg text-center font-black text-xs transition border bg-amber-500 text-slate-950 border-amber-400 shadow flex flex-col items-center justify-center">
+            <span class="text-xs">🛍️</span>
+            <span class="text-[9px] font-black leading-tight">Llevar</span>
+          </button>
+          <button type="button" onclick="selectTableDestination(1)" id="tab-table-1" class="table-tab py-1.5 px-0.5 rounded-lg text-center font-bold text-xs transition border bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600 flex flex-col items-center justify-center">
+            <span class="text-xs">🪑</span>
+            <span class="text-[9px] font-black leading-tight">Mesa 1</span>
+            <span id="tab-badge-1" class="text-[8px] text-emerald-400 font-bold leading-tight mt-0.5">Libre</span>
+          </button>
+          <button type="button" onclick="selectTableDestination(2)" id="tab-table-2" class="table-tab py-1.5 px-0.5 rounded-lg text-center font-bold text-xs transition border bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600 flex flex-col items-center justify-center">
+            <span class="text-xs">🪑</span>
+            <span class="text-[9px] font-black leading-tight">Mesa 2</span>
+            <span id="tab-badge-2" class="text-[8px] text-emerald-400 font-bold leading-tight mt-0.5">Libre</span>
+          </button>
+          <button type="button" onclick="selectTableDestination(3)" id="tab-table-3" class="table-tab py-1.5 px-0.5 rounded-lg text-center font-bold text-xs transition border bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600 flex flex-col items-center justify-center">
+            <span class="text-xs">🪑</span>
+            <span class="text-[9px] font-black leading-tight">Mesa 3</span>
+            <span id="tab-badge-3" class="text-[8px] text-emerald-400 font-bold leading-tight mt-0.5">Libre</span>
+          </button>
+          <button type="button" onclick="selectTableDestination(4)" id="tab-table-4" class="table-tab py-1.5 px-0.5 rounded-lg text-center font-bold text-xs transition border bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600 flex flex-col items-center justify-center">
+            <span class="text-xs">🪑</span>
+            <span class="text-[9px] font-black leading-tight">Mesa 4</span>
+            <span id="tab-badge-4" class="text-[8px] text-emerald-400 font-bold leading-tight mt-0.5">Libre</span>
+          </button>
+          <button type="button" onclick="selectTableDestination(5)" id="tab-table-5" class="table-tab py-1.5 px-0.5 rounded-lg text-center font-bold text-xs transition border bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600 flex flex-col items-center justify-center">
+            <span class="text-xs">🪑</span>
+            <span class="text-[9px] font-black leading-tight">Mesa 5</span>
+            <span id="tab-badge-5" class="text-[8px] text-emerald-400 font-bold leading-tight mt-0.5">Libre</span>
+          </button>
+        </div>
       </div>
 
       <!-- CONTENEDOR DE COMANDA / ITEMS (SCROLLABLE) -->
@@ -238,8 +277,8 @@
         <!-- Estado Vacío -->
         <div id="cartEmptyState" class="h-full flex flex-col items-center justify-center text-slate-500 space-y-2 py-12">
           <span class="text-4xl opacity-50">🛒</span>
-          <p class="text-sm font-semibold">Toca una presa o producto</p>
-          <p class="text-xs text-slate-600">El pedido aparecerá aquí</p>
+          <p id="emptyStateTitle" class="text-sm font-semibold">Toca una presa o producto</p>
+          <p id="emptyStateSubtitle" class="text-xs text-slate-600">El pedido aparecerá aquí</p>
           <button type="button" onclick="toggleMobileCart(false)" class="lg:hidden mt-3 px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold text-amber-400 border border-slate-700">
             Ir al Menú de Productos
           </button>
@@ -252,19 +291,28 @@
       </div>
 
       <!-- SECCIÓN DE TOTAL Y MEDIOS DE PAGO -->
-      <div class="p-3.5 bg-slate-800/90 border-t border-slate-700/80 space-y-3 flex-shrink-0">
+      <div class="p-3.5 bg-slate-800/90 border-t border-slate-700/80 space-y-2.5 flex-shrink-0">
         
+        <!-- BOTÓN ESPECIAL PARA ENVIAR/GUARDAR ADICIÓN EN MESA -->
+        <button id="btnSaveToTable" onclick="saveItemsToActiveTable()" class="hidden w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-xs shadow-lg transition flex items-center justify-center space-x-2 border border-amber-300">
+          <span class="text-base">📥</span>
+          <span id="btnSaveToTableText">Guardar / Enviar a Mesa</span>
+        </button>
+
         <!-- RESUMEN DE TOTAL -->
-        <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
-          <span class="text-xs font-black uppercase tracking-wider text-slate-400">Total a Cobrar</span>
+        <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700 flex items-center justify-between">
+          <div>
+            <span id="cartTotalLabel" class="text-[11px] font-black uppercase tracking-wider text-slate-400 block">Total a Cobrar</span>
+            <span id="tableStatusDetail" class="text-[9px] text-slate-400 font-semibold hidden"></span>
+          </div>
           <span id="cartTotalDisplay" class="text-2xl font-black text-amber-400 tracking-tight tabular-nums">$ 0</span>
         </div>
 
         <!-- BOTONES DE COBRO RÁPIDO EN 1 TOQUE -->
-        <div class="grid grid-cols-3 gap-2">
+        <div class="grid grid-cols-3 gap-2" id="paymentButtonsGrid">
           <button id="btnPayCash" onclick="handlePayment('efectivo')" class="py-3 px-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex flex-col items-center justify-center space-y-1">
             <span class="text-lg">💵</span>
-            <span>EFECTIVO</span>
+            <span id="btnPayCashText">EFECTIVO</span>
           </button>
           <button id="btnPayDigital" onclick="handlePayment('nequi_daviplata')" class="py-3 px-2 rounded-xl bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex flex-col items-center justify-center space-y-1">
             <span class="text-lg">📲</span>
