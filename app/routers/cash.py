@@ -125,8 +125,11 @@ def get_closing_zones_spec():
             "GAS-MAN-250",
             "GAS-HIT-MAN-1L",
             "GAS-HIT-NP-1L",
+            "GAS-HIT-TRO-1L",
             "GAS-MAN-175L",
             "GAS-PEP-175L",
+            "GAS-COL-175L",
+            "GAS-AGU-CRI-600",
             # Legacy drinks para compatibilidad de pruebas preexistentes
             "GAS-COL-400",
             "GAS-MAN-400",
@@ -177,8 +180,11 @@ ITEM_TO_PRODUCT_SKU = {
     "GAS-MAN-250": "GAS-MAN-250",
     "GAS-HIT-MAN-1L": "GAS-HIT-MAN-1L",
     "GAS-HIT-NP-1L": "GAS-HIT-NP-1L",
+    "GAS-HIT-TRO-1L": "GAS-HIT-TRO-1L",
     "GAS-MAN-175L": "GAS-MAN-175L",
     "GAS-PEP-175L": "GAS-PEP-175L",
+    "GAS-COL-175L": "GAS-COL-175L",
+    "GAS-AGU-CRI-600": "GAS-AGU-CRI-600",
     # Mapeo de bebidas legacy
     "GAS-COL-400": "GAS-COL-400",
     "GAS-MAN-400": "GAS-MAN-400",
@@ -221,8 +227,11 @@ DEFAULT_ITEM_VALUATION = {
     "GAS-MAN-250": {"price": 2000, "cost": 1250},
     "GAS-HIT-MAN-1L": {"price": 6500, "cost": 2500},
     "GAS-HIT-NP-1L": {"price": 6500, "cost": 2500},
+    "GAS-HIT-TRO-1L": {"price": 6500, "cost": 2500},
     "GAS-MAN-175L": {"price": 6500, "cost": 3750},
-    "GAS-PEP-175L": {"price": 6500, "cost": 3750}
+    "GAS-PEP-175L": {"price": 6500, "cost": 3750},
+    "GAS-COL-175L": {"price": 6500, "cost": 3750},
+    "GAS-AGU-CRI-600": {"price": 3000, "cost": 1200}
 }
 
 def build_closing_inventory_sheet(conn, target_date: str) -> Dict[str, Any]:
