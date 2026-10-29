@@ -32,11 +32,6 @@ function getActiveUser() {
 function setActiveUser(user) {
   activeAppUser = user;
   localStorage.setItem('don_pollo_user', JSON.stringify(user));
-  if (user.role === 'admin') {
-    sessionStorage.setItem('gerencia_unlocked', 'true');
-  } else {
-    sessionStorage.removeItem('gerencia_unlocked');
-  }
   updateUserUI();
 }
 

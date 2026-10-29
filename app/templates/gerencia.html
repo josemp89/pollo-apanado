@@ -25,9 +25,9 @@
       </div>
 
       <div class="space-y-3">
-        <label class="block text-xs font-bold text-slate-300">Ingresa tu PIN de Administrador (Alejandro):</label>
+        <label class="block text-xs font-bold text-slate-300">Ingresa tu PIN de Seguridad (Alejandro):</label>
         <div class="flex justify-center">
-          <input type="password" id="gatePinInput" maxlength="6" inputmode="numeric" placeholder="••••" class="w-44 text-center tracking-widest text-3xl font-black bg-slate-950 border-2 border-amber-500 rounded-2xl py-2.5 text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400">
+          <input type="password" id="gatePinInput" maxlength="6" inputmode="numeric" placeholder="••••" onkeydown="if(event.key === 'Enter') unlockGerencia()" class="w-44 text-center tracking-widest text-3xl font-black bg-slate-950 border-2 border-amber-500 rounded-2xl py-2.5 text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400">
         </div>
         <p id="gateErrorText" class="text-xs font-bold text-red-400 hidden">PIN incorrecto. Intenta de nuevo.</p>
       </div>
@@ -518,12 +518,14 @@
       inp.value = '';
     }
 
+    let sessionGerenciaPin = '';
+
     async function unlockGerencia() {
       const pin = document.getElementById('gatePinInput').value.trim();
       const err = document.getElementById('gateErrorText');
 
       if (!pin) {
-        if (err) { err.classList.remove('hidden'); err.textContent = "Ingresa tu PIN."; }
+        if (err) { err.classList.remove('hidden'); err.textContent = "Ingresa tu PIN de seguridad."; }
         return;
       }
 
@@ -538,8 +540,8 @@
           throw new Error(data.detail || "PIN incorrecto o no autorizado.");
         }
 
-        sessionStorage.setItem('gerencia_unlocked', 'true');
-        sessionStorage.setItem('current_user', JSON.stringify(data.user));
+        // Se valida el PIN pero NO se almacena de forma persistente para exigir PIN en cada apertura
+        sessionGerenciaPin = pin;
         document.getElementById('pinGateModal').classList.add('hidden');
         loadLedger();
       } catch (e) {
@@ -551,20 +553,22 @@
     }
 
     function lockGerencia() {
-      sessionStorage.removeItem('gerencia_unlocked');
+      sessionGerenciaPin = '';
       document.getElementById('gatePinInput').value = '';
       document.getElementById('gateErrorText').classList.add('hidden');
       document.getElementById('pinGateModal').classList.remove('hidden');
     }
 
     function checkAuth() {
-      const unlocked = sessionStorage.getItem('gerencia_unlocked');
-      if (unlocked === 'true') {
-        document.getElementById('pinGateModal').classList.add('hidden');
-        loadLedger();
-      } else {
-        document.getElementById('pinGateModal').classList.remove('hidden');
-      }
+      // Regla estricta: Siempre pedir el PIN de seguridad al abrir o recargar en cualquier dispositivo
+      sessionGerenciaPin = '';
+      document.getElementById('gatePinInput').value = '';
+      document.getElementById('gateErrorText').classList.add('hidden');
+      document.getElementById('pinGateModal').classList.remove('hidden');
+      setTimeout(() => {
+        const inp = document.getElementById('gatePinInput');
+        if (inp) inp.focus();
+      }, 150);
     }
 
     /* MANEJO DE PERÍODOS / MESES */
