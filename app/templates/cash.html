@@ -545,7 +545,39 @@
       </div>
     </div>
 
-    </main>
+    
+  <!-- MODAL: AJUSTAR BASE INICIAL DE EFECTIVO -->
+  <div id="adjustBaseModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/60 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-black text-base text-amber-400 flex items-center space-x-2">
+          <span>💵</span>
+          <span>Ajustar Base Inicial de Efectivo</span>
+        </h3>
+        <button onclick="closeModal('adjustBaseModal')" class="text-slate-400 hover:text-white font-bold text-lg select-none">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <p class="text-slate-300">Modifica el fondo de cambio entregado al cajón en este turno:</p>
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Nueva Base ($ COP):</label>
+          <input type="number" id="adjustBaseInput" value="150000" step="5000" min="0" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 font-black text-xl text-emerald-400 focus:outline-none focus:border-amber-500 tabular-nums">
+          <div class="flex flex-wrap gap-1.5 mt-2">
+            <button type="button" onclick="document.getElementById('adjustBaseInput').value=150000" class="px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[11px] border border-emerald-500/40">✓ $150.000 (Base Oficial)</button>
+            <button type="button" onclick="document.getElementById('adjustBaseInput').value=100000" class="px-2 py-1 rounded bg-slate-800 text-slate-300 font-bold text-[11px] border border-slate-700">$100.000</button>
+            <button type="button" onclick="document.getElementById('adjustBaseInput').value=200000" class="px-2 py-1 rounded bg-slate-800 text-slate-300 font-bold text-[11px] border border-slate-700">$200.000</button>
+          </div>
+        </div>
+
+        <div class="flex space-x-2 pt-2">
+          <button type="button" onclick="closeModal('adjustBaseModal')" class="w-1/3 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold select-none">Cancelar</button>
+          <button type="button" onclick="submitAdjustBase()" class="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-lg select-none">GUARDAR BASE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </main>
 
   <!-- ==================== MODALES OPERATIVOS ==================== -->
 
@@ -737,7 +769,12 @@
 
         <div>
           <label class="block font-bold text-slate-300 mb-1">Base Inicial en Efectivo ($ COP):</label>
-          <input type="number" id="openBaseInicial" value="100000" step="5000" min="0" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 font-black text-lg text-emerald-400 focus:outline-none focus:border-emerald-500 tabular-nums">
+          <input type="number" id="openBaseInicial" value="150000" step="5000" min="0" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 font-black text-lg text-emerald-400 focus:outline-none focus:border-emerald-500 tabular-nums">
+          <div class="flex flex-wrap gap-1.5 mt-1.5">
+            <button type="button" onclick="document.getElementById('openBaseInicial').value=150000" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px] border border-emerald-500/40">✓ $150.000 (Base Oficial)</button>
+            <button type="button" onclick="document.getElementById('openBaseInicial').value=100000" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-[10px] border border-slate-700">$100.000</button>
+            <button type="button" onclick="document.getElementById('openBaseInicial').value=200000" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-[10px] border border-slate-700">$200.000</button>
+          </div>
           <p class="text-[10px] text-slate-400 mt-1">Fondo de cambio entregado en billetes y monedas para iniciar jornada.</p>
         </div>
 
@@ -2402,6 +2439,35 @@
       openModal('vitrinaAuditModal');
     }
 
+    
+    function openAdjustBaseModal(currentBase) {
+      const inp = document.getElementById('adjustBaseInput');
+      if (inp) inp.value = currentBase || 150000;
+      openModal('adjustBaseModal');
+    }
+
+    async function submitAdjustBase() {
+      const val = parseInt(document.getElementById('adjustBaseInput').value || 0, 10);
+      if (val < 0) {
+        alert("La base no puede ser negativa.");
+        return;
+      }
+      try {
+        const res = await fetch('/api/cash/adjust-base-inicial', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ base_inicial: val })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error al ajustar base inicial");
+        closeModal('adjustBaseModal');
+        alert("✅ " + data.message);
+        loadDailySummary();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
     async function submitOpenShift() {
       const cashier_name = document.getElementById('openCashierName').value.trim();
       const base_inicial = parseInt(document.getElementById('openBaseInicial').value || 0, 10);
@@ -2483,7 +2549,7 @@
           badge.className = 'text-xs font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase tracking-wider';
           badge.textContent = 'TURNO ABIERTO';
           codeText.textContent = shift.shift_code;
-          detailsText.textContent = `Cajero: ${shift.cashier_name} | Base Inicial: ${formatCOP(shift.base_inicial)} | Abierto a las: ${shift.opened_at.slice(11, 16)}`;
+          detailsText.innerHTML = `Cajero: <strong>${shift.cashier_name}</strong> | Base Inicial: <strong class="text-emerald-300 font-mono">${formatCOP(shift.base_inicial)}</strong> <button type="button" onclick="openAdjustBaseModal(${shift.base_inicial})" class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-700 hover:bg-slate-600 text-amber-300 border border-slate-600 transition" title="Corregir base en efectivo">✏️ Ajustar</button> | Abierto a las: ${shift.opened_at.slice(11, 16)}`;
           btnOpen.classList.add('hidden');
           btnClose.classList.remove('hidden');
           btnExpense.classList.remove('hidden');

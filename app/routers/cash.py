@@ -23,6 +23,10 @@ class OpenShiftRequest(BaseModel):
     base_inicial: int = Field(..., ge=0, description="Base inicial de efectivo en pesos COP")
     notes: Optional[str] = None
 
+class AdjustBaseInicialRequest(BaseModel):
+    base_inicial: int = Field(..., ge=0, description="Nueva base inicial en pesos COP")
+    notes: Optional[str] = None
+
 class PhysicalCountItem(BaseModel):
     item_key: str = Field(..., description="Clave única del ítem en inventario")
     physical_count: Optional[float] = Field(None, ge=0, description="Conteo físico real al cierre")
@@ -631,6 +635,74 @@ def open_shift(payload: OpenShiftRequest):
     except HTTPException:
         conn.rollback()
         raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@router.post("/adjust-base-inicial")
+def adjust_base_inicial(payload: AdjustBaseInicialRequest):
+    """
+    Permite corregir o ajustar la base inicial de efectivo del turno activo.
+    Recalcula automáticamente el efectivo esperado en cajón.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        shift = cursor.execute("SELECT * FROM cash_shifts WHERE status = 'abierto' ORDER BY id DESC LIMIT 1").fetchone()
+        now = datetime.now()
+        date_str = now.strftime("%Y-%m-%d")
+
+        if not shift:
+            # Si no hay turno abierto, lo abre con la base indicada
+            now_str = now.isoformat()
+            shift_code = get_next_shift_code(cursor, now)
+            cursor.execute("""
+                INSERT INTO cash_shifts (
+                    shift_code, date_str, opened_at, cashier_name, base_inicial,
+                    expected_cash, closing_notes, status
+                ) VALUES (?, ?, ?, 'Santiago', ?, ?, ?, 'abierto')
+            """, (shift_code, date_str, now_str, payload.base_inicial, payload.base_inicial, payload.notes or "Apertura de turno"))
+            shift_id = cursor.lastrowid
+            conn.commit()
+            updated_shift = cursor.execute("SELECT * FROM cash_shifts WHERE id = ?", (shift_id,)).fetchone()
+            return {
+                "success": True,
+                "message": f"Turno {shift_code} abierto con base inicial de ${payload.base_inicial:,} COP.",
+                "shift": dict(updated_shift)
+            }
+
+        shift_id = shift["id"]
+        # Calcular ventas en efectivo y gastos menores de este turno
+        cash_sales = cursor.execute("""
+            SELECT COALESCE(SUM(total_amount), 0) AS total
+            FROM sales
+            WHERE shift_id = ? AND payment_method = 'efectivo' AND status = 'completada'
+        """, (shift_id,)).fetchone()["total"]
+
+        cash_expenses = cursor.execute("""
+            SELECT COALESCE(SUM(amount), 0) AS total
+            FROM cash_expenses
+            WHERE (shift_id = ? OR (shift_id IS NULL AND date_str = ?))
+              AND (payment_source = 'caja_efectivo' OR payment_source IS NULL)
+        """, (shift_id, shift["date_str"])).fetchone()["total"]
+
+        new_expected_cash = payload.base_inicial + cash_sales - cash_expenses
+
+        cursor.execute("""
+            UPDATE cash_shifts
+            SET base_inicial = ?, expected_cash = ?
+            WHERE id = ?
+        """, (payload.base_inicial, new_expected_cash, shift_id))
+        conn.commit()
+
+        updated_shift = cursor.execute("SELECT * FROM cash_shifts WHERE id = ?", (shift_id,)).fetchone()
+        return {
+            "success": True,
+            "message": f"Base inicial del turno {shift['shift_code']} actualizada a ${payload.base_inicial:,} COP.",
+            "shift": dict(updated_shift)
+        }
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))

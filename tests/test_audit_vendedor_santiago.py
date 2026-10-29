@@ -458,3 +458,34 @@ def test_audit_3_step_closing_and_receipt_generation(client):
     assert hist_res.status_code == 200
     receipts = hist_res.json()["receipts"]
     assert any(r["receipt_code"] == receipt_code for r in receipts)
+
+def test_audit_adjust_base_inicial_endpoint(client):
+    """
+    Verifica que la base inicial de efectivo se pueda ajustar dinámicamente
+    a $150.000 COP y recalcule el saldo esperado de caja en tiempo real.
+    """
+    # 1. Abrir turno con base previa de 100.000 COP
+    open_res = client.post("/api/cash/open-shift", json={"cashier_name": "Santiago", "base_inicial": 100000})
+    assert open_res.status_code == 200
+
+    shift_status = client.get("/api/cash/current-shift").json()["active_shift"]
+    assert shift_status["base_inicial"] == 100000
+    assert shift_status["current_expected_cash"] == 100000
+
+    # 2. Ajustar base inicial a $150.000 COP
+    adj_res = client.post("/api/cash/adjust-base-inicial", json={"base_inicial": 150000})
+    assert adj_res.status_code == 200
+    adj_data = adj_res.json()
+    assert adj_data["success"] is True
+    assert adj_data["shift"]["base_inicial"] == 150000
+    assert adj_data["shift"]["expected_cash"] == 150000
+
+    # 3. Verificar en daily-summary y current-shift
+    summary = client.get("/api/cash/daily-summary").json()
+    assert summary["shift_info"]["base_inicial"] == 150000
+    assert summary["cash_reconciliation"]["base_inicial"] == 150000
+    assert summary["cash_reconciliation"]["expected_cash"] == 150000
+
+    # 4. Rechazar base negativa
+    err_res = client.post("/api/cash/adjust-base-inicial", json={"base_inicial": -10000})
+    assert err_res.status_code in (400, 422)
