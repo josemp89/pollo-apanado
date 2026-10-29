@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Gerencia & Libro Contable - Don Pollo</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/img/icon-192.png">
+  <link rel="apple-touch-icon" href="/static/img/icon-192.png">
+  <meta name="theme-color" content="#d97706">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans select-none pb-16">
+
+  <!-- ==================== BLOQUEO DE SEGURIDAD (PIN GATE) ==================== -->
+  <div id="pinGateModal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border-2 border-amber-500/60 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-5 text-center">
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-3xl">
+        👑
+      </div>
+      <div>
+        <h2 class="text-xl font-black text-amber-400">ACCESO DE GERENCIA</h2>
+        <p class="text-xs text-slate-400 mt-1">Libro Contable, Compras, Utilidades & Cruce Financiero</p>
+      </div>
+
+      <div class="space-y-3">
+        <label class="block text-xs font-bold text-slate-300">Ingresa tu PIN de Administrador (Alejandro):</label>
+        <div class="flex justify-center">
+          <input type="password" id="gatePinInput" maxlength="6" inputmode="numeric" placeholder="••••" class="w-44 text-center tracking-widest text-3xl font-black bg-slate-950 border-2 border-amber-500 rounded-2xl py-2.5 text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400">
+        </div>
+        <p id="gateErrorText" class="text-xs font-bold text-red-400 hidden">PIN incorrecto. Intenta de nuevo.</p>
+      </div>
+
+      <!-- Teclado Numérico Táctil para Móvil -->
+      <div class="grid grid-cols-3 gap-2 max-w-xs mx-auto">
+        <button type="button" onclick="keypadPress('1')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-white transition">1</button>
+        <button type="button" onclick="keypadPress('2')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-white transition">2</button>
+        <button type="button" onclick="keypadPress('3')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-white transition">3</button>
+        <button type="button" onclick="keypadPress('4')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-white transition">4</button>
+        <button type="button" onclick="keypadPress('5')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-white transition">5</button>
+        <button type="button" onclick="keypadPress('6')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-white transition">6</button>
+        <button type="button" onclick="keypadPress('7')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-white transition">7</button>
+        <button type="button" onclick="keypadPress('8')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-white transition">8</button>
+        <button type="button" onclick="keypadPress('9')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-white transition">9</button>
+        <button type="button" onclick="keypadClear()" class="h-12 rounded-xl bg-slate-800/60 hover:bg-slate-700 text-xs font-bold text-slate-400 transition">Borrar</button>
+        <button type="button" onclick="keypadPress('0')" class="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-lg font-black text-white transition">0</button>
+        <button type="button" onclick="unlockGerencia()" class="h-12 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-sm transition">Entrar</button>
+      </div>
+
+      <div class="pt-2">
+        <a href="/caja" class="text-xs text-slate-400 hover:text-white underline">Volver al Cuadre de Caja</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== BARRA SUPERIOR ==================== -->
+  <header class="bg-slate-900/90 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between shadow-xl sticky top-0 z-40 backdrop-blur-md">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/30 to-amber-600/10 border border-amber-500/50 flex items-center justify-center text-2xl shadow-inner">
+        👑
+      </div>
+      <div>
+        <h1 class="text-base sm:text-lg font-black tracking-wide text-amber-400 leading-tight">GERENCIA & LIBRO CONTABLE</h1>
+        <p class="text-[11px] text-slate-400 font-medium hidden sm:block">Control de Compras a Proveedores, Cruce de Cierres y Utilidad Neta Real</p>
+      </div>
+    </div>
+
+    <!-- Navegación & Perfil -->
+    <div class="flex items-center space-x-2">
+      <div class="hidden md:flex items-center bg-slate-950 border border-amber-500/40 rounded-xl px-3 py-1.5 space-x-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="activeUserLabel" class="text-xs font-black text-amber-300">Alejandro (Dueño)</span>
+      </div>
+
+      <button type="button" onclick="openExpenseQuickModal()" class="h-10 px-3.5 rounded-xl bg-red-600 hover:bg-red-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex items-center space-x-1.5 select-none" title="Registrar un pago o compra rápidamente desde el celular">
+        <span>➕</span>
+        <span class="hidden sm:inline">APUNTAR PAGO / COMPRA</span>
+        <span class="sm:hidden">PAGO</span>
+      </button>
+
+      <button type="button" onclick="exportLedgerCsv()" class="h-10 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex items-center space-x-1 select-none" title="Descargar libro contable en CSV para Excel">
+        <span>📥</span>
+        <span class="hidden md:inline">EXCEL</span>
+      </button>
+
+      <nav class="flex items-center space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+        <a href="/" class="px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition">
+          🛒 POS
+        </a>
+        <a href="/caja" class="px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition">
+          💰 Caja
+        </a>
+        <button type="button" onclick="lockGerencia()" class="p-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-red-400 transition" title="Bloquear panel">
+          🔒
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ==================== CONTENIDO PRINCIPAL ==================== -->
+  <main class="flex-1 p-3 sm:p-5 max-w-7xl mx-auto w-full space-y-4">
+
+    <!-- SELECTOR DE MES Y PERÍODO -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <span class="text-xl">📅</span>
+        <div>
+          <span class="text-xs font-bold text-slate-400 uppercase">Período Contable:</span>
+          <div id="currentMonthTitle" class="text-lg font-black text-amber-300 leading-tight">Cargando mes...</div>
+        </div>
+      </div>
+
+      <div class="flex items-center flex-wrap gap-2">
+        <button type="button" onclick="changeMonthOffset(-1)" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition">
+          ◀ Mes Anterior
+        </button>
+        <button type="button" onclick="setCurrentMonth()" class="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-black transition">
+          Mes Actual
+        </button>
+        <button type="button" onclick="changeMonthOffset(1)" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition">
+          Mes Siguiente ▶
+        </button>
+        <input type="month" id="ledgerMonthPicker" onchange="onMonthPickerChanged()" class="bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1 text-xs font-bold text-amber-300 focus:outline-none">
+        <button type="button" onclick="loadLedger()" class="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition" title="Refrescar datos">
+          🔄
+        </button>
+      </div>
+    </div>
+
+    <!-- TARJETAS RESUMEN EJECUTIVO (P&L DEL MES) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      
+      <!-- Total Ingresos Brutos del Mes -->
+      <div class="bg-slate-900/90 border border-emerald-500/40 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase text-emerald-400">Ingresos Brutos del Mes</span>
+          <span class="text-base">📈</span>
+        </div>
+        <div id="cardMonthIncome" class="text-2xl font-black text-emerald-400 my-1 tabular-nums">$ 0</div>
+        <div class="text-[11px] text-slate-400 border-t border-slate-800 pt-1 space-y-0.5">
+          <div class="flex justify-between"><span>Efectivo:</span><span id="cardMonthCash" class="font-bold text-slate-200">$ 0</span></div>
+          <div class="flex justify-between"><span>Nequi / Digital:</span><span id="cardMonthDigital" class="font-bold text-purple-300">$ 0</span></div>
+          <div class="flex justify-between"><span>Datáfono:</span><span id="cardMonthDatafono" class="font-bold text-sky-300">$ 0</span></div>
+        </div>
+      </div>
+
+      <!-- Compras de Mercancía (COGS) -->
+      <div class="bg-slate-900/90 border border-amber-500/40 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase text-amber-400">Compras Mercancía (COGS)</span>
+          <span class="text-base">🍗</span>
+        </div>
+        <div id="cardMonthCogs" class="text-2xl font-black text-amber-400 my-1 tabular-nums">$ 0</div>
+        <div class="text-[11px] text-slate-400 border-t border-slate-800 pt-1 space-y-0.5">
+          <div class="flex justify-between"><span>Pollo / Bebidas / Insumos</span></div>
+          <div class="text-[10px] text-slate-500">Costo directo de lo que se vende</div>
+        </div>
+      </div>
+
+      <!-- Gastos Operativos (OPEX) -->
+      <div class="bg-slate-900/90 border border-red-500/40 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase text-red-400">Gastos Operativos (OPEX)</span>
+          <span class="text-base">🏢</span>
+        </div>
+        <div id="cardMonthOpex" class="text-2xl font-black text-red-400 my-1 tabular-nums">$ 0</div>
+        <div class="text-[11px] text-slate-400 border-t border-slate-800 pt-1 space-y-0.5">
+          <div class="flex justify-between"><span>Nómina, Arriendo, Servicios</span></div>
+          <div class="text-[10px] text-slate-500">Gastos fijos y variables del local</div>
+        </div>
+      </div>
+
+      <!-- Utilidad Neta Real Acumulada -->
+      <div class="bg-slate-900/90 border border-amber-500/60 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase text-amber-300">Utilidad Neta Real</span>
+          <span id="cardMonthMarginBadge" class="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">Margen: 0%</span>
+        </div>
+        <div id="cardMonthNetProfit" class="text-2xl font-black text-amber-300 my-1 tabular-nums">$ 0</div>
+        <div class="text-[11px] text-slate-400 border-t border-slate-800 pt-1 space-y-0.5">
+          <div class="flex justify-between"><span>Retiro Socios:</span><span id="cardMonthWithdrawals" class="font-bold text-slate-300">$ 0</span></div>
+          <div class="flex justify-between"><span>Total Egresos:</span><span id="cardMonthTotalExpenses" class="font-bold text-red-400">$ 0</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CRUCE DE TESORERÍA (CAJA EFECTIVO VS CUENTAS BANCARIAS/NEQUI) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <!-- Cajón Efectivo -->
+      <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3.5 space-y-2">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+          <span class="text-xs font-black text-emerald-400 flex items-center space-x-1.5">
+            <span>💵</span>
+            <span>Cruce de Efectivo (Dinero en Mano)</span>
+          </span>
+          <span class="text-[10px] text-slate-400">Total Mes</span>
+        </div>
+        <div class="space-y-1 text-xs text-slate-300">
+          <div class="flex justify-between"><span>(+) Ingresos en Efectivo:</span><span id="statTreasuryIncomeCash" class="font-mono font-bold text-emerald-400">$ 0</span></div>
+          <div class="flex justify-between"><span>(-) Egresos pagados en Efectivo:</span><span id="statTreasuryExpCash" class="font-mono font-bold text-red-400">$ 0</span></div>
+          <div class="flex justify-between pt-1 border-t border-slate-800 text-sm font-black text-emerald-300">
+            <span>(=) Saldo Neto en Efectivo:</span>
+            <span id="statTreasuryNetCash" class="font-mono">$ 0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cuentas Bancarias / Digitales -->
+      <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-3.5 space-y-2">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+          <span class="text-xs font-black text-purple-400 flex items-center space-x-1.5">
+            <span>📲</span>
+            <span>Cruce Bancario (Nequi / Bancos / Datáfono)</span>
+          </span>
+          <span class="text-[10px] text-slate-400">Total Mes</span>
+        </div>
+        <div class="space-y-1 text-xs text-slate-300">
+          <div class="flex justify-between"><span>(+) Ventas Nequi / Transf.:</span><span id="statTreasuryIncomeDig" class="font-mono font-bold text-purple-400">$ 0</span></div>
+          <div class="flex justify-between"><span>(+) Ventas Datáfono:</span><span id="statTreasuryIncomeDat" class="font-mono font-bold text-sky-400">$ 0</span></div>
+          <div class="flex justify-between"><span>(-) Pagos hechos por Transferencia:</span><span id="statTreasuryExpDig" class="font-mono font-bold text-red-400">$ 0</span></div>
+          <div class="flex justify-between pt-1 border-t border-slate-800 text-sm font-black text-purple-300">
+            <span>(=) Saldo Neto en Bancos / Nequi:</span>
+            <span id="statTreasuryNetDig" class="font-mono">$ 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SÁBANA TIPO HOJA DE CÁLCULO (EXCEL GRID) -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-2xl space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+        <div>
+          <h3 class="font-black text-sm text-slate-200 flex items-center space-x-2">
+            <span>📊</span>
+            <span>Hoja de Cálculo Diaria (Sábana Contable)</span>
+          </h3>
+          <p class="text-[11px] text-slate-400">Llénalo día a día o sincroniza con 1 toque desde las ventas del cierre de caja</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button type="button" onclick="exportLedgerCsv()" class="px-3 py-1.5 rounded-lg text-xs font-black bg-emerald-600/90 hover:bg-emerald-500 text-white transition flex items-center space-x-1 shadow-sm">
+            <span>📥</span>
+            <span>Exportar Excel CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto rounded-xl border border-slate-800 max-h-[600px] overflow-y-auto">
+        <table class="w-full text-left text-xs whitespace-nowrap">
+          <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] font-bold border-b border-slate-800 sticky top-0 backdrop-blur-md z-10">
+            <tr>
+              <th class="py-2.5 px-3">Fecha</th>
+              <th class="py-2.5 px-3 text-right">Efectivo</th>
+              <th class="py-2.5 px-3 text-right">Nequi</th>
+              <th class="py-2.5 px-3 text-right">Datáfono</th>
+              <th class="py-2.5 px-3 text-right text-emerald-400 font-black">Total Ingresos</th>
+              <th class="py-2.5 px-3 text-right text-amber-300">Compras COGS</th>
+              <th class="py-2.5 px-3 text-right text-red-300">Gastos OPEX</th>
+              <th class="py-2.5 px-3 text-right font-black">Utilidad Neta</th>
+              <th class="py-2.5 px-3 text-center">Margen %</th>
+              <th class="py-2.5 px-3 text-right text-emerald-300">Caja Efectivo</th>
+              <th class="py-2.5 px-3 text-right text-purple-300">Saldo Bancos</th>
+              <th class="py-2.5 px-3 text-center">Egresos</th>
+              <th class="py-2.5 px-3 text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="ledgerTableBody" class="divide-y divide-slate-800/80 font-medium font-mono">
+            <tr>
+              <td colspan="13" class="py-6 text-center text-slate-500 font-sans">Cargando libro contable...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DETALLE DE EGRESOS Y COMPRAS DEL MES -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-2xl space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <div>
+          <h3 class="font-black text-sm text-slate-200 flex items-center space-x-2">
+            <span>🧾</span>
+            <span>Historial de Pagos, Compras y Egresos del Mes</span>
+          </h3>
+          <p class="text-[11px] text-slate-400">Registro detallado de facturas pagadas a proveedores y gastos reportados</p>
+        </div>
+        <button type="button" onclick="openExpenseQuickModal()" class="px-3 py-1.5 rounded-lg text-xs font-black bg-red-600 hover:bg-red-500 text-white transition flex items-center space-x-1 shadow-sm">
+          <span>➕</span>
+          <span>Apuntar Pago</span>
+        </button>
+      </div>
+
+      <div class="overflow-x-auto rounded-xl border border-slate-800 max-h-80 overflow-y-auto">
+        <table class="w-full text-left text-xs whitespace-nowrap">
+          <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] font-bold border-b border-slate-800 sticky top-0 backdrop-blur-md">
+            <tr>
+              <th class="py-2.5 px-3">Fecha</th>
+              <th class="py-2.5 px-3">Concepto / Detalle</th>
+              <th class="py-2.5 px-3">Categoría</th>
+              <th class="py-2.5 px-3 text-center">Medio de Pago</th>
+              <th class="py-2.5 px-3">Proveedor / Soporte</th>
+              <th class="py-2.5 px-3 text-right">Monto</th>
+              <th class="py-2.5 px-3 text-center">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="monthExpensesTableBody" class="divide-y divide-slate-800 font-medium">
+            <tr>
+              <td colspan="7" class="py-4 text-center text-slate-500">Cargando egresos del mes...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ==================== MODALES ==================== -->
+
+  <!-- MODAL: APUNTAR PAGO / COMPRA AL INSTANTE (MOBILE & PC) -->
+  <div id="quickExpenseModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-slate-900 border-2 border-red-500/70 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 my-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <h3 class="font-black text-base text-red-400 flex items-center space-x-2">
+          <span>💸</span>
+          <span>Apuntar Pago / Compra a Proveedor</span>
+        </h3>
+        <button type="button" onclick="closeModal('quickExpenseModal')" class="text-slate-400 hover:text-white font-bold text-2xl select-none">&times;</button>
+      </div>
+
+      <form onsubmit="submitQuickExpense(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Fecha del Pago:</label>
+          <input type="date" id="qExpDate" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-bold text-slate-200 focus:outline-none focus:border-red-500">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1.5">¿De dónde salió el dinero?</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center space-x-2 p-2.5 rounded-xl border border-purple-500/50 bg-purple-950/20 cursor-pointer hover:bg-purple-950/40 transition">
+              <input type="radio" name="qExpSource" value="banco_transferencia" checked class="text-purple-500 focus:ring-0">
+              <div>
+                <div class="font-black text-purple-400 text-xs">📲 Bancos / Nequi</div>
+                <div class="text-[10px] text-slate-400">Transferencia celular</div>
+              </div>
+            </label>
+            <label class="flex items-center space-x-2 p-2.5 rounded-xl border border-emerald-500/50 bg-emerald-950/20 cursor-pointer hover:bg-emerald-950/40 transition">
+              <input type="radio" name="qExpSource" value="caja_efectivo" class="text-emerald-500 focus:ring-0">
+              <div>
+                <div class="font-black text-emerald-400 text-xs">💵 Efectivo</div>
+                <div class="text-[10px] text-slate-400">Efectivo en mano</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Monto Pagado ($ COP):</label>
+          <input type="number" id="qExpAmount" required placeholder="Ej. 180000" min="100" step="100" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 font-black text-xl text-amber-400 focus:outline-none focus:border-red-500 tabular-nums">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Categoría del Egreso:</label>
+          <select id="qExpCategory" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 font-bold text-slate-200 focus:outline-none focus:border-red-500">
+            <optgroup label="🛒 Compras de Mercancía (COGS)">
+              <option value="compra_pollo" selected>🍗 Compra de Pollo (MacPollo / Fresco)</option>
+              <option value="compra_bebidas">🥤 Compra de Bebidas (Postobón / Aguas / Jugos)</option>
+              <option value="compra_insumos">🧂 Insumos (Aceite, Harina Apanado, Condimentos)</option>
+              <option value="compra_empaques">📦 Empaques, Bolsas y Desechables</option>
+            </optgroup>
+            <optgroup label="🏢 Gastos Operativos (OPEX)">
+              <option value="nomina_jornales">👥 Nómina / Jornales / Turnos</option>
+              <option value="servicios_publicos">💡 Servicios Públicos (Luz, Agua, Gas)</option>
+              <option value="arriendo">🏠 Arriendo / Alquiler del Local</option>
+              <option value="transporte_fletes">🚚 Fletes / Acarreos / Transporte</option>
+              <option value="aseo_mantenimiento">🧹 Aseo, Limpieza y Mantenimiento</option>
+              <option value="otros">📋 Otros Gastos Operativos</option>
+            </optgroup>
+            <optgroup label="💼 Retiro de Utilidades">
+              <option value="retiro_socio">💰 Retiro de Socio / Alejandro</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Concepto / Detalle:</label>
+          <input type="text" id="qExpConcept" required placeholder="Ej. 30 pollos frescos para fin de semana" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-medium text-slate-200 focus:outline-none focus:border-red-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Proveedor / Beneficiario:</label>
+            <input type="text" id="qExpRecipient" placeholder="Ej. MacPollo" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 font-medium text-slate-200 focus:outline-none focus:border-red-500">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Factura / Soporte:</label>
+            <input type="text" id="qExpReceiptNumber" placeholder="Ej. FAC-492 / Nequi" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 font-medium text-slate-200 focus:outline-none focus:border-red-500">
+          </div>
+        </div>
+
+        <div class="flex space-x-2 pt-2">
+          <button type="button" onclick="closeModal('quickExpenseModal')" class="w-1/3 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold select-none">Cancelar</button>
+          <button type="submit" class="flex-1 h-11 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black shadow-lg select-none">GUARDAR PAGO</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: REGISTRAR / EDITAR INGRESOS DEL DÍA -->
+  <div id="editIncomeModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-slate-900 border-2 border-emerald-500/70 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 my-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <h3 class="font-black text-base text-emerald-400 flex items-center space-x-2">
+          <span>📈</span>
+          <span id="editIncomeModalTitle">Ingresos Brutos del Día</span>
+        </h3>
+        <button type="button" onclick="closeModal('editIncomeModal')" class="text-slate-400 hover:text-white font-bold text-2xl select-none">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+          <span class="text-slate-400 font-bold">Fecha seleccionada:</span>
+          <span id="editIncomeDateBadge" class="font-mono font-black text-amber-400 text-sm">----</span>
+        </div>
+
+        <button type="button" onclick="triggerSyncPosForCurrentEdit()" class="w-full py-2 px-3 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/40 font-black flex items-center justify-center space-x-2 transition">
+          <span>⚡</span>
+          <span>Traer Ventas del Cierre POS de este día</span>
+        </button>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Ventas en Efectivo ($ COP):</label>
+          <input type="number" id="editIncomeCash" min="0" step="500" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-black text-lg text-emerald-400 focus:outline-none focus:border-emerald-500 tabular-nums">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Ventas en Nequi / Transferencias ($ COP):</label>
+          <input type="number" id="editIncomeDigital" min="0" step="500" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-black text-lg text-purple-400 focus:outline-none focus:border-purple-500 tabular-nums">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Ventas en Datáfono ($ COP):</label>
+          <input type="number" id="editIncomeDatafono" min="0" step="500" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-black text-lg text-sky-400 focus:outline-none focus:border-sky-500 tabular-nums">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Notas / Observaciones:</label>
+          <input type="text" id="editIncomeNotes" placeholder="Ej. Cierre de turno cuadrado, propinas incluidas" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-1.5 text-slate-200 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <div class="flex space-x-2 pt-2">
+          <button type="button" onclick="closeModal('editIncomeModal')" class="w-1/3 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold select-none">Cancelar</button>
+          <button type="button" onclick="saveDailyIncomeManual()" class="flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-lg select-none">GUARDAR INGRESOS</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VER EGRESOS DEL DÍA -->
+  <div id="dayExpensesModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-amber-500/60 rounded-3xl max-w-lg w-full p-5 shadow-2xl space-y-4 my-auto max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-black text-base text-amber-400 flex items-center space-x-2">
+          <span>🧾</span>
+          <span id="dayExpensesModalTitle">Egresos del Día</span>
+        </h3>
+        <button type="button" onclick="closeModal('dayExpensesModal')" class="text-slate-400 hover:text-white font-bold text-xl select-none">&times;</button>
+      </div>
+
+      <div id="dayExpensesModalList" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs">
+        <div class="p-4 text-center text-slate-500">Cargando egresos...</div>
+      </div>
+
+      <div class="flex justify-between items-center pt-2 border-t border-slate-800">
+        <button type="button" onclick="openExpenseForCurrentDayModal()" class="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs">
+          ➕ Agregar Egreso en este Día
+        </button>
+        <button type="button" onclick="closeModal('dayExpensesModal')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== LÓGICA JAVASCRIPT ==================== -->
+  <script>
+    let activeLedgerMonth = '';
+    let currentLedgerData = null;
+    let selectedDayForIncome = null;
+    let selectedDayForExpense = null;
+
+    function formatCOP(num) {
+      if (num === null || num === undefined) return '$ 0';
+      return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        maximumFractionDigits: 0
+      }).format(num);
+    }
+
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    }
+
+    /* SEGURIDAD & PIN */
+    function keypadPress(digit) {
+      const inp = document.getElementById('gatePinInput');
+      if (inp.value.length < 6) inp.value += digit;
+    }
+
+    function keypadClear() {
+      const inp = document.getElementById('gatePinInput');
+      inp.value = '';
+    }
+
+    async function unlockGerencia() {
+      const pin = document.getElementById('gatePinInput').value.trim();
+      const err = document.getElementById('gateErrorText');
+
+      if (!pin) {
+        if (err) { err.classList.remove('hidden'); err.textContent = "Ingresa tu PIN."; }
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ username: 'alejandro', pin: pin })
+        });
+        const data = await res.json();
+        if (!res.ok || data.user.role !== 'admin') {
+          throw new Error(data.detail || "PIN incorrecto o no autorizado.");
+        }
+
+        sessionStorage.setItem('gerencia_unlocked', 'true');
+        sessionStorage.setItem('current_user', JSON.stringify(data.user));
+        document.getElementById('pinGateModal').classList.add('hidden');
+        loadLedger();
+      } catch (e) {
+        if (err) {
+          err.classList.remove('hidden');
+          err.textContent = e.message || "PIN no autorizado.";
+        }
+      }
+    }
+
+    function lockGerencia() {
+      sessionStorage.removeItem('gerencia_unlocked');
+      document.getElementById('gatePinInput').value = '';
+      document.getElementById('gateErrorText').classList.add('hidden');
+      document.getElementById('pinGateModal').classList.remove('hidden');
+    }
+
+    function checkAuth() {
+      const unlocked = sessionStorage.getItem('gerencia_unlocked');
+      if (unlocked === 'true') {
+        document.getElementById('pinGateModal').classList.add('hidden');
+        loadLedger();
+      } else {
+        document.getElementById('pinGateModal').classList.remove('hidden');
+      }
+    }
+
+    /* MANEJO DE PERÍODOS / MESES */
+    function getTodayBogota() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return { y, m, d, dateStr: `${y}-${m}-${d}`, monthStr: `${y}-${m}` };
+    }
+
+    function setCurrentMonth() {
+      const { monthStr } = getTodayBogota();
+      activeLedgerMonth = monthStr;
+      const picker = document.getElementById('ledgerMonthPicker');
+      if (picker) picker.value = monthStr;
+      loadLedger();
+    }
+
+    function onMonthPickerChanged() {
+      const picker = document.getElementById('ledgerMonthPicker');
+      if (picker && picker.value) {
+        activeLedgerMonth = picker.value;
+        loadLedger();
+      }
+    }
+
+    function changeMonthOffset(delta) {
+      if (!activeLedgerMonth) activeLedgerMonth = getTodayBogota().monthStr;
+      const [yearStr, monthStr] = activeLedgerMonth.split('-');
+      let y = parseInt(yearStr, 10);
+      let m = parseInt(monthStr, 10) + delta;
+      if (m > 12) { m = 1; y += 1; }
+      else if (m < 1) { m = 12; y -= 1; }
+
+      const newMonth = `${y}-${String(m).padStart(2, '0')}`;
+      activeLedgerMonth = newMonth;
+      const picker = document.getElementById('ledgerMonthPicker');
+      if (picker) picker.value = newMonth;
+      loadLedger();
+    }
+
+    /* CARGAR SÁBANA CONTABLE */
+    async function loadLedger() {
+      if (!activeLedgerMonth) activeLedgerMonth = getTodayBogota().monthStr;
+      const tbody = document.getElementById('ledgerTableBody');
+      const titleEl = document.getElementById('currentMonthTitle');
+
+      try {
+        const res = await fetch(`/api/accounting/ledger?month=${activeLedgerMonth}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        currentLedgerData = data;
+
+        if (titleEl) titleEl.textContent = data.month_label;
+
+        renderLedgerKpis(data.month_totals);
+        renderLedgerTable(data.ledger);
+        renderMonthExpensesTable(data.ledger);
+      } catch (err) {
+        console.error("Error cargando libro contable:", err);
+        if (tbody) {
+          tbody.innerHTML = `<tr><td colspan="13" class="py-6 text-center text-red-400 font-bold font-sans">Error al conectar con la base contable.</td></tr>`;
+        }
+      }
+    }
+
+    function renderLedgerKpis(t) {
+      document.getElementById('cardMonthIncome').textContent = formatCOP(t.income_total);
+      document.getElementById('cardMonthCash').textContent = formatCOP(t.income_cash);
+      document.getElementById('cardMonthDigital').textContent = formatCOP(t.income_digital);
+      document.getElementById('cardMonthDatafono').textContent = formatCOP(t.income_datafono);
+
+      document.getElementById('cardMonthCogs').textContent = formatCOP(t.purchases_cogs);
+      document.getElementById('cardMonthOpex').textContent = formatCOP(t.operating_expenses);
+
+      const netEl = document.getElementById('cardMonthNetProfit');
+      netEl.textContent = formatCOP(t.net_profit);
+      netEl.className = t.net_profit >= 0 ? "text-2xl font-black text-emerald-400 my-1 tabular-nums" : "text-2xl font-black text-red-400 my-1 tabular-nums";
+
+      const badgeEl = document.getElementById('cardMonthMarginBadge');
+      badgeEl.textContent = `Margen: ${t.net_margin_pct}%`;
+      badgeEl.className = t.net_profit >= 0
+        ? "text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+        : "text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/40";
+
+      document.getElementById('cardMonthWithdrawals').textContent = formatCOP(t.partner_withdrawals);
+      document.getElementById('cardMonthTotalExpenses').textContent = formatCOP(t.total_expenses);
+
+      // Cruce de Tesorería
+      document.getElementById('statTreasuryIncomeCash').textContent = formatCOP(t.income_cash);
+      document.getElementById('statTreasuryExpCash').textContent = formatCOP(t.expenses_cash);
+      document.getElementById('statTreasuryNetCash').textContent = formatCOP(t.net_cash_drawer);
+
+      document.getElementById('statTreasuryIncomeDig').textContent = formatCOP(t.income_digital);
+      document.getElementById('statTreasuryIncomeDat').textContent = formatCOP(t.income_datafono);
+      document.getElementById('statTreasuryExpDig').textContent = formatCOP(t.expenses_digital);
+      document.getElementById('statTreasuryNetDig').textContent = formatCOP(t.net_digital_balance);
+    }
+
+    function renderLedgerTable(rows) {
+      const tbody = document.getElementById('ledgerTableBody');
+      if (!tbody) return;
+
+      const todayStr = getTodayBogota().dateStr;
+
+      tbody.innerHTML = rows.map(r => {
+        const isToday = r.date_str === todayStr;
+        const rowBg = isToday ? "bg-amber-500/10 font-bold" : (r.has_activity ? "hover:bg-slate-800/50" : "text-slate-500 opacity-60 hover:opacity-100");
+
+        let srcBadge = '';
+        if (r.income_source === 'pos_sync') {
+          srcBadge = `<span class="text-[9px] px-1 py-0.5 rounded bg-blue-500/20 text-blue-300 font-sans font-bold" title="Sincronizado POS">⚡ POS</span>`;
+        } else if (r.income_source === 'manual') {
+          srcBadge = `<span class="text-[9px] px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-sans font-bold" title="Manual Alejandro">✏️ Man</span>`;
+        } else if (r.income_source === 'pos_live') {
+          srcBadge = `<span class="text-[9px] px-1 py-0.5 rounded bg-slate-800 text-slate-400 font-sans font-bold" title="En vivo">🟢 Live</span>`;
+        }
+
+        const netClass = r.net_profit > 0 ? "text-emerald-400" : (r.net_profit < 0 ? "text-red-400" : "text-slate-400");
+        const expBadge = r.expenses_count > 0
+          ? `<button type="button" onclick="openDayExpenses('${r.date_str}')" class="px-2 py-0.5 rounded-full text-[10px] font-sans font-bold bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 transition">${r.expenses_count} egresos</button>`
+          : `<span class="text-slate-600">-</span>`;
+
+        return `
+          <tr class="${rowBg} transition">
+            <td class="py-2.5 px-3 font-sans">
+              <div class="flex items-center space-x-1.5">
+                <span class="font-bold text-slate-200">${r.day} ${r.day_name.substring(0,3)}</span>
+                ${srcBadge}
+              </div>
+            </td>
+            <td class="py-2.5 px-3 text-right text-slate-300">${formatCOP(r.income_cash)}</td>
+            <td class="py-2.5 px-3 text-right text-purple-300">${formatCOP(r.income_digital)}</td>
+            <td class="py-2.5 px-3 text-right text-sky-300">${formatCOP(r.income_datafono)}</td>
+            <td class="py-2.5 px-3 text-right text-emerald-400 font-black">${formatCOP(r.income_total)}</td>
+            <td class="py-2.5 px-3 text-right text-amber-300">${formatCOP(r.purchases_cogs)}</td>
+            <td class="py-2.5 px-3 text-right text-red-300">${formatCOP(r.operating_expenses)}</td>
+            <td class="py-2.5 px-3 text-right font-black ${netClass}">${formatCOP(r.net_profit)}</td>
+            <td class="py-2.5 px-3 text-center text-[11px]">${r.income_total > 0 ? r.net_margin_pct + '%' : '-'}</td>
+            <td class="py-2.5 px-3 text-right text-emerald-300/90">${formatCOP(r.net_cash_drawer)}</td>
+            <td class="py-2.5 px-3 text-right text-purple-300/90">${formatCOP(r.net_digital_balance)}</td>
+            <td class="py-2.5 px-3 text-center">${expBadge}</td>
+            <td class="py-2.5 px-3 text-center font-sans space-x-1">
+              <button type="button" onclick="syncDayPos('${r.date_str}')" class="p-1 rounded bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 transition" title="Traer ventas del POS">⚡</button>
+              <button type="button" onclick="openEditIncome('${r.date_str}', ${r.income_cash}, ${r.income_digital}, ${r.income_datafono})" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Editar ingresos">✏️</button>
+              <button type="button" onclick="openExpenseForDate('${r.date_str}')" class="p-1 rounded bg-red-500/20 hover:bg-red-500/40 text-red-300 transition" title="Apuntar pago">+💸</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderMonthExpensesTable(ledgerDays) {
+      const tbody = document.getElementById('monthExpensesTableBody');
+      if (!tbody) return;
+
+      const allExpenses = [];
+      ledgerDays.forEach(d => {
+        (d.expenses || []).forEach(e => allExpenses.push(e));
+      });
+
+      if (allExpenses.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-4 text-center text-slate-500 font-sans">No hay compras ni egresos registrados en este mes.</td></tr>`;
+        return;
+      }
+
+      // Ordenar por timestamp desc
+      allExpenses.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+
+      tbody.innerHTML = allExpenses.map(e => {
+        const isCash = e.payment_source === 'caja_efectivo';
+        const srcBadge = isCash
+          ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">💵 Efectivo</span>`
+          : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">📲 Transferencia</span>`;
+
+        let catBadge = `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300">${e.category}</span>`;
+        if (e.category && e.category.startsWith('compra_')) {
+          catBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">COGS Mercancía</span>`;
+        } else if (e.category === 'retiro_socio') {
+          catBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">Retiro Socio</span>`;
+        } else {
+          catBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">OPEX Gasto</span>`;
+        }
+
+        const dateStr = e.date_str || (e.timestamp ? e.timestamp.substring(0, 10) : '');
+        const recip = e.recipient || '';
+        const recNum = e.receipt_number ? ` [#${e.receipt_number}]` : '';
+
+        return `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-2.5 px-3 font-mono text-slate-300">${dateStr}</td>
+            <td class="py-2.5 px-3 font-medium text-slate-100">${e.concept}</td>
+            <td class="py-2.5 px-3">${catBadge}</td>
+            <td class="py-2.5 px-3 text-center">${srcBadge}</td>
+            <td class="py-2.5 px-3 text-slate-400 font-mono">${recip}${recNum}</td>
+            <td class="py-2.5 px-3 text-right font-black font-mono text-red-400">${formatCOP(e.amount)}</td>
+            <td class="py-2.5 px-3 text-center">
+              <button type="button" onclick="deleteExpense(${e.id})" class="p-1 rounded text-slate-500 hover:text-red-400 hover:bg-slate-800 transition" title="Eliminar egreso">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    /* OPERACIONES CONTABLES */
+    function openExpenseQuickModal() {
+      const today = getTodayBogota().dateStr;
+      document.getElementById('qExpDate').value = today;
+      document.getElementById('qExpAmount').value = '';
+      document.getElementById('qExpConcept').value = '';
+      document.getElementById('qExpRecipient').value = '';
+      document.getElementById('qExpReceiptNumber').value = '';
+      openModal('quickExpenseModal');
+    }
+
+    function openExpenseForDate(dateStr) {
+      document.getElementById('qExpDate').value = dateStr;
+      document.getElementById('qExpAmount').value = '';
+      document.getElementById('qExpConcept').value = '';
+      document.getElementById('qExpRecipient').value = '';
+      document.getElementById('qExpReceiptNumber').value = '';
+      openModal('quickExpenseModal');
+    }
+
+    async function submitQuickExpense(e) {
+      e.preventDefault();
+      const date_str = document.getElementById('qExpDate').value;
+      const amount = parseInt(document.getElementById('qExpAmount').value || 0, 10);
+      const category = document.getElementById('qExpCategory').value;
+      const concept = document.getElementById('qExpConcept').value.trim();
+      const recipient = document.getElementById('qExpRecipient').value.trim();
+      const receipt_number = document.getElementById('qExpReceiptNumber').value.trim();
+      const payment_source = document.querySelector('input[name="qExpSource"]:checked')?.value || 'banco_transferencia';
+
+      if (amount <= 0 || !concept) {
+        alert("Ingresa un monto y concepto válidos.");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/accounting/expense', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            date_str, amount, category, concept, payment_source, recipient, receipt_number, authorized_by: 'Alejandro'
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error al registrar pago");
+
+        closeModal('quickExpenseModal');
+        alert("✅ " + data.message);
+        loadLedger();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function deleteExpense(id) {
+      if (!confirm(`¿Deseas eliminar el egreso #${id}?`)) return;
+      try {
+        const res = await fetch(`/api/accounting/expense/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error al eliminar");
+        alert("✅ Egreso eliminado.");
+        loadLedger();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function syncDayPos(dateStr) {
+      if (!confirm(`¿Sincronizar ventas del cierre POS para el día ${dateStr}?`)) return;
+      try {
+        const res = await fetch('/api/accounting/sync-pos-day', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ date_str: dateStr })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error al sincronizar");
+        alert("✅ " + data.message);
+        loadLedger();
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    function openEditIncome(dateStr, cash, dig, dat) {
+      selectedDayForIncome = dateStr;
+      document.getElementById('editIncomeModalTitle').textContent = `Editar Ingresos (${dateStr})`;
+      document.getElementById('editIncomeDateBadge').textContent = dateStr;
+      document.getElementById('editIncomeCash').value = cash || 0;
+      document.getElementById('editIncomeDigital').value = dig || 0;
+      document.getElementById('editIncomeDatafono').value = dat || 0;
+      document.getElementById('editIncomeNotes').value = '';
+      openModal('editIncomeModal');
+    }
+
+    async function triggerSyncPosForCurrentEdit() {
+      if (!selectedDayForIncome) return;
+      try {
+        const res = await fetch('/api/accounting/sync-pos-day', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ date_str: selectedDayForIncome })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error");
+        document.getElementById('editIncomeCash').value = data.income.cash;
+        document.getElementById('editIncomeDigital').value = data.income.digital;
+        document.getElementById('editIncomeDatafono').value = data.income.datafono;
+        alert("✅ Ventas cargadas desde el POS: " + formatCOP(data.income.total));
+      } catch (e) {
+        alert("Error: " + e.message);
+      }
+    }
+
+    async function saveDailyIncomeManual() {
+      if (!selectedDayForIncome) return;
+      const cash = parseInt(document.getElementById('editIncomeCash').value || 0, 10);
+      const dig = parseInt(document.getElementById('editIncomeDigital').value || 0, 10);
+      const dat = parseInt(document.getElementById('editIncomeDatafono').value || 0, 10);
+      const notes = document.getElementById('editIncomeNotes').value.trim();
+
+      try {
+        const res = await fetch('/api/accounting/daily-income', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            date_str: selectedDayForIncome,
+            income_cash: cash,
+            income_digital: dig,
+            income_datafono: dat,
+            notes: notes
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error");
+
+        closeModal('editIncomeModal');
+        alert("✅ " + data.message);
+        loadLedger();
+      } catch (e) {
+        alert("Error: " + e.message);
+      }
+    }
+
+    function openDayExpenses(dateStr) {
+      selectedDayForExpense = dateStr;
+      if (!currentLedgerData) return;
+      const dayData = currentLedgerData.ledger.find(d => d.date_str === dateStr);
+      if (!dayData) return;
+
+      document.getElementById('dayExpensesModalTitle').textContent = `Egresos del Día ${dateStr}`;
+      const listEl = document.getElementById('dayExpensesModalList');
+
+      if (!dayData.expenses || dayData.expenses.length === 0) {
+        listEl.innerHTML = `<div class="p-6 text-center text-slate-500">No hay egresos en este día.</div>`;
+      } else {
+        listEl.innerHTML = dayData.expenses.map(e => `
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+            <div>
+              <div class="font-bold text-slate-200">${e.concept}</div>
+              <div class="text-[11px] text-slate-400">
+                <span>${e.category}</span> • 
+                <span class="${e.payment_source === 'caja_efectivo' ? 'text-emerald-400' : 'text-purple-400'}">
+                  ${e.payment_source === 'caja_efectivo' ? '💵 Efectivo' : '📲 Transferencia'}
+                </span>
+                ${e.recipient ? ` • <span>${e.recipient}</span>` : ''}
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="font-black font-mono text-red-400">${formatCOP(e.amount)}</div>
+              <button type="button" onclick="deleteExpense(${e.id}); closeModal('dayExpensesModal');" class="text-[10px] text-slate-500 hover:text-red-400 underline">Eliminar</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      openModal('dayExpensesModal');
+    }
+
+    function openExpenseForCurrentDayModal() {
+      closeModal('dayExpensesModal');
+      if (selectedDayForExpense) {
+        openExpenseForDate(selectedDayForExpense);
+      } else {
+        openExpenseQuickModal();
+      }
+    }
+
+    function exportLedgerCsv() {
+      const month = activeLedgerMonth || getTodayBogota().monthStr;
+      window.location.href = `/api/accounting/export-ledger?month=${month}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const { monthStr } = getTodayBogota();
+      activeLedgerMonth = monthStr;
+      const picker = document.getElementById('ledgerMonthPicker');
+      if (picker) picker.value = monthStr;
+
+      checkAuth();
+    });
+  </script>
+</body>
+</html>

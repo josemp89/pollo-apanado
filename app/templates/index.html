@@ -96,6 +96,19 @@
       </button>
     </nav>
 
+    <!-- Controles de Usuario y Gerencia -->
+    <div class="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
+      <a id="navGerenciaTab" href="/gerencia" class="hidden px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-sm transition flex items-center space-x-1" title="Libro contable, compras y utilidades (Exclusivo Dueño)">
+        <span>👑</span>
+        <span>Gerencia</span>
+      </a>
+      <button type="button" onclick="openUserSwitchModal()" class="flex items-center space-x-1.5 sm:space-x-2 bg-slate-900/90 border border-slate-700 hover:border-amber-500/50 px-2 sm:px-3 py-1.5 rounded-xl transition cursor-pointer select-none flex-shrink-0" title="Cambiar de usuario">
+      <span id="navUserIcon" class="text-sm sm:text-base">👤</span>
+      <span id="navUserLabel" class="text-[11px] sm:text-xs font-black text-slate-200">Santiago (Vendedor)</span>
+      <span class="text-[10px] text-slate-400">⇄</span>
+    </button>
+    </div>
+
     <!-- Reloj en vivo, Botón de Impresora y Status -->
     <div class="flex items-center space-x-2 flex-shrink-0">
       <button type="button" onclick="openCashDrawer(event)" class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 text-xs font-black flex items-center space-x-1.5 transition shadow select-none cursor-pointer" title="Abrir Cajón Monedero">
@@ -1309,6 +1322,7 @@
 
   <!-- SCRIPTS -->
   <script src="/static/js/printer.js?v=20261026_v21"></script>
+  <script src="/static/js/auth.js?v=20261028_v1"></script>
   <script src="/static/js/pos.js?v=20261021_v5"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, RedirectResponse
 from app.database import init_db
-from app.routers import pos, kitchen, cash, inventory
+from app.routers import pos, kitchen, cash, inventory, auth, accounting
 
 app = FastAPI(
     title="Sistema de Gestión y POS - Pollo Apanado",
@@ -46,6 +46,8 @@ app.include_router(pos.router)
 app.include_router(kitchen.router)
 app.include_router(cash.router)
 app.include_router(inventory.router)
+app.include_router(auth.router)
+app.include_router(accounting.router)
 
 @app.on_event("startup")
 def on_startup():
@@ -67,6 +69,11 @@ def get_kitchen_view(request: Request = None):
 @app.get("/caja", response_class=HTMLResponse)
 def get_cash_view(request: Request):
     return templates.TemplateResponse(request=request, name="cash.html", context={"view": "cash"})
+
+@app.get("/gerencia", response_class=HTMLResponse)
+@app.get("/contabilidad", response_class=HTMLResponse)
+def get_management_view(request: Request):
+    return templates.TemplateResponse(request=request, name="gerencia.html", context={"view": "gerencia"})
 
 @app.get("/tutorial", response_class=HTMLResponse)
 def get_tutorial_view(request: Request):

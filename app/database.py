@@ -416,6 +416,43 @@ def init_db():
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_accounting_closings_date ON daily_accounting_closings(date_str);")
 
+    # 19. Tabla de Usuarios y Roles (Vendedor vs Dueño / Gerencia)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS app_users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        display_name TEXT NOT NULL,
+        role TEXT NOT NULL, -- 'admin' (Dueño/Gerencia) o 'cajero' (Vendedor/Asadero)
+        pin TEXT NOT NULL,
+        is_active INTEGER DEFAULT 1,
+        created_at TEXT NOT NULL
+    );
+    """)
+    users_count = cursor.execute("SELECT COUNT(*) FROM app_users").fetchone()[0]
+    if users_count == 0:
+        cursor.execute("""
+            INSERT INTO app_users (username, display_name, role, pin, is_active, created_at)
+            VALUES 
+            ('santiago', 'Santiago (Vendedor)', 'cajero', '1234', 1, '2026-10-28T00:00:00'),
+            ('alejandro', 'Alejandro (Dueño / Gerencia)', 'admin', '4321', 1, '2026-10-28T00:00:00')
+        """)
+
+    # 20. Tabla de Libro Diario de Ingresos (Sincronizado POS o Manual)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS daily_income_ledger (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date_str TEXT UNIQUE NOT NULL,
+        income_cash INTEGER DEFAULT 0,
+        income_digital INTEGER DEFAULT 0,
+        income_datafono INTEGER DEFAULT 0,
+        income_total INTEGER DEFAULT 0,
+        source TEXT DEFAULT 'pos_sync', -- 'pos_sync' o 'manual'
+        notes TEXT,
+        updated_at TEXT NOT NULL
+    );
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_income_ledger_date ON daily_income_ledger(date_str);")
+
     cursor.execute("""
         UPDATE inventory 
         SET location = CASE LOWER(category)
