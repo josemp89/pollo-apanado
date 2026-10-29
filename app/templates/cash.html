@@ -440,6 +440,248 @@
       </div>
     </div>
 
+  
+    <!-- 5. HISTORIAL DE VENTAS POR HORAS & ROTACIÓN DE PRESAS -->
+    <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 shadow-2xl space-y-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-700 pb-3">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl">
+            ⏰
+          </div>
+          <div>
+            <h2 class="text-base font-black text-amber-400 tracking-wide uppercase">
+              Historial de Ventas por Horas & Rotación de Presas
+            </h2>
+            <p class="text-xs text-slate-400">
+              Desglose horario de facturación y consumo exacto de Pechugas, Muslos, Contramuslos y Alas
+            </p>
+          </div>
+        </div>
+
+        <!-- Controles de Fecha y Descargas -->
+        <div class="flex items-center flex-wrap gap-2">
+          <div class="flex items-center bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1">
+            <span class="text-xs text-slate-400 font-bold mr-2">📅</span>
+            <input type="date" id="hourlySalesDatePicker" onchange="onHourlyDateChanged()" class="bg-transparent text-xs font-bold text-amber-300 focus:outline-none">
+          </div>
+          <button type="button" onclick="setHourlyDateToday()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 transition">
+            Hoy
+          </button>
+          <button type="button" onclick="setHourlyDateYesterday()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 transition">
+            Ayer
+          </button>
+          <button type="button" onclick="exportHourlySalesCsv()" class="px-3 py-1.5 rounded-lg text-xs font-black bg-emerald-600/90 hover:bg-emerald-500 text-white transition flex items-center space-x-1 shadow-sm" title="Descargar reporte horario agrupado en CSV para Excel">
+            <span>📥</span>
+            <span>Exportar Horas</span>
+          </button>
+          <button type="button" onclick="exportSalesDetailCsv()" class="px-3 py-1.5 rounded-lg text-xs font-black bg-blue-600/90 hover:bg-blue-500 text-white transition flex items-center space-x-1 shadow-sm" title="Descargar detalle ticket por ticket y presas en CSV para Excel">
+            <span>📊</span>
+            <span>Detalle Tickets</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Resumen KPI Horario -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 flex flex-col justify-between">
+          <span class="text-[11px] font-bold uppercase text-slate-400">Hora Pico de Facturación</span>
+          <div id="statPeakHour" class="text-xl font-black text-amber-400 my-1">--:--</div>
+          <span id="statPeakHourSales" class="text-[11px] text-slate-400">$ 0 en ventas</span>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 flex flex-col justify-between">
+          <span class="text-[11px] font-bold uppercase text-slate-400">Total Presas Despachadas</span>
+          <div id="statTotalPresasSold" class="text-xl font-black text-amber-300 my-1">0 presas</div>
+          <span id="statPresasBreakdownMini" class="text-[10px] text-slate-400 font-mono">0 Pech | 0 Mus | 0 Con | 0 Alas</span>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 flex flex-col justify-between">
+          <span class="text-[11px] font-bold uppercase text-slate-400">Ventas en la Fecha</span>
+          <div id="statHourlyTicketsCount" class="text-xl font-black text-emerald-400 my-1">0 tickets</div>
+          <span id="statHourlyTotalGross" class="text-[11px] text-slate-400">$ 0 total vendido</span>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 flex flex-col justify-between">
+          <span class="text-[11px] font-bold uppercase text-slate-400">Ticket Promedio</span>
+          <div id="statHourlyTicketAverage" class="text-xl font-black text-sky-400 my-1">$ 0</div>
+          <span class="text-[11px] text-slate-400">Ingreso promedio por cliente</span>
+        </div>
+      </div>
+
+      <!-- Tabla de Ventas por Hora y Desglose de Presas -->
+      <div class="overflow-x-auto rounded-xl border border-slate-700/80 bg-slate-950/60 max-h-96 overflow-y-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-900/90 text-slate-400 uppercase text-[10px] font-bold border-b border-slate-700/80 sticky top-0 backdrop-blur-md">
+            <tr>
+              <th class="py-2.5 px-3">Franja Horaria</th>
+              <th class="py-2.5 px-3 text-center">Tickets</th>
+              <th class="py-2.5 px-3 text-right">Venta Total</th>
+              <th class="py-2.5 px-3 text-right">Efectivo</th>
+              <th class="py-2.5 px-3 text-right">Digital / Datáfono</th>
+              <th class="py-2.5 px-3 text-center text-amber-300">Pechugas</th>
+              <th class="py-2.5 px-3 text-center text-amber-300">Muslos</th>
+              <th class="py-2.5 px-3 text-center text-amber-300">Contramuslos</th>
+              <th class="py-2.5 px-3 text-center text-amber-300">Alas</th>
+              <th class="py-2.5 px-3 text-center font-black text-emerald-400">Total Presas</th>
+              <th class="py-2.5 px-3 text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="hourlySalesTableBody" class="divide-y divide-slate-800 font-medium">
+            <tr>
+              <td colspan="11" class="py-4 text-center text-slate-400">Cargando ventas por franja horaria...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 6. LIBRO CONTABLE & CRUCE FINANCIERO DIARIO -->
+    <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 shadow-2xl space-y-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-700 pb-3">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-xl">
+            📒
+          </div>
+          <div>
+            <h2 class="text-base font-black text-emerald-400 tracking-wide uppercase">
+              Libro Contable & Cruce Financiero Diario
+            </h2>
+            <p class="text-xs text-slate-400">
+              Estado de Resultados (P&L: Ingresos vs Compras y Gastos) y Cruce de Tesorería (Caja vs Cuentas Digitales)
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center flex-wrap gap-2">
+          <button type="button" onclick="openExpenseModal()" class="px-3.5 py-1.5 rounded-lg text-xs font-black bg-red-600 hover:bg-red-500 text-white transition flex items-center space-x-1 shadow-sm">
+            <span>➕</span>
+            <span>Registrar Gasto / Compra</span>
+          </button>
+          <button type="button" onclick="saveDailyAccountingClosing()" class="px-3.5 py-1.5 rounded-lg text-xs font-black bg-amber-500 hover:bg-amber-400 text-slate-950 transition flex items-center space-x-1 shadow-sm" title="Guardar cierre contable formal del día">
+            <span>💾</span>
+            <span>Guardar Cierre Contable</span>
+          </button>
+          <button type="button" onclick="exportAccountingCsv()" class="px-3 py-1.5 rounded-lg text-xs font-black bg-blue-600/90 hover:bg-blue-500 text-white transition flex items-center space-x-1 shadow-sm" title="Descargar informe contable y P&L en CSV para Excel">
+            <span>📥</span>
+            <span>Exportar CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjetas P&L: Ingresos - Egresos = Utilidad Neta Real -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        
+        <!-- Total Ingresos Brutos -->
+        <div class="bg-slate-900/85 border border-emerald-500/40 rounded-xl p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase text-emerald-400">Total Ingresos Brutos</span>
+            <span class="text-xs">📈</span>
+          </div>
+          <div id="statPnlGrossSales" class="text-2xl font-black text-emerald-400 my-1.5">$ 0</div>
+          <div class="space-y-0.5 text-[11px] text-slate-400 border-t border-slate-800 pt-1.5">
+            <div class="flex justify-between"><span>Efectivo:</span><span id="statPnlGrossCash" class="font-bold text-slate-200">$ 0</span></div>
+            <div class="flex justify-between"><span>Digital (Nequi):</span><span id="statPnlGrossDigital" class="font-bold text-purple-300">$ 0</span></div>
+            <div class="flex justify-between"><span>Datáfono:</span><span id="statPnlGrossDatafono" class="font-bold text-sky-300">$ 0</span></div>
+          </div>
+        </div>
+
+        <!-- Total Egresos -->
+        <div class="bg-slate-900/85 border border-red-500/40 rounded-xl p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase text-red-400">Total Egresos & Compras</span>
+            <span class="text-xs">📉</span>
+          </div>
+          <div id="statPnlTotalExpenses" class="text-2xl font-black text-red-400 my-1.5">$ 0</div>
+          <div class="space-y-0.5 text-[11px] text-slate-400 border-t border-slate-800 pt-1.5">
+            <div class="flex justify-between"><span>Compras Mercancía:</span><span id="statPnlPurchasesCogs" class="font-bold text-slate-200">$ 0</span></div>
+            <div class="flex justify-between"><span>Gastos Operativos:</span><span id="statPnlOpex" class="font-bold text-slate-200">$ 0</span></div>
+            <div class="flex justify-between"><span>Retiro Socios:</span><span id="statPnlWithdrawals" class="font-bold text-amber-300">$ 0</span></div>
+          </div>
+        </div>
+
+        <!-- Utilidad Neta Real -->
+        <div id="statPnlNetCard" class="bg-slate-900/85 border border-amber-500/40 rounded-xl p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase text-amber-300">Utilidad Neta Real</span>
+            <span id="statPnlMarginBadge" class="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">Margen: 0%</span>
+          </div>
+          <div id="statPnlNetProfit" class="text-2xl font-black text-amber-400 my-1.5">$ 0</div>
+          <div class="space-y-0.5 text-[11px] text-slate-400 border-t border-slate-800 pt-1.5">
+            <div class="flex justify-between"><span>Margen Bruto (Vtas - Compras):</span><span id="statPnlGrossMargin" class="font-bold text-slate-200">$ 0</span></div>
+            <div class="flex justify-between"><span>Estado:</span><span id="statPnlProfitStatus" class="font-bold text-emerald-400">Operación Equilibrada</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- CRUCE DE TESORERÍA: CAJA FÍSICA VS CUENTAS DIGITALES -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <!-- Cajón Físico -->
+        <div class="bg-slate-900/70 border border-slate-700/80 rounded-xl p-3.5 space-y-2">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+            <span class="text-xs font-black text-emerald-400 flex items-center space-x-1.5">
+              <span>💵</span>
+              <span>Caja Física (Cajón Registradora)</span>
+            </span>
+            <span class="text-[10px] font-bold text-slate-400">Dinero en Billetes / Monedas</span>
+          </div>
+          <div class="space-y-1 text-xs">
+            <div class="flex justify-between text-slate-300"><span>(+) Base Inicial Turno:</span><span id="statTreasuryBaseCash" class="font-mono font-bold">$ 0</span></div>
+            <div class="flex justify-between text-slate-300"><span>(+) Ventas Cobradas en Efectivo:</span><span id="statTreasurySalesCash" class="font-mono font-bold text-emerald-400">$ 0</span></div>
+            <div class="flex justify-between text-slate-300"><span>(-) Pagos / Gastos en Efectivo de Caja:</span><span id="statTreasuryExpCash" class="font-mono font-bold text-red-400">$ 0</span></div>
+            <div class="flex justify-between pt-1 border-t border-slate-800 text-sm font-black text-emerald-300">
+              <span>(=) Efectivo Esperado en Cajón:</span>
+              <span id="statTreasuryNetCash" class="font-mono">$ 0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cuentas Bancarias / Digitales -->
+        <div class="bg-slate-900/70 border border-slate-700/80 rounded-xl p-3.5 space-y-2">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+            <span class="text-xs font-black text-purple-400 flex items-center space-x-1.5">
+              <span>📲</span>
+              <span>Cuentas Digitales & Datáfono</span>
+            </span>
+            <span class="text-[10px] font-bold text-slate-400">Nequi / Bancos / Tarjetas</span>
+          </div>
+          <div class="space-y-1 text-xs">
+            <div class="flex justify-between text-slate-300"><span>(+) Ventas Recibidas en Nequi / Transf.:</span><span id="statTreasurySalesDigital" class="font-mono font-bold text-purple-400">$ 0</span></div>
+            <div class="flex justify-between text-slate-300"><span>(+) Ventas Datáfono (Vouchers):</span><span id="statTreasurySalesDatafono" class="font-mono font-bold text-sky-400">$ 0</span></div>
+            <div class="flex justify-between text-slate-300"><span>(-) Compras / Pagos por Transferencia:</span><span id="statTreasuryExpDigital" class="font-mono font-bold text-red-400">$ 0</span></div>
+            <div class="flex justify-between pt-1 border-t border-slate-800 text-sm font-black text-purple-300">
+              <span>(=) Saldo Neto en Cuentas Digitales:</span>
+              <span id="statTreasuryNetDigital" class="font-mono">$ 0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de Egresos y Gastos Registrados en la Fecha -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold uppercase text-slate-300">Detalle de Compras y Egresos del Día</span>
+          <span id="statExpensesCountBadge" class="text-[11px] text-slate-400">0 registros</span>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-slate-700/80 bg-slate-950/60 max-h-60 overflow-y-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-900/90 text-slate-400 uppercase text-[10px] font-bold border-b border-slate-700/80 sticky top-0 backdrop-blur-md">
+              <tr>
+                <th class="py-2.5 px-3">Hora</th>
+                <th class="py-2.5 px-3">Concepto / Detalle</th>
+                <th class="py-2.5 px-3">Categoría</th>
+                <th class="py-2.5 px-3 text-center">Medio de Pago</th>
+                <th class="py-2.5 px-3">Autorizado Por</th>
+                <th class="py-2.5 px-3 text-right">Monto</th>
+              </tr>
+            </thead>
+            <tbody id="accountingExpensesTableBody" class="divide-y divide-slate-800 font-medium">
+              <tr>
+                <td colspan="6" class="py-4 text-center text-slate-400">No hay egresos registrados en la fecha seleccionada.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- ==================== MODALES OPERATIVOS ==================== -->
@@ -649,47 +891,91 @@
     </div>
   </div>
 
-  <!-- MODAL: REGISTRAR GASTO MENOR DE CAJA -->
+    <!-- MODAL: REGISTRAR GASTO MENOR DE CAJA / COMPRA / PAGO -->
   <div id="expenseModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-red-500/60 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+    <div class="bg-slate-900 border border-amber-500/60 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
       <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-        <h3 class="font-black text-base text-red-400 flex items-center space-x-2">
+        <h3 class="font-black text-base text-amber-400 flex items-center space-x-2">
           <span>💸</span>
-          <span>Registrar Gasto de Caja Menor</span>
+          <span>Registrar Egreso / Compra / Gasto</span>
         </h3>
         <button onclick="closeModal('expenseModal')" class="text-slate-400 hover:text-white font-bold text-lg select-none">&times;</button>
       </div>
 
       <div class="space-y-3 text-xs">
+        <!-- ORIGEN DE FONDOS (CAJA FÍSICA VS TRANSFERENCIA BANCARIA) -->
         <div>
-          <label class="block font-bold text-slate-300 mb-1">Monto Retirado ($ COP):</label>
-          <input type="number" id="expenseAmount" placeholder="Ej. 15000" min="100" step="500" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 font-black text-lg text-red-400 focus:outline-none focus:border-red-500 tabular-nums">
+          <label class="block font-bold text-slate-300 mb-1.5">Origen de Fondos (¿De dónde sale el dinero?):</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center space-x-2 p-2.5 rounded-xl border border-emerald-500/40 bg-emerald-950/20 cursor-pointer hover:bg-emerald-950/40 transition">
+              <input type="radio" name="expensePaymentSource" value="caja_efectivo" checked onchange="updateExpenseSourceUI()" class="text-emerald-500 focus:ring-0">
+              <div>
+                <div class="font-black text-emerald-400 text-xs">💵 Efectivo de Caja</div>
+                <div class="text-[10px] text-slate-400">Deduce del cajón físico</div>
+              </div>
+            </label>
+            <label class="flex items-center space-x-2 p-2.5 rounded-xl border border-purple-500/40 bg-purple-950/20 cursor-pointer hover:bg-purple-950/40 transition">
+              <input type="radio" name="expensePaymentSource" value="banco_transferencia" onchange="updateExpenseSourceUI()" class="text-purple-500 focus:ring-0">
+              <div>
+                <div class="font-black text-purple-400 text-xs">📲 Bancos / Nequi</div>
+                <div class="text-[10px] text-slate-400">NO afecta cajón físico</div>
+              </div>
+            </label>
+          </div>
         </div>
 
         <div>
-          <label class="block font-bold text-slate-300 mb-1">Categoría:</label>
-          <select id="expenseCategory" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-200 focus:outline-none focus:border-red-500">
-            <option value="insumos">Insumos Urgentes (Hielo, Cilantro, etc.)</option>
-            <option value="servicios">Servicios / Domicilios</option>
-            <option value="transporte">Transporte / Flete</option>
-            <option value="mantenimiento">Mantenimiento / Limpieza</option>
-            <option value="otro">Otro</option>
+          <label class="block font-bold text-slate-300 mb-1">Monto del Egreso ($ COP):</label>
+          <input type="number" id="expenseAmount" placeholder="Ej. 15000" min="100" step="500" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-black text-lg text-amber-400 focus:outline-none focus:border-amber-500 tabular-nums">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Categoría Contable:</label>
+          <select id="expenseCategory" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-200 focus:outline-none focus:border-amber-500">
+            <optgroup label="🛒 Compras de Mercancía / Costo Directo (COGS)">
+              <option value="compra_pollo">🍗 Compra de Pollo en Canal / Presas</option>
+              <option value="compra_bebidas">🥤 Compra de Bebidas / Gaseosas / Cerveza</option>
+              <option value="compra_insumos">🧂 Insumos de Cocina (Aceite, Harina, Condimentos)</option>
+              <option value="compra_empaques">📦 Empaques, Bolsas y Desechables</option>
+            </optgroup>
+            <optgroup label="🏢 Gastos Operativos (OPEX)">
+              <option value="nomina_jornales">👥 Nómina / Jornales / Turnos</option>
+              <option value="servicios_publicos">💡 Servicios Públicos (Luz, Agua, Gas)</option>
+              <option value="arriendo">🏠 Arriendo / Alquiler Local</option>
+              <option value="transporte_fletes">🚚 Fletes / Transporte / Domicilios</option>
+              <option value="aseo_mantenimiento">🧹 Aseo, Limpieza y Mantenimiento</option>
+              <option value="otros">📋 Otros Gastos Generales</option>
+            </optgroup>
+            <optgroup label="💼 Retiro de Socios">
+              <option value="retiro_socio">💰 Retiro de Socio / Dueño</option>
+            </optgroup>
           </select>
         </div>
 
         <div>
-          <label class="block font-bold text-slate-300 mb-1">Concepto / Justificación:</label>
-          <input type="text" id="expenseConcept" placeholder="Ej. Compra 2 bolsas de hielo" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-bold text-slate-200 focus:outline-none focus:border-red-500">
+          <label class="block font-bold text-slate-300 mb-1">Concepto / Detalle / Justificación:</label>
+          <input type="text" id="expenseConcept" placeholder="Ej. Pago Pollo Fresco MacPollo" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-bold text-slate-200 focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Beneficiario / Proveedor (Opc.):</label>
+            <input type="text" id="expenseRecipient" placeholder="Ej. Distribuidora Avícola" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 font-medium text-slate-200 focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">Nº Recibo / Soporte (Opc.):</label>
+            <input type="text" id="expenseReceiptNumber" placeholder="Ej. Factura 452 / Nequi" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 font-medium text-slate-200 focus:outline-none focus:border-amber-500">
+          </div>
         </div>
 
         <div>
           <label class="block font-bold text-slate-300 mb-1">Autorizado por:</label>
-          <input type="text" id="expenseAuthorizedBy" value="Santiago" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 font-bold text-slate-200 focus:outline-none focus:border-red-500">
+          <input type="text" id="expenseAuthorizedBy" value="Santiago" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-1.5 font-bold text-slate-200 focus:outline-none focus:border-amber-500">
         </div>
 
         <div class="flex space-x-2 pt-2">
-          <button onclick="closeModal('expenseModal')" class="w-1/3 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold select-none">Cancelar</button>
-          <button onclick="submitExpense()" class="flex-1 h-11 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black shadow-lg select-none">DEDUCIR DE CAJA</button>
+          <button type="button" onclick="closeModal('expenseModal')" class="w-1/3 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold select-none">Cancelar</button>
+          <button type="button" id="btnSubmitExpenseConfirm" onclick="submitExpense()" class="flex-1 h-11 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black shadow-lg select-none">DEDUCIR DE CAJA FÍSICA</button>
         </div>
       </div>
     </div>
@@ -1255,6 +1541,30 @@
         <button onclick="submitPriceUpdates()" class="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-lg transition flex items-center justify-center space-x-1.5 select-none">
           <span>💾</span>
           <span>GUARDAR CAMBIOS DE PRECIOS</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- MODAL: DETALLE DE TICKETS POR HORA -->
+  <div id="hourlyTicketsModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-amber-500/60 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-black text-base text-amber-400 flex items-center space-x-2">
+          <span>🔍</span>
+          <span id="hourlyTicketsModalTitle">Tickets Emitidos en Franja Horaria</span>
+        </h3>
+        <button onclick="closeModal('hourlyTicketsModal')" class="text-slate-400 hover:text-white font-bold text-xl select-none">&times;</button>
+      </div>
+
+      <div id="hourlyTicketsModalContent" class="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
+        <div class="p-4 text-center text-slate-400">Cargando tickets de la hora...</div>
+      </div>
+
+      <div class="flex justify-end pt-2 border-t border-slate-800">
+        <button type="button" onclick="closeModal('hourlyTicketsModal')" class="px-5 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold select-none">
+          Cerrar
         </button>
       </div>
     </div>
@@ -2295,33 +2605,7 @@
       }
     }
 
-    async function submitExpense() {
-      const amount = parseInt(document.getElementById('expenseAmount').value || 0, 10);
-      const category = document.getElementById('expenseCategory').value;
-      const concept = document.getElementById('expenseConcept').value.trim();
-      const authorized_by = document.getElementById('expenseAuthorizedBy').value.trim();
-
-      if (amount <= 0 || !concept) {
-        alert("Ingresa un monto válido y el concepto del gasto.");
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/cash/expense', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ amount, category, concept, authorized_by })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "Error al registrar gasto");
-
-        closeModal('expenseModal');
-        alert("✅ " + data.message);
-        loadDailySummary();
-      } catch (err) {
-        alert("Error: " + err.message);
-      }
-    }
+    /* submitExpense moved to accounting module */
 
     async function submitVitrinaAudit() {
       const pechugas_fisico = parseFloat(document.getElementById('auditPechugas').value || 0);
@@ -2693,7 +2977,433 @@
       document.getElementById('breakdownGrandTotal').textContent = formatCOP(bd.total_revenue_sum || granTotal);
     }
 
+    
+    /* ==================== MÓDULO CONTABLE & VENTAS POR HORAS ==================== */
+    let currentHourlyDate = '';
+    let currentHourlyData = null;
+    let currentAccountingData = null;
+
+    function getTodayBogotaStr() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function initHourlyAndAccountingDates() {
+      const todayStr = getTodayBogotaStr();
+      currentHourlyDate = todayStr;
+      const input = document.getElementById('hourlySalesDatePicker');
+      if (input) input.value = todayStr;
+    }
+
+    function setHourlyDateToday() {
+      const todayStr = getTodayBogotaStr();
+      currentHourlyDate = todayStr;
+      const input = document.getElementById('hourlySalesDatePicker');
+      if (input) input.value = todayStr;
+      onHourlyDateChanged();
+    }
+
+    function setHourlyDateYesterday() {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const yestStr = `${year}-${month}-${day}`;
+      currentHourlyDate = yestStr;
+      const input = document.getElementById('hourlySalesDatePicker');
+      if (input) input.value = yestStr;
+      onHourlyDateChanged();
+    }
+
+    function onHourlyDateChanged() {
+      const input = document.getElementById('hourlySalesDatePicker');
+      if (input && input.value) {
+        currentHourlyDate = input.value;
+      }
+      loadHourlySales(currentHourlyDate);
+      loadAccountingDaily(currentHourlyDate);
+    }
+
+    function updateExpenseSourceUI() {
+      const isCash = document.querySelector('input[name="expensePaymentSource"]:checked')?.value === 'caja_efectivo';
+      const btn = document.getElementById('btnSubmitExpenseConfirm');
+      if (btn) {
+        if (isCash) {
+          btn.className = "flex-1 h-11 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black shadow-lg select-none";
+          btn.textContent = "DEDUCIR DE CAJA FÍSICA";
+        } else {
+          btn.className = "flex-1 h-11 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black shadow-lg select-none";
+          btn.textContent = "REGISTRAR PAGO DIGITAL / BANCO";
+        }
+      }
+    }
+
+    async function submitExpense() {
+      const amount = parseInt(document.getElementById('expenseAmount').value || 0, 10);
+      const category = document.getElementById('expenseCategory').value;
+      const concept = document.getElementById('expenseConcept').value.trim();
+      const authorized_by = document.getElementById('expenseAuthorizedBy').value.trim();
+      const payment_source = document.querySelector('input[name="expensePaymentSource"]:checked')?.value || 'caja_efectivo';
+      const recipient = document.getElementById('expenseRecipient')?.value.trim() || null;
+      const receipt_number = document.getElementById('expenseReceiptNumber')?.value.trim() || null;
+
+      if (amount <= 0 || !concept) {
+        alert("Ingresa un monto válido y el concepto del gasto.");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/cash/expense', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ amount, category, concept, authorized_by, payment_source, recipient, receipt_number })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error al registrar gasto");
+
+        closeModal('expenseModal');
+        alert("✅ " + data.message);
+        loadDailySummary();
+        loadAccountingDaily(currentHourlyDate);
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function loadHourlySales(dateStr) {
+      const tbody = document.getElementById('hourlySalesTableBody');
+      if (!dateStr) dateStr = currentHourlyDate || getTodayBogotaStr();
+
+      try {
+        const res = await fetch(`/api/cash/hourly-sales?date_str=${dateStr}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        currentHourlyData = data;
+        renderHourlySales(data);
+      } catch (err) {
+        console.error("Error al cargar ventas por horas:", err);
+        if (tbody) {
+          tbody.innerHTML = `<tr><td colspan="11" class="py-4 text-center text-red-400 font-bold">Error cargando datos horarios de ventas.</td></tr>`;
+        }
+      }
+    }
+
+    function renderHourlySales(data) {
+      const tbody = document.getElementById('hourlySalesTableBody');
+      const peakEl = document.getElementById('statPeakHour');
+      const peakSalesEl = document.getElementById('statPeakHourSales');
+      const presasSoldEl = document.getElementById('statTotalPresasSold');
+      const presasMiniEl = document.getElementById('statPresasBreakdownMini');
+      const ticketsCountEl = document.getElementById('statHourlyTicketsCount');
+      const totalGrossEl = document.getElementById('statHourlyTotalGross');
+      const ticketAvgEl = document.getElementById('statHourlyTicketAverage');
+
+      if (peakEl) peakEl.textContent = data.peak_hour ? data.peak_hour.hour_label : '--:--';
+      if (peakSalesEl) peakSalesEl.textContent = data.peak_hour ? `${formatCOP(data.peak_hour.total_sales)} (${data.peak_hour.tickets_count} tickets)` : '$ 0 en ventas';
+
+      const pTotals = data.total_presas_sold || { pechugas: 0, muslos: 0, contramuslos: 0, alas: 0, total_presas: 0 };
+      if (presasSoldEl) presasSoldEl.textContent = `${pTotals.total_presas} presas`;
+      if (presasMiniEl) presasMiniEl.textContent = `${pTotals.pechugas} Pech | ${pTotals.muslos} Mus | ${pTotals.contramuslos} Con | ${pTotals.alas} Alas`;
+
+      if (ticketsCountEl) ticketsCountEl.textContent = `${data.total_tickets} tickets`;
+      if (totalGrossEl) totalGrossEl.textContent = formatCOP(data.total_gross_sales);
+      if (ticketAvgEl) ticketAvgEl.textContent = formatCOP(data.average_ticket);
+
+      if (!tbody) return;
+
+      const hourlyList = data.hourly_sales || [];
+      if (hourlyList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="py-6 text-center text-slate-400">No hay ventas registradas para el día ${data.date}.</td></tr>`;
+        return;
+      }
+
+      // Filter hours with activity or show daytime hours (9:00 - 23:00)
+      const visibleHours = hourlyList.filter(h => h.tickets_count > 0 || (h.hour >= 10 && h.hour <= 22));
+
+      tbody.innerHTML = visibleHours.map(h => {
+        const hasTickets = h.tickets_count > 0;
+        const rowClass = hasTickets ? "hover:bg-slate-800/60 transition" : "text-slate-500 opacity-60";
+        const ticketsBadge = hasTickets
+          ? `<span class="px-2 py-0.5 rounded-full font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">${h.tickets_count}</span>`
+          : `<span class="text-slate-500">0</span>`;
+
+        const digitalPlusDatafono = (h.digital_sales || 0) + (h.datafono_sales || 0);
+
+        const presas = h.presas || { pechugas: 0, muslos: 0, contramuslos: 0, alas: 0, total_presas: 0 };
+        const actionBtn = hasTickets
+          ? `<button type="button" onclick="openHourlyTicketsModal('${h.hour_label}')" class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold border border-amber-500/40 transition">🔍 Ver (${h.tickets_count})</button>`
+          : `<span class="text-slate-600">-</span>`;
+
+        return `
+          <tr class="${rowClass}">
+            <td class="py-2.5 px-3 font-bold text-slate-200">${h.hour_label}</td>
+            <td class="py-2.5 px-3 text-center">${ticketsBadge}</td>
+            <td class="py-2.5 px-3 text-right font-black ${hasTickets ? 'text-amber-400' : 'text-slate-500'}">${formatCOP(h.total_sales)}</td>
+            <td class="py-2.5 px-3 text-right font-mono text-emerald-400">${formatCOP(h.cash_sales)}</td>
+            <td class="py-2.5 px-3 text-right font-mono text-purple-300">${formatCOP(digitalPlusDatafono)}</td>
+            <td class="py-2.5 px-3 text-center font-bold ${presas.pechugas > 0 ? 'text-amber-300' : 'text-slate-600'}">${presas.pechugas}</td>
+            <td class="py-2.5 px-3 text-center font-bold ${presas.muslos > 0 ? 'text-amber-300' : 'text-slate-600'}">${presas.muslos}</td>
+            <td class="py-2.5 px-3 text-center font-bold ${presas.contramuslos > 0 ? 'text-amber-300' : 'text-slate-600'}">${presas.contramuslos}</td>
+            <td class="py-2.5 px-3 text-center font-bold ${presas.alas > 0 ? 'text-amber-300' : 'text-slate-600'}">${presas.alas}</td>
+            <td class="py-2.5 px-3 text-center font-black ${presas.total_presas > 0 ? 'text-emerald-400' : 'text-slate-600'}">${presas.total_presas}</td>
+            <td class="py-2.5 px-3 text-center">${actionBtn}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openHourlyTicketsModal(hourLabel) {
+      if (!currentHourlyData || !currentHourlyData.hourly_sales) return;
+      const hourData = currentHourlyData.hourly_sales.find(h => h.hour_label === hourLabel);
+      if (!hourData) return;
+
+      const titleEl = document.getElementById('hourlyTicketsModalTitle');
+      const contentEl = document.getElementById('hourlyTicketsModalContent');
+      if (titleEl) titleEl.textContent = `Tickets en Franja ${hourLabel} (${hourData.tickets_count} tickets - ${formatCOP(hourData.total_sales)})`;
+
+      if (!contentEl) return;
+
+      if (!hourData.tickets || hourData.tickets.length === 0) {
+        contentEl.innerHTML = `<div class="p-6 text-center text-slate-400 font-bold">No se encontraron tickets en este rango horario.</div>`;
+      } else {
+        contentEl.innerHTML = hourData.tickets.map(t => {
+          const itemsList = (t.items || []).map(i => {
+            const extra = i.chosen_presa ? ` (${i.chosen_presa})` : '';
+            return `<li class="flex justify-between py-0.5 text-slate-300">
+              <span><strong>${i.quantity}x</strong> ${i.product_name}${extra}</span>
+              <span class="font-mono text-slate-400">${formatCOP(i.subtotal)}</span>
+            </li>`;
+          }).join('');
+
+          let methodBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Efectivo</span>`;
+          if (t.payment_method === 'digital') {
+            methodBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Nequi/Digital</span>`;
+          } else if (t.payment_method === 'datafono') {
+            methodBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">Datáfono</span>`;
+          } else if (t.payment_method === 'mixto') {
+            methodBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Mixto</span>`;
+          }
+
+          const mesaBadge = t.table_number ? `<span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-black text-[10px] border border-blue-500/30">Mesa ${t.table_number}</span>` : '';
+
+          return `
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2">
+              <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <div class="flex items-center space-x-2">
+                  <span class="font-mono font-bold text-amber-400 text-sm">#${t.ticket_code || t.sale_id}</span>
+                  <span class="text-slate-400 text-xs">⏰ ${t.created_at ? t.created_at.substring(11, 16) : ''}</span>
+                  ${mesaBadge}
+                </div>
+                <div class="flex items-center space-x-2">
+                  ${methodBadge}
+                  <span class="font-black text-emerald-400 text-sm">${formatCOP(t.total)}</span>
+                </div>
+              </div>
+              <ul class="space-y-0.5 text-xs pl-1">
+                ${itemsList}
+              </ul>
+              <div class="flex justify-between pt-1 border-t border-slate-900 text-[10px] text-slate-500">
+                <span>Cajero: ${t.cashier_name || 'Santiago'}</span>
+                <span>Cliente: ${t.customer_name || 'General'}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      openModal('hourlyTicketsModal');
+    }
+
+    function exportHourlySalesCsv() {
+      const dateStr = currentHourlyDate || getTodayBogotaStr();
+      window.location.href = `/api/cash/hourly-sales/export?date_str=${dateStr}`;
+    }
+
+    function exportSalesDetailCsv() {
+      const dateStr = currentHourlyDate || getTodayBogotaStr();
+      window.location.href = `/api/cash/sales-detail/export?date_str=${dateStr}`;
+    }
+
+    async function loadAccountingDaily(dateStr) {
+      if (!dateStr) dateStr = currentHourlyDate || getTodayBogotaStr();
+
+      try {
+        const res = await fetch(`/api/cash/accounting-daily?date_str=${dateStr}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        currentAccountingData = data;
+        renderAccountingDaily(data);
+      } catch (err) {
+        console.error("Error al cargar contabilidad diaria:", err);
+      }
+    }
+
+    function renderAccountingDaily(data) {
+      // P&L elements
+      const grossEl = document.getElementById('statPnlGrossSales');
+      const grossCashEl = document.getElementById('statPnlGrossCash');
+      const grossDigEl = document.getElementById('statPnlGrossDigital');
+      const grossDatEl = document.getElementById('statPnlGrossDatafono');
+
+      const expEl = document.getElementById('statPnlTotalExpenses');
+      const expCogsEl = document.getElementById('statPnlPurchasesCogs');
+      const expOpexEl = document.getElementById('statPnlOpex');
+      const expWithEl = document.getElementById('statPnlWithdrawals');
+
+      const netEl = document.getElementById('statPnlNetProfit');
+      const marginBadgeEl = document.getElementById('statPnlMarginBadge');
+      const grossMarginEl = document.getElementById('statPnlGrossMargin');
+      const statusEl = document.getElementById('statPnlProfitStatus');
+
+      // Treasury elements
+      const tBaseCashEl = document.getElementById('statTreasuryBaseCash');
+      const tSalesCashEl = document.getElementById('statTreasurySalesCash');
+      const tExpCashEl = document.getElementById('statTreasuryExpCash');
+      const tNetCashEl = document.getElementById('statTreasuryNetCash');
+
+      const tSalesDigEl = document.getElementById('statTreasurySalesDigital');
+      const tSalesDatEl = document.getElementById('statTreasurySalesDatafono');
+      const tExpDigEl = document.getElementById('statTreasuryExpDigital');
+      const tNetDigEl = document.getElementById('statTreasuryNetDigital');
+
+      // Expenses Table
+      const expTbody = document.getElementById('accountingExpensesTableBody');
+      const expBadge = document.getElementById('statExpensesCountBadge');
+
+      const pnl = data.pnl || {};
+      const treasury = data.treasury || {};
+
+      if (grossEl) grossEl.textContent = formatCOP(pnl.total_gross_income || 0);
+      if (grossCashEl) grossCashEl.textContent = formatCOP(pnl.gross_sales_cash || 0);
+      if (grossDigEl) grossDigEl.textContent = formatCOP(pnl.gross_sales_digital || 0);
+      if (grossDatEl) grossDatEl.textContent = formatCOP(pnl.gross_sales_datafono || 0);
+
+      if (expEl) expEl.textContent = formatCOP(pnl.total_expenses || 0);
+      if (expCogsEl) expCogsEl.textContent = formatCOP(pnl.purchases_cogs || 0);
+      if (expOpexEl) expOpexEl.textContent = formatCOP(pnl.operating_expenses || 0);
+      if (expWithEl) expWithEl.textContent = formatCOP(pnl.partner_withdrawals || 0);
+
+      const netProfit = pnl.net_profit || 0;
+      const marginPct = pnl.net_margin_pct || 0;
+      if (netEl) {
+        netEl.textContent = formatCOP(netProfit);
+        netEl.className = netProfit >= 0 ? "text-2xl font-black text-emerald-400 my-1.5" : "text-2xl font-black text-red-400 my-1.5";
+      }
+      if (marginBadgeEl) {
+        marginBadgeEl.textContent = `Margen: ${marginPct}%`;
+        marginBadgeEl.className = netProfit >= 0
+          ? "text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+          : "text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/40";
+      }
+      if (grossMarginEl) grossMarginEl.textContent = formatCOP(pnl.gross_margin || 0);
+      if (statusEl) {
+        if (netProfit > 0) {
+          statusEl.textContent = "Superávit / Operación Rentable";
+          statusEl.className = "font-bold text-emerald-400";
+        } else if (netProfit === 0) {
+          statusEl.textContent = "Punto de Equilibrio Exacto";
+          statusEl.className = "font-bold text-amber-400";
+        } else {
+          statusEl.textContent = "Déficit Temporal";
+          statusEl.className = "font-bold text-red-400";
+        }
+      }
+
+      // Treasury
+      const tCash = treasury.cash_drawer || {};
+      const tDig = treasury.digital_accounts || {};
+
+      if (tBaseCashEl) tBaseCashEl.textContent = formatCOP(tCash.base_inicial || 0);
+      if (tSalesCashEl) tSalesCashEl.textContent = formatCOP(tCash.sales_cash || 0);
+      if (tExpCashEl) tExpCashEl.textContent = formatCOP(tCash.expenses_cash || 0);
+      if (tNetCashEl) tNetCashEl.textContent = formatCOP(tCash.net_expected_cash || 0);
+
+      if (tSalesDigEl) tSalesDigEl.textContent = formatCOP(tDig.sales_digital || 0);
+      if (tSalesDatEl) tSalesDatEl.textContent = formatCOP(tDig.sales_datafono || 0);
+      if (tExpDigEl) tExpDigEl.textContent = formatCOP(tDig.expenses_digital || 0);
+      if (tNetDigEl) tNetDigEl.textContent = formatCOP(tDig.net_digital_balance || 0);
+
+      // Expenses Table
+      const expList = data.expenses_list || [];
+      if (expBadge) expBadge.textContent = `${expList.length} registros`;
+
+      if (!expTbody) return;
+
+      if (expList.length === 0) {
+        expTbody.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-slate-400">No hay egresos registrados en la fecha seleccionada.</td></tr>`;
+        return;
+      }
+
+      expTbody.innerHTML = expList.map(e => {
+        const isCash = e.payment_source === 'caja_efectivo' || !e.payment_source;
+        const srcBadge = isCash
+          ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">💵 Efectivo Caja</span>`
+          : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">📲 Transferencia</span>`;
+
+        let catBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300">${e.category}</span>`;
+        if (e.category && e.category.startsWith('compra_')) {
+          catBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">COGS Mercancía</span>`;
+        } else if (e.category === 'retiro_socio') {
+          catBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">Retiro Socio</span>`;
+        } else {
+          catBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">OPEX Gasto</span>`;
+        }
+
+        const hora = e.created_at ? e.created_at.substring(11, 16) : '';
+        const recip = e.recipient ? ` <span class="text-slate-500">(${e.recipient})</span>` : '';
+        const recNum = e.receipt_number ? ` <span class="text-[10px] font-mono text-slate-400">[#${e.receipt_number}]</span>` : '';
+
+        return `
+          <tr class="hover:bg-slate-800/50 transition">
+            <td class="py-2 px-3 font-mono text-slate-400">${hora}</td>
+            <td class="py-2 px-3 font-medium text-slate-200">${e.concept}${recip}${recNum}</td>
+            <td class="py-2 px-3">${catBadge}</td>
+            <td class="py-2 px-3 text-center">${srcBadge}</td>
+            <td class="py-2 px-3 text-slate-400">${e.authorized_by || 'Santiago'}</td>
+            <td class="py-2 px-3 text-right font-black text-red-400">${formatCOP(e.amount)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function saveDailyAccountingClosing() {
+      const dateStr = currentHourlyDate || getTodayBogotaStr();
+      const confirmMsg = `¿Deseas formalizar y guardar el Cierre Contable del día ${dateStr}?\n\nEsto generará el comprobante contable definitivo con corte de utilidades y cruce de tesorería.`;
+      if (!confirm(confirmMsg)) return;
+
+      try {
+        const res = await fetch('/api/cash/accounting-closing', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            date_str: dateStr,
+            closed_by: 'Santiago',
+            notes: 'Cierre contable formal generado desde panel de caja'
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error al generar cierre contable");
+
+        alert(`✅ Cierre Contable Guardado Exitosamente.\nCódigo: ${data.closing_code}\nUtilidad Neta: ${formatCOP(data.net_profit)} (${data.net_margin_pct}%)`);
+        loadAccountingDaily(dateStr);
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    function exportAccountingCsv() {
+      const dateStr = currentHourlyDate || getTodayBogotaStr();
+      window.location.href = `/api/cash/accounting-closing/export?date_str=${dateStr}`;
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
+      initHourlyAndAccountingDates();
+      loadHourlySales();
+      loadAccountingDaily();
       loadDailySummary();
       if (typeof loadDailyReconciliation === 'function') {
         loadDailyReconciliation();

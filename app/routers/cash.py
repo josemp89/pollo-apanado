@@ -1,8 +1,12 @@
-from fastapi import APIRouter, Query, HTTPException, Header
+from fastapi import APIRouter, Query, HTTPException, Header, Response
 from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List, Dict, Any
 import os
 import json
+import io
+import csv
+import secrets
+import re
 from datetime import datetime
 from app.database import get_db_connection
 from app.routers.pos import parse_chosen_presas_to_requirements
@@ -56,6 +60,7 @@ class CreateExpenseRequest(BaseModel):
     authorized_by: str = Field(..., min_length=2, description="Nombre de quien autoriza")
     recipient: Optional[str] = None
     receipt_number: Optional[str] = None
+    payment_source: Optional[str] = "caja_efectivo" # 'caja_efectivo' o 'banco_transferencia'
 
 class VitrinaAuditRequest(BaseModel):
     auditor: str = Field("Santiago", min_length=2, description="Nombre del auditor responsable")
@@ -567,7 +572,7 @@ def get_current_shift():
         
         live_expenses = conn.execute("""
             SELECT COALESCE(SUM(amount), 0) FROM cash_expenses
-            WHERE shift_id = ?
+            WHERE shift_id = ? AND (payment_source = 'caja_efectivo' OR payment_source IS NULL)
         """, (shift["id"],)).fetchone()[0]
 
         shift_dict["current_cash_sales"] = live_cash
@@ -677,10 +682,10 @@ def close_shift(payload: CloseShiftRequest):
 
         total_sales = cash_sales + digital_sales + datafono_sales
 
-        # Gastos menores de caja menor asociados al turno
+        # Gastos menores de caja menor asociados al turno (pagados en efectivo)
         total_expenses = cursor.execute("""
             SELECT COALESCE(SUM(amount), 0) FROM cash_expenses 
-            WHERE shift_id = ?
+            WHERE shift_id = ? AND (payment_source = 'caja_efectivo' OR payment_source IS NULL)
         """, (shift_id,)).fetchone()[0]
 
         # Fórmula R1: Efectivo Final Esperado en Cajón = Base Inicial + Ventas Efectivo - Gastos Menores
@@ -1010,16 +1015,21 @@ def create_expense(payload: CreateExpenseRequest):
             if active:
                 shift_id = active["id"]
 
+        payment_source = (payload.payment_source or "caja_efectivo").strip().lower()
+        if payment_source not in ("caja_efectivo", "banco_transferencia", "bancos"):
+            payment_source = "caja_efectivo"
+
         cursor.execute("""
             INSERT INTO cash_expenses (
                 shift_id, timestamp, date_str, amount, category, concept,
-                authorized_by, recipient, receipt_number
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                authorized_by, recipient, receipt_number, payment_source
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             shift_id, now_str, date_str, payload.amount, payload.category.strip(),
             payload.concept.strip(), payload.authorized_by.strip(),
             payload.recipient.strip() if payload.recipient else None,
-            payload.receipt_number.strip() if payload.receipt_number else None
+            payload.receipt_number.strip() if payload.receipt_number else None,
+            payment_source
         ))
         expense_id = cursor.lastrowid
         conn.commit()
@@ -1333,9 +1343,10 @@ def get_daily_summary(date_str: Optional[str] = None, shift_id: Optional[int] = 
         """, tuple(expense_params)).fetchall()
         expenses_list = [dict(r) for r in expenses_rows]
         total_expenses = sum(e["amount"] for e in expenses_list)
+        total_expenses_cash = sum(e["amount"] for e in expenses_list if (e.get("payment_source") or "caja_efectivo") == "caja_efectivo")
 
-        # 4. Fórmula R1: Conciliación de Efectivo
-        expected_cash = base_inicial + totals_dict["efectivo"] - total_expenses
+        # 4. Fórmula R1: Conciliación de Efectivo (descuenta solo egresos en efectivo)
+        expected_cash = base_inicial + totals_dict["efectivo"] - total_expenses_cash
         actual_cash = shift_info["actual_cash"] if shift_info else None
         difference = (actual_cash - expected_cash) if actual_cash is not None else None
 
@@ -1607,3 +1618,489 @@ def adjust_stock(payload: StockAdjustRequest):
     conn.commit()
     conn.close()
     return {"success": True, "message": f"Stock de {payload.item_key} ajustado a {payload.new_stock}."}
+
+# ==================== ANÁLISIS DE VENTAS POR HORAS Y ROTACIÓN DE PRESAS ====================
+
+def extract_presas_from_sale_items(items):
+    """Calcula de forma exacta las presas vendidas individuales, en almuerzos o en combos."""
+    presas = {"pechugas": 0, "muslos": 0, "contramuslos": 0, "alas": 0, "total": 0}
+    for item in items:
+        sku = item.get("sku") or item.get("product_sku")
+        qty = int(item.get("quantity") or 1)
+        chosen = item.get("chosen_presa")
+
+        if sku == 'POL-PEC':
+            presas["pechugas"] += qty
+        elif sku == 'POL-MUS':
+            presas["muslos"] += qty
+        elif sku == 'POL-CON':
+            presas["contramuslos"] += qty
+        elif sku == 'POL-ALA':
+            presas["alas"] += qty
+        elif sku == 'ALM-COMP':
+            ch = (chosen or "").lower()
+            if 'pechuga' in ch: presas["pechugas"] += qty
+            elif 'muslo' in ch: presas["muslos"] += qty
+            elif 'contramuslo' in ch: presas["contramuslos"] += qty
+            elif 'ala' in ch: presas["alas"] += qty
+        elif sku == 'POL-PER':
+            reqs = parse_chosen_presas_to_requirements(chosen)
+            if reqs:
+                presas["pechugas"] += int(reqs.get("pechuga_vitrina", 0) * qty)
+                presas["muslos"] += int(reqs.get("muslo_vitrina", 0) * qty)
+                presas["contramuslos"] += int(reqs.get("contramuslo_vitrina", 0) * qty)
+                presas["alas"] += int(reqs.get("ala_vitrina", 0) * qty)
+            else:
+                presas["muslos"] += qty
+        elif sku in ('POL-14', 'POL-12', 'POL-ENT'):
+            reqs = parse_chosen_presas_to_requirements(chosen)
+            if reqs:
+                presas["pechugas"] += int(reqs.get("pechuga_vitrina", 0) * qty)
+                presas["muslos"] += int(reqs.get("muslo_vitrina", 0) * qty)
+                presas["contramuslos"] += int(reqs.get("contramuslo_vitrina", 0) * qty)
+                presas["alas"] += int(reqs.get("ala_vitrina", 0) * qty)
+            else:
+                if sku == 'POL-14':
+                    presas["muslos"] += 1 * qty
+                    presas["contramuslos"] += 1 * qty
+                elif sku == 'POL-12':
+                    presas["pechugas"] += 1 * qty
+                    presas["alas"] += 1 * qty
+                    presas["muslos"] += 1 * qty
+                    presas["contramuslos"] += 1 * qty
+                elif sku == 'POL-ENT':
+                    presas["pechugas"] += 2 * qty
+                    presas["alas"] += 2 * qty
+                    presas["muslos"] += 2 * qty
+                    presas["contramuslos"] += 2 * qty
+
+    presas["total"] = presas["pechugas"] + presas["muslos"] + presas["contramuslos"] + presas["alas"]
+    return presas
+
+@router.get("/hourly-sales")
+def get_hourly_sales(date_str: Optional[str] = None):
+    """
+    Retorna el historial de ventas por horas del asadero:
+    Número de tickets, facturación en pesos y conteo exacto de presas por franja horaria.
+    """
+    if not date_str:
+        date_str = datetime.now().strftime("%Y-%m-%d")
+
+    conn = get_db_connection()
+    try:
+        sales_rows = conn.execute("""
+            SELECT id, sale_code, timestamp, date_str, time_str, hour_of_day, 
+                   total_amount, payment_method, notes, shift_id
+            FROM sales
+            WHERE date_str = ? AND status = 'completada'
+            ORDER BY time_str ASC
+        """, (date_str,)).fetchall()
+
+        sales_by_hour = {h: [] for h in range(24)}
+        for s in sales_rows:
+            s_dict = dict(s)
+            h = s_dict["hour_of_day"]
+            items_rows = conn.execute("""
+                SELECT si.id, si.product_id, si.product_name, si.quantity, si.unit_price, si.subtotal,
+                       si.chosen_presa, p.sku, p.category
+                FROM sale_items si
+                JOIN products p ON si.product_id = p.id
+                WHERE si.sale_id = ?
+            """, (s_dict["id"],)).fetchall()
+            s_dict["items"] = [dict(it) for it in items_rows]
+            sales_by_hour[h].append(s_dict)
+
+        hourly_summary = []
+        for h in range(24):
+            sales_in_hour = sales_by_hour[h]
+            tickets_count = len(sales_in_hour)
+            total_sales = sum(s["total_amount"] for s in sales_in_hour)
+            cash_sales = sum(s["total_amount"] for s in sales_in_hour if s["payment_method"] == 'efectivo')
+            digital_sales = sum(s["total_amount"] for s in sales_in_hour if s["payment_method"] == 'nequi_daviplata')
+            datafono_sales = sum(s["total_amount"] for s in sales_in_hour if s["payment_method"] == 'datafono')
+
+            all_items_in_hour = []
+            for s in sales_in_hour:
+                all_items_in_hour.extend(s["items"])
+
+            presas = extract_presas_from_sale_items(all_items_in_hour)
+            combos_count = sum(it["quantity"] for it in all_items_in_hour if it.get("sku") in ('POL-14', 'POL-12', 'POL-ENT', 'POL-PER'))
+            gaseosas_count = sum(it["quantity"] for it in all_items_in_hour if it.get("category") == 'gaseosas')
+
+            hourly_summary.append({
+                "hour_of_day": h,
+                "hour_label": f"{h:02d}:00 - {(h+1)%24:02d}:00",
+                "tickets_count": tickets_count,
+                "total_sales": total_sales,
+                "cash_sales": cash_sales,
+                "digital_sales": digital_sales,
+                "datafono_sales": datafono_sales,
+                "pechugas": presas["pechugas"],
+                "muslos": presas["muslos"],
+                "contramuslos": presas["contramuslos"],
+                "alas": presas["alas"],
+                "total_presas": presas["total"],
+                "combos_count": combos_count,
+                "gaseosas_count": gaseosas_count,
+                "tickets": sales_in_hour
+            })
+
+        total_day_sales = sum(h["total_sales"] for h in hourly_summary)
+        total_day_tickets = sum(h["tickets_count"] for h in hourly_summary)
+        total_day_presas = sum(h["total_presas"] for h in hourly_summary)
+        total_day_pechugas = sum(h["pechugas"] for h in hourly_summary)
+        total_day_muslos = sum(h["muslos"] for h in hourly_summary)
+        total_day_contramuslos = sum(h["contramuslos"] for h in hourly_summary)
+        total_day_alas = sum(h["alas"] for h in hourly_summary)
+
+        active_hours = [h for h in hourly_summary if h["tickets_count"] > 0]
+        peak_hour = max(active_hours, key=lambda x: x["total_sales"]) if active_hours else None
+
+        return {
+            "date_str": date_str,
+            "total_sales": total_day_sales,
+            "total_tickets": total_day_tickets,
+            "total_presas": total_day_presas,
+            "presas_breakdown": {
+                "pechugas": total_day_pechugas,
+                "muslos": total_day_muslos,
+                "contramuslos": total_day_contramuslos,
+                "alas": total_day_alas
+            },
+            "peak_hour": {
+                "hour_label": peak_hour["hour_label"],
+                "total_sales": peak_hour["total_sales"],
+                "tickets_count": peak_hour["tickets_count"]
+            } if peak_hour else None,
+            "average_ticket": int(total_day_sales / total_day_tickets) if total_day_tickets > 0 else 0,
+            "hours": hourly_summary
+        }
+    finally:
+        conn.close()
+
+@router.get("/hourly-sales/export")
+def export_hourly_sales_csv(date_str: Optional[str] = None):
+    """Exporta el reporte de ventas por horas y presas a formato CSV compatible con Excel."""
+    if not date_str:
+        date_str = datetime.now().strftime("%Y-%m-%d")
+
+    summary = get_hourly_sales(date_str)
+    output = io.StringIO()
+    output.write("\ufeff")
+    writer = csv.writer(output, delimiter=";")
+    writer.writerow([
+        "Fecha", "Franja Horaria", "Hora", "Tickets Emitidos",
+        "Total Ventas COP", "Ventas Efectivo COP", "Ventas Nequi Davi COP", "Ventas Datafono COP",
+        "Pechugas", "Muslos", "Contramuslos", "Alas", "Total Presas Pollo",
+        "Combos Vendidos", "Bebidas Vendidas", "Ticket Promedio COP"
+    ])
+    for h in summary["hours"]:
+        avg = int(h["total_sales"] / h["tickets_count"]) if h["tickets_count"] > 0 else 0
+        writer.writerow([
+            date_str, h["hour_label"], h["hour_of_day"], h["tickets_count"],
+            h["total_sales"], h["cash_sales"], h["digital_sales"], h["datafono_sales"],
+            h["pechugas"], h["muslos"], h["contramuslos"], h["alas"], h["total_presas"],
+            h["combos_count"], h["gaseosas_count"], avg
+        ])
+
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="ventas_por_horas_{date_str}.csv"'}
+    )
+
+@router.get("/sales-detail/export")
+def export_sales_detail_csv(date_str: Optional[str] = None):
+    """Exporta el detalle granular ticket a ticket e ítem por ítem a CSV para auditorías profundas."""
+    if not date_str:
+        date_str = datetime.now().strftime("%Y-%m-%d")
+
+    conn = get_db_connection()
+    try:
+        rows = conn.execute("""
+            SELECT s.date_str, s.time_str, s.sale_code, s.payment_method, s.total_amount as sale_total,
+                   s.notes as sale_notes, s.hour_of_day,
+                   si.product_name, p.sku, p.category, si.chosen_presa, si.quantity, si.unit_price, si.subtotal
+            FROM sales s
+            JOIN sale_items si ON s.id = si.sale_id
+            JOIN products p ON si.product_id = p.id
+            WHERE s.date_str = ? AND s.status = 'completada'
+            ORDER BY s.time_str ASC, si.id ASC
+        """, (date_str,)).fetchall()
+
+        output = io.StringIO()
+        output.write("\ufeff")
+        writer = csv.writer(output, delimiter=";")
+        writer.writerow([
+            "Fecha", "Hora", "Franja", "Codigo Venta", "Metodo Pago",
+            "Producto", "SKU", "Categoria", "Presa Elegida", "Cantidad",
+            "Precio Unitario COP", "Subtotal COP", "Total Ticket COP", "Notas"
+        ])
+        for r in rows:
+            h_label = f"{r['hour_of_day']:02d}:00 - {(r['hour_of_day']+1)%24:02d}:00"
+            writer.writerow([
+                r["date_str"], r["time_str"], h_label, r["sale_code"], r["payment_method"],
+                r["product_name"], r["sku"], r["category"], r["chosen_presa"] or "N/A",
+                r["quantity"], r["unit_price"], r["subtotal"], r["sale_total"], r["sale_notes"] or ""
+            ])
+
+        return Response(
+            content=output.getvalue(),
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="detalle_ventas_y_presas_{date_str}.csv"'}
+        )
+    finally:
+        conn.close()
+
+# ==================== CONTABILIDAD, LIBRO DIARIO Y CIERRE CONTABLE ====================
+
+class SaveAccountingClosingRequest(BaseModel):
+    date_str: Optional[str] = None
+    closed_by: Optional[str] = "Alejandro"
+    notes: Optional[str] = None
+
+@router.get("/accounting-daily")
+def get_accounting_daily(date_str: Optional[str] = None):
+    """
+    Cruce contable diario integral:
+    - Ingresos totales por medio de pago
+    - Compras de insumos / COGS
+    - Gastos operativos y nómina (OPEX)
+    - Utilidad neta real y margen contable
+    - Cruce de tesorería: Cajón de efectivo físico vs Cuentas bancarias digitales
+    """
+    if not date_str:
+        date_str = datetime.now().strftime("%Y-%m-%d")
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+
+        # 1. Ventas e Ingresos
+        sales_rows = cursor.execute("""
+            SELECT payment_method, COUNT(*) as tickets, COALESCE(SUM(total_amount), 0) as total
+            FROM sales
+            WHERE date_str = ? AND status = 'completada'
+            GROUP BY payment_method
+        """, (date_str,)).fetchall()
+
+        income = {"efectivo": 0, "nequi_daviplata": 0, "datafono": 0, "total": 0, "tickets": 0}
+        for r in sales_rows:
+            method = r["payment_method"]
+            t = r["total"] or 0
+            income[method] = t
+            income["total"] += t
+            income["tickets"] += r["tickets"]
+
+        # 2. Gastos y Egresos
+        expenses_rows = cursor.execute("""
+            SELECT * FROM cash_expenses
+            WHERE date_str = ?
+            ORDER BY id ASC
+        """, (date_str,)).fetchall()
+        expenses_list = [dict(e) for e in expenses_rows]
+
+        PURCHASE_CATEGORIES = {'compra_pollo', 'compra_bebidas', 'compra_insumos', 'compra_empaques', 'insumos', 'pollo', 'bebidas', 'materia_prima'}
+        WITHDRAWAL_CATEGORIES = {'retiro_socio', 'socio', 'dividendos'}
+
+        purchases_cogs = 0
+        operating_expenses = 0
+        partner_withdrawals = 0
+
+        expenses_cash = 0
+        expenses_digital = 0
+        breakdown_by_category = {}
+
+        for e in expenses_list:
+            amt = e["amount"]
+            cat = (e.get("category") or "otros").strip().lower()
+            source = (e.get("payment_source") or "caja_efectivo").strip().lower()
+
+            breakdown_by_category[cat] = breakdown_by_category.get(cat, 0) + amt
+
+            if cat in PURCHASE_CATEGORIES:
+                purchases_cogs += amt
+            elif cat in WITHDRAWAL_CATEGORIES:
+                partner_withdrawals += amt
+            else:
+                operating_expenses += amt
+
+            if source in ("banco_transferencia", "bancos"):
+                expenses_digital += amt
+            else:
+                expenses_cash += amt
+
+        total_expenses = purchases_cogs + operating_expenses + partner_withdrawals
+
+        # 3. Entradas de Mercancía de Proveedores registradas
+        merch_rows = cursor.execute("""
+            SELECT supplier_name, invoice_number, item_name, quantity, total_cost, created_at
+            FROM merchandise_entries
+            WHERE date = ?
+            ORDER BY id ASC
+        """, (date_str,)).fetchall()
+        merchandise_entries_list = [dict(m) for m in merch_rows]
+        merchandise_total_cost = sum(m["total_cost"] for m in merchandise_entries_list)
+
+        # 4. Base inicial de turno si existe
+        shift = cursor.execute("""
+            SELECT base_inicial, status FROM cash_shifts
+            WHERE date_str = ?
+            ORDER BY id DESC LIMIT 1
+        """, (date_str,)).fetchone()
+        base_inicial = shift["base_inicial"] if shift else 0
+
+        # 5. Cruce de Tesorería (Cajón Efectivo vs Bancos)
+        expected_cash_drawer = base_inicial + income["efectivo"] - expenses_cash
+        net_digital_balance = (income["nequi_daviplata"] + income["datafono"]) - expenses_digital
+        total_net_liquidity_generated = (income["total"] - total_expenses)
+
+        # 6. Rentabilidad y Margen Neto
+        gross_margin = income["total"] - purchases_cogs
+        net_profit = income["total"] - total_expenses
+        net_margin_pct = round((net_profit / income["total"] * 100), 2) if income["total"] > 0 else 0.0
+
+        # Cierre guardado
+        saved_closing = cursor.execute("""
+            SELECT * FROM daily_accounting_closings WHERE date_str = ? ORDER BY id DESC LIMIT 1
+        """, (date_str,)).fetchone()
+
+        return {
+            "date_str": date_str,
+            "is_closed": bool(saved_closing),
+            "closing_record": dict(saved_closing) if saved_closing else None,
+            "income": income,
+            "expenses": {
+                "total": total_expenses,
+                "purchases_cogs": purchases_cogs,
+                "operating_expenses": operating_expenses,
+                "partner_withdrawals": partner_withdrawals,
+                "expenses_cash": expenses_cash,
+                "expenses_digital": expenses_digital,
+                "by_category": breakdown_by_category,
+                "items": expenses_list
+            },
+            "merchandise_entries": {
+                "total_cost": merchandise_total_cost,
+                "count": len(merchandise_entries_list),
+                "items": merchandise_entries_list
+            },
+            "treasury": {
+                "base_inicial": base_inicial,
+                "cash_sales": income["efectivo"],
+                "expenses_cash": expenses_cash,
+                "expected_cash_drawer": expected_cash_drawer,
+                "digital_sales": income["nequi_daviplata"] + income["datafono"],
+                "expenses_digital": expenses_digital,
+                "net_digital_balance": net_digital_balance,
+                "total_net_liquidity": total_net_liquidity_generated
+            },
+            "pnl": {
+                "gross_income": income["total"],
+                "purchases_cogs": purchases_cogs,
+                "gross_margin": gross_margin,
+                "operating_expenses": operating_expenses,
+                "partner_withdrawals": partner_withdrawals,
+                "net_profit": net_profit,
+                "net_margin_pct": net_margin_pct
+            }
+        }
+    finally:
+        conn.close()
+
+@router.post("/accounting-closing")
+def save_accounting_closing(payload: SaveAccountingClosingRequest):
+    """Guarda formalmente el cierre contable del día en la base de datos."""
+    date_str = payload.date_str or datetime.now().strftime("%Y-%m-%d")
+    data = get_accounting_daily(date_str)
+
+    now = datetime.now()
+    closing_code = f"CC-{now.strftime('%y%m%d')}-{secrets.token_hex(2).upper()}"
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO daily_accounting_closings (
+                closing_code, date_str, closed_at, closed_by,
+                gross_sales_cash, gross_sales_digital, gross_sales_datafono, total_gross_income,
+                purchases_cogs, operating_expenses, partner_withdrawals, total_expenses,
+                expenses_cash, expenses_digital, net_cash_drawer, net_digital_balance,
+                gross_margin, net_profit, net_margin_pct, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            closing_code, date_str, now.isoformat(), payload.closed_by or "Alejandro",
+            data["income"]["efectivo"], data["income"]["nequi_daviplata"], data["income"]["datafono"], data["income"]["total"],
+            data["expenses"]["purchases_cogs"], data["expenses"]["operating_expenses"], data["expenses"]["partner_withdrawals"], data["expenses"]["total"],
+            data["treasury"]["expenses_cash"], data["treasury"]["expenses_digital"], data["treasury"]["expected_cash_drawer"], data["treasury"]["net_digital_balance"],
+            data["pnl"]["gross_margin"], data["pnl"]["net_profit"], data["pnl"]["net_margin_pct"], payload.notes
+        ))
+        conn.commit()
+        return {"success": True, "closing_code": closing_code, "message": f"Cierre contable {closing_code} guardado exitosamente."}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@router.get("/accounting-closing/export")
+def export_accounting_closing_csv(date_str: Optional[str] = None):
+    """Exporta el estado de resultados y cruce contable del día en formato CSV estructurado para Excel."""
+    if not date_str:
+        date_str = datetime.now().strftime("%Y-%m-%d")
+    data = get_accounting_daily(date_str)
+
+    output = io.StringIO()
+    output.write("\ufeff")
+    writer = csv.writer(output, delimiter=";")
+
+    writer.writerow(["CIERRE CONTABLE Y ESTADO FINANCIERO DIARIO - POLLO APANADO"])
+    writer.writerow(["Fecha del Cierre", date_str])
+    writer.writerow(["Generado a las", datetime.now().strftime("%H:%M:%S")])
+    writer.writerow([])
+
+    writer.writerow(["1. INGRESOS OPERATIVOS"])
+    writer.writerow(["Concepto", "Monto COP", "Participacion"])
+    tot = data["income"]["total"]
+    writer.writerow(["Ventas en Efectivo", data["income"]["efectivo"], f"{(data['income']['efectivo']/tot*100):.1f}%" if tot>0 else "0%"])
+    writer.writerow(["Ventas Nequi / Daviplata", data["income"]["nequi_daviplata"], f"{(data['income']['nequi_daviplata']/tot*100):.1f}%" if tot>0 else "0%"])
+    writer.writerow(["Ventas Datáfono (Tarjetas)", data["income"]["datafono"], f"{(data['income']['datafono']/tot*100):.1f}%" if tot>0 else "0%"])
+    writer.writerow(["TOTAL INGRESOS BRUTOS", tot, "100.0%"])
+    writer.writerow(["Total Tickets / Clientes", data["income"]["tickets"]])
+    writer.writerow([])
+
+    writer.writerow(["2. EGRESOS, COMPRAS Y GASTOS OPERATIVOS"])
+    writer.writerow(["Concepto", "Monto COP"])
+    writer.writerow(["Compras Materia Prima / Insumos (COGS)", data["expenses"]["purchases_cogs"]])
+    writer.writerow(["Gastos Operativos (Nómina, Servicios, Arriendo)", data["expenses"]["operating_expenses"]])
+    writer.writerow(["Retiros de Socios", data["expenses"]["partner_withdrawals"]])
+    writer.writerow(["TOTAL EGRESOS DEL DÍA", data["expenses"]["total"]])
+    writer.writerow([])
+
+    writer.writerow(["3. ESTADO DE RESULTADOS (P&L DEL DÍA)"])
+    writer.writerow(["Indicador", "Valor COP", "% sobre Ventas"])
+    writer.writerow(["Margen Bruto de Contribución", data["pnl"]["gross_margin"], f"{(data['pnl']['gross_margin']/tot*100):.1f}%" if tot>0 else "0%"])
+    writer.writerow(["UTILIDAD NETA FINAL DEL DÍA", data["pnl"]["net_profit"], f"{data['pnl']['net_margin_pct']}%"])
+    writer.writerow([])
+
+    writer.writerow(["4. CRUCE DE TESORERÍA (CAJA VS BANCOS)"])
+    writer.writerow(["Cuenta", "Entradas COP", "Salidas COP", "Saldo Final COP"])
+    writer.writerow(["Cajón Físico (Efectivo)", data["income"]["efectivo"] + data["treasury"]["base_inicial"], data["treasury"]["expenses_cash"], data["treasury"]["expected_cash_drawer"]])
+    writer.writerow(["Cuentas Digitales (Nequi/Bancos)", data["treasury"]["digital_sales"], data["treasury"]["expenses_digital"], data["treasury"]["net_digital_balance"]])
+    writer.writerow(["Liquidez Neta Real Generada", tot, data["expenses"]["total"], data["treasury"]["total_net_liquidity"]])
+    writer.writerow([])
+
+    writer.writerow(["5. DETALLE DE GASTOS Y PAGOS DEL DÍA"])
+    writer.writerow(["ID", "Hora", "Categoria", "Concepto", "Beneficiario", "Medio Pago", "Comprobante", "Monto COP", "Autorizado Por"])
+    for it in data["expenses"]["items"]:
+        writer.writerow([
+            it["id"], it.get("timestamp", "")[11:19] if it.get("timestamp") else "", it["category"], it["concept"],
+            it.get("recipient") or "", it.get("payment_source") or "caja_efectivo",
+            it.get("receipt_number") or "", it["amount"], it["authorized_by"]
+        ])
+
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="cierre_contable_{date_str}.csv"'}
+    )

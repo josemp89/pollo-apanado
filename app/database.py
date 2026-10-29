@@ -373,6 +373,49 @@ def init_db():
     if "item_name" not in inv_cols:
         cursor.execute("ALTER TABLE inventory ADD COLUMN item_name TEXT;")
 
+    # Migración idempotente: asegurar columna payment_source en cash_expenses
+    exp_cols = [r["name"] for r in cursor.execute("PRAGMA table_info(cash_expenses);").fetchall()]
+    if "payment_source" not in exp_cols:
+        cursor.execute("ALTER TABLE cash_expenses ADD COLUMN payment_source TEXT DEFAULT 'caja_efectivo';")
+
+    # 18. Tabla de Cierres Contables Diarios (P&L y Cruce de Tesorería)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS daily_accounting_closings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        closing_code TEXT UNIQUE NOT NULL,
+        date_str TEXT NOT NULL,
+        closed_at TEXT NOT NULL,
+        closed_by TEXT NOT NULL DEFAULT 'Administrador',
+        
+        -- Ingresos Brutos
+        gross_sales_cash INTEGER NOT NULL DEFAULT 0,
+        gross_sales_digital INTEGER NOT NULL DEFAULT 0,
+        gross_sales_datafono INTEGER NOT NULL DEFAULT 0,
+        total_gross_income INTEGER NOT NULL DEFAULT 0,
+        
+        -- Egresos (Compras + Gastos Operativos + Retiros)
+        purchases_cogs INTEGER NOT NULL DEFAULT 0,
+        operating_expenses INTEGER NOT NULL DEFAULT 0,
+        partner_withdrawals INTEGER NOT NULL DEFAULT 0,
+        total_expenses INTEGER NOT NULL DEFAULT 0,
+        
+        -- Tesorería Cruzada
+        expenses_cash INTEGER NOT NULL DEFAULT 0,
+        expenses_digital INTEGER NOT NULL DEFAULT 0,
+        net_cash_drawer INTEGER NOT NULL DEFAULT 0,
+        net_digital_balance INTEGER NOT NULL DEFAULT 0,
+        
+        -- Rentabilidad Neta
+        gross_margin INTEGER NOT NULL DEFAULT 0,
+        net_profit INTEGER NOT NULL DEFAULT 0,
+        net_margin_pct REAL NOT NULL DEFAULT 0.0,
+        
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_accounting_closings_date ON daily_accounting_closings(date_str);")
+
     cursor.execute("""
         UPDATE inventory 
         SET location = CASE LOWER(category)
