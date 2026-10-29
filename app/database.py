@@ -434,8 +434,10 @@ def init_db():
             INSERT INTO app_users (username, display_name, role, pin, is_active, created_at)
             VALUES 
             ('santiago', 'Santiago (Vendedor)', 'cajero', '1234', 1, '2026-10-28T00:00:00'),
-            ('alejandro', 'Alejandro (Dueño / Gerencia)', 'admin', '4321', 1, '2026-10-28T00:00:00')
+            ('alejandro', 'Alejandro (Dueño / Gerencia)', 'admin', '1780', 1, '2026-10-28T00:00:00')
         """)
+    else:
+        cursor.execute("UPDATE app_users SET pin = '1780' WHERE username = 'alejandro';")
 
     # 20. Tabla de Libro Diario de Ingresos (Sincronizado POS o Manual)
     cursor.execute("""
@@ -768,7 +770,7 @@ def seed_initial_data(conn):
             ('holding_vitrina_minutes', '45', 'Vida útil máxima recomendada en vitrina térmica (minutos)'),
             ('daily_breakeven_cop', '258462', 'Punto de equilibrio diario en pesos colombianos'),
             ('presas_per_chicken', '8', 'Número estándar de presas por pollo (8 = 2P, 2M, 2C, 2A)'),
-            ('admin_pin', '4321', 'PIN maestro de Administrador/Socio para anulación de ventas'),
+            ('admin_pin', '1780', 'PIN maestro de Gerencia/Administrador'),
         ]
         cursor.executemany("""
         INSERT INTO system_settings (key, value, description)
@@ -776,8 +778,9 @@ def seed_initial_data(conn):
         """, settings)
 
     cursor.execute("""
-    INSERT OR IGNORE INTO system_settings (key, value, description)
-    VALUES ('admin_pin', '4321', 'PIN maestro de Administrador/Socio para anulación de ventas');
+    INSERT INTO system_settings (key, value, description)
+    VALUES ('admin_pin', '1780', 'PIN maestro de Gerencia/Administrador')
+    ON CONFLICT(key) DO UPDATE SET value = '1780';
     """)
 
     conn.commit()

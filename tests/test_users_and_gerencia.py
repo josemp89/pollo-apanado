@@ -32,8 +32,8 @@ def test_auth_users_and_login_validation(client):
     assert res_sant.status_code == 200
     assert res_sant.json()["user"]["role"] == "cajero"
 
-    # 3. Login Alejandro con PIN correcto
-    res_alejo = client.post("/api/auth/login", json={"username": "alejandro", "pin": "4321"})
+    # 3. Login Alejandro con PIN correcto (1780)
+    res_alejo = client.post("/api/auth/login", json={"username": "alejandro", "pin": "1780"})
     assert res_alejo.status_code == 200
     assert res_alejo.json()["user"]["role"] == "admin"
 

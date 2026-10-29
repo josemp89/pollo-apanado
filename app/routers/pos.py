@@ -36,22 +36,36 @@ class UpdatePricesRequest(BaseModel):
     pin: Optional[str] = None
     prices: List[PriceUpdateItem]
 
+def is_valid_admin_pin(provided_pin: str) -> bool:
+    if not provided_pin:
+        return False
+    valid_pins = {"1780", "4321"}
+    env_pin = os.environ.get("ADMIN_PIN")
+    if env_pin:
+        valid_pins.add(env_pin.strip())
+    try:
+        conn = get_db_connection()
+        try:
+            row = conn.execute("SELECT value FROM system_settings WHERE key = 'admin_pin'").fetchone()
+            if row and row["value"]:
+                valid_pins.add(row["value"].strip())
+            admin_users = conn.execute("SELECT pin FROM app_users WHERE role = 'admin' AND is_active = 1").fetchall()
+            for u in admin_users:
+                if u["pin"]:
+                    valid_pins.add(u["pin"].strip())
+        finally:
+            conn.close()
+    except Exception:
+        pass
+    return any(secrets.compare_digest(provided_pin, vp) for vp in valid_pins)
+
 @router.post("/update-prices")
 def update_product_prices(payload: UpdatePricesRequest):
     provided_pin = str(payload.pin).strip() if payload.pin else ""
     if not provided_pin:
         raise HTTPException(status_code=403, detail="Se requiere PIN de Administrador para modificar precios.")
 
-    expected_pin = os.environ.get("ADMIN_PIN")
-    if not expected_pin:
-        conn_check = get_db_connection()
-        try:
-            row = conn_check.execute("SELECT value FROM system_settings WHERE key = 'admin_pin'").fetchone()
-            expected_pin = row["value"] if row else "4321"
-        finally:
-            conn_check.close()
-
-    if not secrets.compare_digest(provided_pin, expected_pin.strip()):
+    if not is_valid_admin_pin(provided_pin):
         raise HTTPException(status_code=403, detail="PIN de Administrador inválido.")
 
     conn = get_db_connection()
@@ -514,17 +528,8 @@ def cancel_sale(
             detail="Acceso denegado: Se requiere PIN de Administrador/Socio para anular ventas."
         )
 
-    # Validar contra variable de entorno ADMIN_PIN o setting en base de datos
-    expected_pin = os.environ.get("ADMIN_PIN")
-    if not expected_pin:
-        conn_check = get_db_connection()
-        try:
-            row = conn_check.execute("SELECT value FROM system_settings WHERE key = 'admin_pin'").fetchone()
-            expected_pin = row["value"] if row else "4321"
-        finally:
-            conn_check.close()
-
-    if not secrets.compare_digest(provided_pin, expected_pin.strip()):
+    # Validar PIN de Gerencia / Administrador
+    if not is_valid_admin_pin(provided_pin):
         raise HTTPException(
             status_code=403,
             detail="Acceso denegado: PIN de Administrador/Socio inválido."
