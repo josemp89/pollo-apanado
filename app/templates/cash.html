@@ -102,11 +102,11 @@
           <span>🍗</span>
           <span>SACAR POLLO</span>
         </button>
-        <button id="btnRegisterExpense" onclick="openExpenseModal()" class="h-11 px-3.5 rounded-xl bg-slate-700 hover:bg-slate-600 active:scale-95 text-red-300 font-bold text-xs border border-red-500/30 transition flex items-center space-x-1.5 select-none">
+        <button id="btnRegisterExpense" onclick="openExpenseModal()" class="hidden h-11 px-3.5 rounded-xl bg-slate-700 hover:bg-slate-600 active:scale-95 text-red-300 font-bold text-xs border border-red-500/30 transition flex items-center space-x-1.5 select-none">
           <span>💸</span>
           <span>GASTO MENOR</span>
         </button>
-        <button id="btnCloseShift" onclick="openCloseShiftModal()" class="h-11 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 active:scale-95 text-slate-950 font-black text-xs shadow-lg transition flex items-center space-x-1.5 select-none">
+        <button id="btnCloseShift" onclick="openCloseShiftModal()" class="hidden h-11 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 active:scale-95 text-slate-950 font-black text-xs shadow-lg transition flex items-center space-x-1.5 select-none">
           <span>🏁</span>
           <span>CERRAR TURNO</span>
         </button>
@@ -1610,7 +1610,8 @@
         crudo: { pechuga: crudoPechuga, contramuslo: crudoContramuslo, muslo: crudoMuslo, ala: crudoAla, total: totalCrudo },
         frito: { pechuga: fritoPechuga, contramuslo: fritoContramuslo, muslo: fritoMuslo, ala: fritoAla, total: totalFrito },
         totalPresas: totalPresas
-      }
+      };
+    }
 
     function applySantiagoChickenTotals() {
       const totals = calculateSantiagoTotals();
