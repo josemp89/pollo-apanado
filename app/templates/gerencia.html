@@ -353,29 +353,103 @@
           </div>
         </div>
 
+        <!-- MONTO Y CHIPS PREESTABLECIDOS -->
         <div>
           <label class="block font-bold text-slate-300 mb-1">Monto Pagado ($ COP):</label>
-          <input type="number" id="qExpAmount" required placeholder="Ej. 180000" min="100" step="100" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 font-black text-xl text-amber-400 focus:outline-none focus:border-red-500 tabular-nums">
+          <div class="relative">
+            <input type="number" id="qExpAmount" required placeholder="0" min="100" step="100" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 font-black text-xl text-amber-400 focus:outline-none focus:border-red-500 tabular-nums">
+          </div>
+          <!-- Presets rápidos para teclado táctil móvil -->
+          <div class="flex flex-wrap gap-1.5 mt-2">
+            <button type="button" onclick="addPresetAmount(10000)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 active:bg-amber-600 text-[11px] font-bold text-slate-300 rounded-lg transition select-none">+10 mil</button>
+            <button type="button" onclick="addPresetAmount(20000)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 active:bg-amber-600 text-[11px] font-bold text-slate-300 rounded-lg transition select-none">+20 mil</button>
+            <button type="button" onclick="addPresetAmount(50000)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 active:bg-amber-600 text-[11px] font-bold text-slate-300 rounded-lg transition select-none">+50 mil</button>
+            <button type="button" onclick="addPresetAmount(100000)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 active:bg-amber-600 text-[11px] font-bold text-amber-300 rounded-lg transition select-none">+100 mil</button>
+            <button type="button" onclick="addPresetAmount(200000)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 active:bg-amber-600 text-[11px] font-bold text-amber-300 rounded-lg transition select-none">+200 mil</button>
+            <button type="button" onclick="addPresetAmount(500000)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 active:bg-amber-600 text-[11px] font-bold text-amber-300 rounded-lg transition select-none">+500 mil</button>
+            <button type="button" onclick="clearPresetAmount()" class="px-2 py-1 bg-red-950/40 hover:bg-red-900/60 text-red-400 text-[11px] font-bold rounded-lg transition select-none">✕ Borrar</button>
+          </div>
         </div>
 
+        <!-- CATEGORÍA CON CHIPS TÁCTILES RÁPIDOS -->
         <div>
-          <label class="block font-bold text-slate-300 mb-1">Categoría del Egreso:</label>
-          <select id="qExpCategory" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 font-bold text-slate-200 focus:outline-none focus:border-red-500">
-            <optgroup label="🛒 Compras de Mercancía (COGS)">
+          <label class="block font-bold text-slate-300 mb-1.5">Categoría del Egreso:</label>
+          
+          <!-- Chips Táctiles de Selección Rápida -->
+          <div class="space-y-2 mb-2.5">
+            <!-- Bloque Materia Prima / Producción -->
+            <div>
+              <span class="text-[10px] uppercase font-bold text-amber-400/90 tracking-wider">🛒 Materia Prima & Insumos (COGS)</span>
+              <div class="flex flex-wrap gap-1.5 mt-1">
+                <button type="button" onclick="selectCategoryChip('compra_pollo', 'Pollo fresco / presas')" class="cat-chip px-2.5 py-1.5 rounded-xl border border-slate-700 bg-slate-950 hover:bg-amber-950/40 text-slate-200 text-xs font-bold transition flex items-center space-x-1" data-cat="compra_pollo">
+                  <span>🍗</span><span>Pollo</span>
+                </button>
+                <button type="button" onclick="selectCategoryChip('compra_papas', 'Papas a la francesa congeladas')" class="cat-chip px-2.5 py-1.5 rounded-xl border border-slate-700 bg-slate-950 hover:bg-amber-950/40 text-slate-200 text-xs font-bold transition flex items-center space-x-1" data-cat="compra_papas">
+                  <span>🍟</span><span>Papas</span>
+                </button>
+                <button type="button" onclick="selectCategoryChip('compra_arepas', 'Paquetes de arepas')" class="cat-chip px-2.5 py-1.5 rounded-xl border border-slate-700 bg-slate-950 hover:bg-amber-950/40 text-slate-200 text-xs font-bold transition flex items-center space-x-1" data-cat="compra_arepas">
+                  <span>🫓</span><span>Arepas</span>
+                </button>
+                <button type="button" onclick="selectCategoryChip('compra_gaseosas', 'Gaseosas y bebidas')" class="cat-chip px-2.5 py-1.5 rounded-xl border border-slate-700 bg-slate-950 hover:bg-amber-950/40 text-slate-200 text-xs font-bold transition flex items-center space-x-1" data-cat="compra_gaseosas">
+                  <span>🥤</span><span>Gaseosas</span>
+                </button>
+                <button type="button" onclick="selectCategoryChip('compra_aceite_harina', 'Aceite, harina apanado y adobos')" class="cat-chip px-2.5 py-1.5 rounded-xl border border-slate-700 bg-slate-950 hover:bg-amber-950/40 text-slate-200 text-xs font-bold transition flex items-center space-x-1" data-cat="compra_aceite_harina">
+                  <span>🧂</span><span>Aceite/Harina/Adobo</span>
+                </button>
+                <button type="button" onclick="selectCategoryChip('compra_dotacion_empaques', 'Guantes para manipulación y empaques')" class="cat-chip px-2.5 py-1.5 rounded-xl border border-slate-700 bg-slate-950 hover:bg-amber-950/40 text-slate-200 text-xs font-bold transition flex items-center space-x-1" data-cat="compra_dotacion_empaques">
+                  <span>🧤</span><span>Guantes/Empaques</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Bloque Gastos Fijos y Operativos -->
+            <div>
+              <span class="text-[10px] uppercase font-bold text-red-400/90 tracking-wider">🏢 Gastos Fijos & Operativos (OPEX)</span>
+              <div class="flex flex-wrap gap-1.5 mt-1">
+                <button type="button" onclick="selectCategoryChip('nomina_turnos', 'Nómina / Jornal turno')" class="cat-chip px-2.5 py-1.5 rounded-xl border border-slate-700 bg-slate-950 hover:bg-red-950/40 text-slate-200 text-xs font-bold transition flex items-center space-x-1" data-cat="nomina_turnos">
+                  <span>👥</span><span>Nómina/Jornales</span>
+                </button>
+                <button type="button" onclick="selectCategoryChip('arriendo', 'Canon de arriendo local')" class="cat-chip px-2.5 py-1.5 rounded-xl border border-slate-700 bg-slate-950 hover:bg-red-950/40 text-slate-200 text-xs font-bold transition flex items-center space-x-1" data-cat="arriendo">
+                  <span>🏠</span><span>Arriendo</span>
+                </button>
+                <button type="button" onclick="selectCategoryChip('servicios_publicos', 'Factura servicios públicos (Luz/Agua/Gas)')" class="cat-chip px-2.5 py-1.5 rounded-xl border border-slate-700 bg-slate-950 hover:bg-red-950/40 text-slate-200 text-xs font-bold transition flex items-center space-x-1" data-cat="servicios_publicos">
+                  <span>💡</span><span>Servicios</span>
+                </button>
+                <button type="button" onclick="selectCategoryChip('fletes_transporte', 'Flete / Transporte mercancía')" class="cat-chip px-2.5 py-1.5 rounded-xl border border-slate-700 bg-slate-950 hover:bg-red-950/40 text-slate-200 text-xs font-bold transition flex items-center space-x-1" data-cat="fletes_transporte">
+                  <span>🚚</span><span>Fletes</span>
+                </button>
+                <button type="button" onclick="selectCategoryChip('aseo_mantenimiento', 'Aseo, desinfección y mantenimiento')" class="cat-chip px-2.5 py-1.5 rounded-xl border border-slate-700 bg-slate-950 hover:bg-red-950/40 text-slate-200 text-xs font-bold transition flex items-center space-x-1" data-cat="aseo_mantenimiento">
+                  <span>🧹</span><span>Aseo</span>
+                </button>
+                <button type="button" onclick="selectCategoryChip('retiro_socio', 'Retiro de utilidades socio')" class="cat-chip px-2.5 py-1.5 rounded-xl border border-slate-700 bg-slate-950 hover:bg-rose-950/40 text-slate-200 text-xs font-bold transition flex items-center space-x-1" data-cat="retiro_socio">
+                  <span>💰</span><span>Retiro Socio</span>
+                </button>
+                <button type="button" onclick="selectCategoryChip('otros_gastos', 'Gasto operativo vario')" class="cat-chip px-2.5 py-1.5 rounded-xl border border-slate-700 bg-slate-950 hover:bg-slate-800 text-slate-200 text-xs font-bold transition flex items-center space-x-1" data-cat="otros_gastos">
+                  <span>📋</span><span>Otros</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Selector Clásico / Respaldo -->
+          <select id="qExpCategory" onchange="syncCategoryChipSelection(this.value)" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 font-bold text-slate-200 focus:outline-none focus:border-red-500">
+            <optgroup label="🛒 Materia Prima & Insumos (COGS)">
               <option value="compra_pollo" selected>🍗 Compra de Pollo (MacPollo / Fresco)</option>
-              <option value="compra_bebidas">🥤 Compra de Bebidas (Postobón / Aguas / Jugos)</option>
-              <option value="compra_insumos">🧂 Insumos (Aceite, Harina Apanado, Condimentos)</option>
-              <option value="compra_empaques">📦 Empaques, Bolsas y Desechables</option>
+              <option value="compra_papas">🍟 Compra de Papas Francesa</option>
+              <option value="compra_arepas">🫓 Compra de Arepas</option>
+              <option value="compra_gaseosas">🥤 Compra de Gaseosas y Bebidas</option>
+              <option value="compra_aceite_harina">🧂 Compra de Aceite, Harina y Adobos</option>
+              <option value="compra_dotacion_empaques">🧤 Guantes para Personal, Empaques y Desechables</option>
             </optgroup>
-            <optgroup label="🏢 Gastos Operativos (OPEX)">
-              <option value="nomina_jornales">👥 Nómina / Jornales / Turnos</option>
-              <option value="servicios_publicos">💡 Servicios Públicos (Luz, Agua, Gas)</option>
+            <optgroup label="🏢 Gastos Fijos & Operativos (OPEX)">
+              <option value="nomina_turnos">👥 Nómina / Jornales / Turnos</option>
               <option value="arriendo">🏠 Arriendo / Alquiler del Local</option>
-              <option value="transporte_fletes">🚚 Fletes / Acarreos / Transporte</option>
+              <option value="servicios_publicos">💡 Servicios Públicos (Luz, Agua, Gas)</option>
+              <option value="fletes_transporte">🚚 Fletes / Acarreos / Transporte</option>
               <option value="aseo_mantenimiento">🧹 Aseo, Limpieza y Mantenimiento</option>
-              <option value="otros">📋 Otros Gastos Operativos</option>
+              <option value="otros_gastos">📋 Otros Gastos Operativos</option>
             </optgroup>
-            <optgroup label="💼 Retiro de Utilidades">
+            <optgroup label="💼 Retiro de Socios">
               <option value="retiro_socio">💰 Retiro de Socio / Alejandro</option>
             </optgroup>
           </select>
@@ -722,6 +796,51 @@
       }).join('');
     }
 
+    function getCategoryBadge(cat) {
+      if (!cat) return `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300">Otro</span>`;
+      const c = cat.toLowerCase();
+      if (c === 'compra_pollo') {
+        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">🍗 Pollo</span>`;
+      }
+      if (c === 'compra_papas') {
+        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">🍟 Papas</span>`;
+      }
+      if (c === 'compra_arepas') {
+        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">🫓 Arepas</span>`;
+      }
+      if (c === 'compra_gaseosas' || c === 'compra_bebidas') {
+        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">🥤 Gaseosas</span>`;
+      }
+      if (c === 'compra_aceite_harina' || c === 'compra_insumos') {
+        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 text-orange-300 border border-orange-500/30">🧂 Insumos/Aceite</span>`;
+      }
+      if (c === 'compra_dotacion_empaques' || c === 'compra_empaques') {
+        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">🧤 Guantes/Empaques</span>`;
+      }
+      if (c.startsWith('compra_')) {
+        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">🛒 Mercancía</span>`;
+      }
+      if (c === 'nomina_turnos' || c === 'nomina_jornales') {
+        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">👥 Nómina</span>`;
+      }
+      if (c === 'arriendo') {
+        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">🏠 Arriendo</span>`;
+      }
+      if (c === 'servicios_publicos') {
+        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">💡 Servicios</span>`;
+      }
+      if (c === 'fletes_transporte' || c === 'transporte_fletes') {
+        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">🚚 Fletes</span>`;
+      }
+      if (c === 'aseo_mantenimiento') {
+        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">🧹 Aseo</span>`;
+      }
+      if (c === 'retiro_socio') {
+        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">💰 Retiro Socio</span>`;
+      }
+      return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">📋 Otros</span>`;
+    }
+
     function renderMonthExpensesTable(ledgerDays) {
       const tbody = document.getElementById('monthExpensesTableBody');
       if (!tbody) return;
@@ -745,15 +864,7 @@
           ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">💵 Efectivo</span>`
           : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">📲 Transferencia</span>`;
 
-        let catBadge = `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300">${e.category}</span>`;
-        if (e.category && e.category.startsWith('compra_')) {
-          catBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">COGS Mercancía</span>`;
-        } else if (e.category === 'retiro_socio') {
-          catBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">Retiro Socio</span>`;
-        } else {
-          catBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">OPEX Gasto</span>`;
-        }
-
+        const catBadge = getCategoryBadge(e.category);
         const dateStr = e.date_str || (e.timestamp ? e.timestamp.substring(0, 10) : '');
         const recip = e.recipient || '';
         const recNum = e.receipt_number ? ` [#${e.receipt_number}]` : '';
@@ -774,23 +885,68 @@
       }).join('');
     }
 
+    /* PRESETS DE MONTO Y CATEGORÍAS */
+    function addPresetAmount(val) {
+      const inp = document.getElementById('qExpAmount');
+      const current = parseInt(inp.value || 0, 10);
+      inp.value = current + val;
+    }
+
+    function clearPresetAmount() {
+      const inp = document.getElementById('qExpAmount');
+      inp.value = '';
+    }
+
+    let lastAutoConcept = '';
+
+    function selectCategoryChip(cat, suggestedConcept) {
+      const sel = document.getElementById('qExpCategory');
+      if (sel) sel.value = cat;
+      syncCategoryChipSelection(cat);
+
+      const conceptInp = document.getElementById('qExpConcept');
+      if (conceptInp) {
+        if (!conceptInp.value.trim() || conceptInp.value === lastAutoConcept) {
+          conceptInp.value = suggestedConcept;
+          lastAutoConcept = suggestedConcept;
+        }
+      }
+    }
+
+    function syncCategoryChipSelection(selectedCat) {
+      document.querySelectorAll('.cat-chip').forEach(btn => {
+        const cat = btn.getAttribute('data-cat');
+        if (cat === selectedCat) {
+          btn.classList.add('border-amber-400', 'bg-amber-500/20', 'text-amber-300');
+          btn.classList.remove('border-slate-700', 'bg-slate-950', 'text-slate-200');
+        } else {
+          btn.classList.remove('border-amber-400', 'bg-amber-500/20', 'text-amber-300');
+          btn.classList.add('border-slate-700', 'bg-slate-950', 'text-slate-200');
+        }
+      });
+    }
+
     /* OPERACIONES CONTABLES */
     function openExpenseQuickModal() {
       const today = getTodayBogota().dateStr;
       document.getElementById('qExpDate').value = today;
       document.getElementById('qExpAmount').value = '';
+      lastAutoConcept = '';
       document.getElementById('qExpConcept').value = '';
       document.getElementById('qExpRecipient').value = '';
       document.getElementById('qExpReceiptNumber').value = '';
+      selectCategoryChip('compra_pollo', 'Pollo fresco / presas');
       openModal('quickExpenseModal');
     }
 
     function openExpenseForDate(dateStr) {
       document.getElementById('qExpDate').value = dateStr;
       document.getElementById('qExpAmount').value = '';
+      lastAutoConcept = '';
       document.getElementById('qExpConcept').value = '';
       document.getElementById('qExpRecipient').value = '';
       document.getElementById('qExpReceiptNumber').value = '';
+      selectCategoryChip('compra_pollo', 'Pollo fresco / presas');
       openModal('quickExpenseModal');
     }
 
@@ -934,12 +1090,13 @@
           <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
             <div>
               <div class="font-bold text-slate-200">${e.concept}</div>
-              <div class="text-[11px] text-slate-400">
-                <span>${e.category}</span> • 
-                <span class="${e.payment_source === 'caja_efectivo' ? 'text-emerald-400' : 'text-purple-400'}">
+              <div class="text-[11px] text-slate-400 flex items-center space-x-1.5 flex-wrap">
+                <div>${getCategoryBadge(e.category)}</div>
+                <span>•</span>
+                <span class="${e.payment_source === 'caja_efectivo' ? 'text-emerald-400 font-bold' : 'text-purple-400 font-bold'}">
                   ${e.payment_source === 'caja_efectivo' ? '💵 Efectivo' : '📲 Transferencia'}
                 </span>
-                ${e.recipient ? ` • <span>${e.recipient}</span>` : ''}
+                ${e.recipient ? `<span>•</span> <span>${e.recipient}</span>` : ''}
               </div>
             </div>
             <div class="text-right">

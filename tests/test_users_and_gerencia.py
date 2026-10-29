@@ -162,3 +162,86 @@ def test_export_ledger_csv(client):
     assert "LIBRO CONTABLE Y CRUCE FINANCIERO" in content
     assert "Total Ingresos Brutos" in content
     assert "Compras Mercancía (COGS)" in content
+
+def test_accounting_detailed_categories_classification(client):
+    test_date = "2026-10-28"
+    month = "2026-10"
+
+    # 1. Registrar egresos de cada una de las categorías de Materia Prima / Producción (COGS)
+    cogs_categories = [
+        ("compra_pollo", 120000, "15 pollos enteros"),
+        ("compra_papas", 45000, "2 bultos de papas francesa"),
+        ("compra_arepas", 20000, "Paquetes de arepas"),
+        ("compra_gaseosas", 60000, "Pacas de gaseosas Postobón"),
+        ("compra_aceite_harina", 50000, "Aceite y harina apanado"),
+        ("compra_dotacion_empaques", 25000, "Guantes desechables y cajas para llevar"),
+    ]
+    expected_cogs_total = sum(item[1] for item in cogs_categories)
+
+    for cat, amt, concept in cogs_categories:
+        res = client.post("/api/accounting/expense", json={
+            "date_str": test_date,
+            "amount": amt,
+            "category": cat,
+            "concept": concept,
+            "payment_source": "banco_transferencia",
+            "authorized_by": "Alejandro"
+        })
+        assert res.status_code == 200
+
+    # 2. Registrar egresos de Gastos Fijos / Operativos (OPEX)
+    opex_categories = [
+        ("nomina_turnos", 60000, "Jornal turno cocina"),
+        ("arriendo", 50000, "Fracción arriendo local"),
+        ("servicios_publicos", 30000, "Recibo energía"),
+        ("fletes_transporte", 15000, "Flete transporte insumos"),
+        ("aseo_mantenimiento", 10000, "Jabón y desinfectante"),
+        ("otros_gastos", 5000, "Gasto vario menor"),
+    ]
+    expected_opex_total = sum(item[1] for item in opex_categories)
+
+    for cat, amt, concept in opex_categories:
+        res = client.post("/api/accounting/expense", json={
+            "date_str": test_date,
+            "amount": amt,
+            "category": cat,
+            "concept": concept,
+            "payment_source": "caja_efectivo",
+            "authorized_by": "Alejandro"
+        })
+        assert res.status_code == 200
+
+    # 3. Registrar Retiro de Socios
+    res_ret = client.post("/api/accounting/expense", json={
+        "date_str": test_date,
+        "amount": 40000,
+        "category": "retiro_socio",
+        "concept": "Adelanto utilidades socio",
+        "payment_source": "banco_transferencia",
+        "authorized_by": "Alejandro"
+    })
+    assert res_ret.status_code == 200
+
+    # 4. Registrar los ingresos brutos del día (340.000 COP)
+    res_inc = client.post("/api/accounting/daily-income", json={
+        "date_str": test_date,
+        "income_cash": 340000,
+        "income_digital": 0,
+        "income_datafono": 0,
+        "notes": "Ventas reportadas 340.000 COP"
+    })
+    assert res_inc.status_code == 200
+
+    # 5. Obtener ledger y verificar la segregación matemática exacta
+    res_led = client.get(f"/api/accounting/ledger?month={month}")
+    assert res_led.status_code == 200
+    ledger_day = next((d for d in res_led.json()["ledger"] if d["date_str"] == test_date), None)
+    assert ledger_day is not None
+
+    assert ledger_day["income_total"] == 340000
+    assert ledger_day["purchases_cogs"] == expected_cogs_total
+    assert ledger_day["operating_expenses"] == expected_opex_total
+    assert ledger_day["partner_withdrawals"] == 40000
+    expected_total_exp = expected_cogs_total + expected_opex_total + 40000
+    assert ledger_day["total_expenses"] == expected_total_exp
+    assert ledger_day["net_profit"] == 340000 - expected_total_exp
