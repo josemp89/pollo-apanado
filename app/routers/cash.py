@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/cash", tags=["Caja & Finanzas"])
 
 class StockAdjustRequest(BaseModel):
     item_key: str
-    new_stock: float
+    new_stock: float = Field(..., ge=0, description="El nuevo stock debe ser mayor o igual a 0")
     reason: Optional[str] = "Ajuste manual"
 
 class OpenShiftRequest(BaseModel):
@@ -1608,6 +1608,8 @@ def get_all_inventory():
 
 @router.post("/adjust-stock")
 def adjust_stock(payload: StockAdjustRequest):
+    if payload.new_stock < 0:
+        raise HTTPException(status_code=400, detail="El stock no puede ser negativo.")
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -1689,11 +1691,13 @@ def get_hourly_sales(date_str: Optional[str] = None):
     conn = get_db_connection()
     try:
         sales_rows = conn.execute("""
-            SELECT id, sale_code, timestamp, date_str, time_str, hour_of_day, 
-                   total_amount, payment_method, notes, shift_id
-            FROM sales
-            WHERE date_str = ? AND status = 'completada'
-            ORDER BY time_str ASC
+            SELECT s.id, s.sale_code, s.timestamp, s.date_str, s.time_str, s.hour_of_day, 
+                   s.total_amount, s.payment_method, s.notes, s.shift_id,
+                   t.table_number
+            FROM sales s
+            LEFT JOIN table_orders t ON t.sale_id = s.id
+            WHERE s.date_str = ? AND s.status = 'completada'
+            ORDER BY s.time_str ASC
         """, (date_str,)).fetchall()
 
         sales_by_hour = {h: [] for h in range(24)}
@@ -1708,6 +1712,14 @@ def get_hourly_sales(date_str: Optional[str] = None):
                 WHERE si.sale_id = ?
             """, (s_dict["id"],)).fetchall()
             s_dict["items"] = [dict(it) for it in items_rows]
+            s_dict["sale_id"] = s_dict["id"]
+            s_dict["ticket_code"] = s_dict["sale_code"]
+            s_dict["total"] = s_dict["total_amount"]
+            s_dict["created_at"] = s_dict.get("timestamp") or f"{s_dict.get('date_str', date_str)}T{s_dict.get('time_str', '00:00:00')}"
+            if not s_dict.get("table_number") and s_dict.get("notes"):
+                m = re.search(r'Mesa\s*([1-5])', s_dict["notes"], re.IGNORECASE)
+                if m:
+                    s_dict["table_number"] = int(m.group(1))
             sales_by_hour[h].append(s_dict)
 
         hourly_summary = []
@@ -1729,6 +1741,7 @@ def get_hourly_sales(date_str: Optional[str] = None):
 
             hourly_summary.append({
                 "hour_of_day": h,
+                "hour": h,
                 "hour_label": f"{h:02d}:00 - {(h+1)%24:02d}:00",
                 "tickets_count": tickets_count,
                 "total_sales": total_sales,
@@ -1740,6 +1753,13 @@ def get_hourly_sales(date_str: Optional[str] = None):
                 "contramuslos": presas["contramuslos"],
                 "alas": presas["alas"],
                 "total_presas": presas["total"],
+                "presas": {
+                    "pechugas": presas["pechugas"],
+                    "muslos": presas["muslos"],
+                    "contramuslos": presas["contramuslos"],
+                    "alas": presas["alas"],
+                    "total_presas": presas["total"]
+                },
                 "combos_count": combos_count,
                 "gaseosas_count": gaseosas_count,
                 "tickets": sales_in_hour
@@ -1757,10 +1777,19 @@ def get_hourly_sales(date_str: Optional[str] = None):
         peak_hour = max(active_hours, key=lambda x: x["total_sales"]) if active_hours else None
 
         return {
+            "date": date_str,
             "date_str": date_str,
             "total_sales": total_day_sales,
+            "total_gross_sales": total_day_sales,
             "total_tickets": total_day_tickets,
             "total_presas": total_day_presas,
+            "total_presas_sold": {
+                "pechugas": total_day_pechugas,
+                "muslos": total_day_muslos,
+                "contramuslos": total_day_contramuslos,
+                "alas": total_day_alas,
+                "total_presas": total_day_presas
+            },
             "presas_breakdown": {
                 "pechugas": total_day_pechugas,
                 "muslos": total_day_muslos,
@@ -1773,7 +1802,8 @@ def get_hourly_sales(date_str: Optional[str] = None):
                 "tickets_count": peak_hour["tickets_count"]
             } if peak_hour else None,
             "average_ticket": int(total_day_sales / total_day_tickets) if total_day_tickets > 0 else 0,
-            "hours": hourly_summary
+            "hours": hourly_summary,
+            "hourly_sales": hourly_summary
         }
     finally:
         conn.close()

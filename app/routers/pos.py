@@ -301,6 +301,7 @@ def process_checkout(payload: CheckoutRequest):
     cursor = conn.cursor()
 
     try:
+        cursor.execute("BEGIN IMMEDIATE;")
         now = datetime.now()
         date_str = now.strftime("%Y-%m-%d")
         time_str = now.strftime("%H:%M:%S")
@@ -538,6 +539,7 @@ def cancel_sale(
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute("BEGIN IMMEDIATE;")
         # Atomic conditional status transition guard:
         # Exactly ONE thread can transition status from non-anulada to 'anulada'.
         cursor.execute("""
@@ -802,6 +804,7 @@ def add_items_to_table(table_number: int, payload: TableItemsPayload):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute("BEGIN IMMEDIATE;")
         now = datetime.now()
         now_iso = now.isoformat()
 
@@ -950,6 +953,7 @@ def checkout_table(table_number: int, payload: TableCheckoutPayload):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute("BEGIN IMMEDIATE;")
         now = datetime.now()
         date_str = now.strftime("%Y-%m-%d")
         time_str = now.strftime("%H:%M:%S")
@@ -1026,12 +1030,17 @@ def checkout_table(table_number: int, payload: TableCheckoutPayload):
                 it["chosen_presa"]
             ))
 
-        # 8. Marcar table_orders como cobrada y asociar el sale_id
+        # 8. Marcar table_orders como cobrada y asociar el sale_id con guardia atómica
         cursor.execute("""
             UPDATE table_orders
             SET status = 'cobrada', sale_id = ?, updated_at = ?
-            WHERE id = ?
+            WHERE id = ? AND status = 'abierta'
         """, (sale_id, now.isoformat(), order_id))
+        if cursor.rowcount == 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"La orden de la Mesa {table_number} ya no está abierta o fue procesada concurrentemente."
+            )
 
         conn.commit()
 
@@ -1069,6 +1078,7 @@ def cancel_table_order(table_number: int, payload: Optional[CancelTablePayload] 
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        cursor.execute("BEGIN IMMEDIATE;")
         now = datetime.now()
         now_iso = now.isoformat()
 
@@ -1081,13 +1091,26 @@ def cancel_table_order(table_number: int, payload: Optional[CancelTablePayload] 
             raise HTTPException(status_code=400, detail=f"No hay una orden abierta en la Mesa {table_number} para cancelar.")
 
         order_id = order["id"]
+
+        # Guardia atómica condicional: SOLO UN hilo puede cambiar el estado de 'abierta' a 'cancelada'
+        cursor.execute("""
+            UPDATE table_orders
+            SET status = 'cancelada', updated_at = ?
+            WHERE id = ? AND status = 'abierta'
+        """, (now_iso, order_id))
+        if cursor.rowcount == 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"La orden de la Mesa {table_number} ya no está abierta o fue cancelada/cobrada concurrentemente."
+            )
+
         items_rows = cursor.execute("""
             SELECT product_id, product_sku, product_name, quantity, unit_price, subtotal, chosen_presa, category
             FROM table_order_items
             WHERE table_order_id = ?
         """, (order_id,)).fetchall()
 
-        # Restaurar inventario descontado
+        # Restaurar inventario descontado (ÚNICAMENTE por el hilo ganador)
         items_list = [dict(it) for it in items_rows]
         restorations = calculate_order_inventory_requirements(items_list)
         for item_key, qty in restorations.items():
@@ -1096,13 +1119,6 @@ def cancel_table_order(table_number: int, payload: Optional[CancelTablePayload] 
                 SET stock = stock + ?, updated_at = ?
                 WHERE item_key = ?
             """, (qty, now_iso, item_key))
-
-        # Marcar orden como cancelada
-        cursor.execute("""
-            UPDATE table_orders
-            SET status = 'cancelada', updated_at = ?
-            WHERE id = ?
-        """, (now_iso, order_id))
 
         conn.commit()
 

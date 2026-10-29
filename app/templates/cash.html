@@ -1984,7 +1984,12 @@
         elShortage.textContent = formatCOP(totalShortagePrice) + ' COP';
         elShortage.className = `text-base font-black tabular-nums ${missingUnits === 0 ? 'text-emerald-400' : 'text-red-400'}`;
       }
-      if (elCostSub) elCostSub.textContent = `Costo de reposición: ${formatCOP(totalCostImpact)} COP`;
+      if (elCostSub) {
+        elCostSub.textContent = `Costo de reposición: ${formatCOP(totalCostImpact)} COP`;
+        if (typeof getActiveUser === 'function' && getActiveUser().role !== 'admin') {
+          elCostSub.classList.add('hidden');
+        }
+      }
 
       const card = document.getElementById('closeStep3VerdictCard');
       const title = document.getElementById('closeStep3VerdictTitle');
@@ -2217,7 +2222,7 @@
             <span>Impacto en Ventas de la Merma:</span>
             <span class="font-bold text-red-400 tabular-nums">${formatCOP(shortageCopVal)} COP</span>
           </div>
-          <div class="flex justify-between text-[11px] text-slate-300">
+          <div class="flex justify-between text-[11px] text-slate-300 admin-financial-only">
             <span>Costo de Reposición (Insumos):</span>
             <span class="font-bold text-slate-300 tabular-nums">${formatCOP(costCopVal)} COP</span>
           </div>
@@ -2909,18 +2914,18 @@
       if (presasMiniEl) presasMiniEl.textContent = `${pTotals.pechugas} Pech | ${pTotals.muslos} Mus | ${pTotals.contramuslos} Con | ${pTotals.alas} Alas`;
 
       if (ticketsCountEl) ticketsCountEl.textContent = `${data.total_tickets} tickets`;
-      if (totalGrossEl) totalGrossEl.textContent = formatCOP(data.total_gross_sales);
+      if (totalGrossEl) totalGrossEl.textContent = formatCOP(data.total_gross_sales !== undefined ? data.total_gross_sales : data.total_sales);
       if (ticketAvgEl) ticketAvgEl.textContent = formatCOP(data.average_ticket);
 
       if (!tbody) return;
 
-      const hourlyList = data.hourly_sales || [];
+      const hourlyList = data.hourly_sales || data.hours || [];
       if (hourlyList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="py-6 text-center text-slate-400">No hay ventas registradas para el día ${data.date}.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" class="py-6 text-center text-slate-400">No hay ventas registradas para el día ${data.date || data.date_str}.</td></tr>`;
         return;
       }
 
-      const visibleHours = hourlyList.filter(h => h.tickets_count > 0 || (h.hour >= 10 && h.hour <= 22));
+      const visibleHours = hourlyList.filter(h => h.tickets_count > 0 || ((h.hour ?? h.hour_of_day) >= 10 && (h.hour ?? h.hour_of_day) <= 22));
 
       tbody.innerHTML = visibleHours.map(h => {
         const hasTickets = h.tickets_count > 0;
@@ -2931,7 +2936,7 @@
 
         const digitalPlusDatafono = (h.digital_sales || 0) + (h.datafono_sales || 0);
 
-        const presas = h.presas || { pechugas: 0, muslos: 0, contramuslos: 0, alas: 0, total_presas: 0 };
+        const presas = h.presas || { pechugas: h.pechugas || 0, muslos: h.muslos || 0, contramuslos: h.contramuslos || 0, alas: h.alas || 0, total_presas: h.total_presas || 0 };
         const actionBtn = hasTickets
           ? `<button type="button" onclick="openHourlyTicketsModal('${h.hour_label}')" class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold border border-amber-500/40 transition">🔍 Ver (${h.tickets_count})</button>`
           : `<span class="text-slate-600">-</span>`;
@@ -2955,8 +2960,9 @@
     }
 
     function openHourlyTicketsModal(hourLabel) {
-      if (!currentHourlyData || !currentHourlyData.hourly_sales) return;
-      const hourData = currentHourlyData.hourly_sales.find(h => h.hour_label === hourLabel);
+      const hourlyList = currentHourlyData?.hourly_sales || currentHourlyData?.hours;
+      if (!currentHourlyData || !hourlyList) return;
+      const hourData = hourlyList.find(h => h.hour_label === hourLabel);
       if (!hourData) return;
 
       const titleEl = document.getElementById('hourlyTicketsModalTitle');
@@ -2978,7 +2984,7 @@
           }).join('');
 
           let methodBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Efectivo</span>`;
-          if (t.payment_method === 'digital') {
+          if (t.payment_method === 'digital' || t.payment_method === 'nequi_daviplata') {
             methodBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Nequi/Digital</span>`;
           } else if (t.payment_method === 'datafono') {
             methodBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">Datáfono</span>`;
@@ -2992,13 +2998,13 @@
             <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2">
               <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
                 <div class="flex items-center space-x-2">
-                  <span class="font-mono font-bold text-amber-400 text-sm">#${t.ticket_code || t.sale_id}</span>
-                  <span class="text-slate-400 text-xs">⏰ ${t.created_at ? t.created_at.substring(11, 16) : ''}</span>
+                  <span class="font-mono font-bold text-amber-400 text-sm">#${t.ticket_code || t.sale_code || t.sale_id || t.id}</span>
+                  <span class="text-slate-400 text-xs">⏰ ${(t.time_str || (t.created_at ? t.created_at.substring(11, 16) : '') || '')}</span>
                   ${mesaBadge}
                 </div>
                 <div class="flex items-center space-x-2">
                   ${methodBadge}
-                  <span class="font-black text-emerald-400 text-sm">${formatCOP(t.total)}</span>
+                  <span class="font-black text-emerald-400 text-sm">${formatCOP(t.total !== undefined ? t.total : t.total_amount)}</span>
                 </div>
               </div>
               <ul class="space-y-0.5 text-xs pl-1">

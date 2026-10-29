@@ -65,6 +65,33 @@ function updateUserUI() {
       gerenciaNavBtn.classList.add('hidden');
     }
   }
+
+  // Protección de Costos y Finanzas: Santiago (cajero) no debe ver costos, compras, márgenes ni utilidades en /caja
+  const costSub = document.getElementById('closeStep3CostImpactSub');
+  if (costSub) {
+    if (isAdmin) {
+      costSub.classList.remove('hidden');
+    } else {
+      costSub.classList.add('hidden');
+    }
+  }
+
+  const supplierCostContainer = document.getElementById('supplierCostContainer') || (document.getElementById('supplierTotalCostInput') ? document.getElementById('supplierTotalCostInput').closest('div') : null);
+  if (supplierCostContainer) {
+    if (isAdmin) {
+      supplierCostContainer.classList.remove('hidden');
+    } else {
+      supplierCostContainer.classList.add('hidden');
+    }
+  }
+
+  document.querySelectorAll('.admin-financial-only').forEach(el => {
+    if (isAdmin) {
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  });
 }
 
 async function openUserSwitchModal() {

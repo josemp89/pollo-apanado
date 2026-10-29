@@ -245,3 +245,94 @@ def test_accounting_detailed_categories_classification(client):
     expected_total_exp = expected_cogs_total + expected_opex_total + 40000
     assert ledger_day["total_expenses"] == expected_total_exp
     assert ledger_day["net_profit"] == 340000 - expected_total_exp
+
+def test_october_28_startup_audit_scenario(client):
+    """
+    Auditoría Certificada del 28 de Octubre (Arranque Don Pollo):
+    1. 8 egresos iniciales ($1.569.505 COP)
+    2. Ingresos brutos en efectivo ($340.000 COP)
+    3. Utilidad neta resultante: -$1.229.505 COP
+    4. Cruce de tesorería: Saldo en caja en mano +$340.000 COP intactos, Bancos -$1.569.505 COP
+    5. Seguridad y no persistencia de PIN en gerencia
+    6. Restricciones de costos para el perfil cajero (Santiago)
+    """
+    test_date = "2026-10-28"
+    month = "2026-10"
+
+    # Los 8 egresos de arranque exactamente descritos
+    startup_expenses = [
+        (463250, "compra_pollo", "30 unidades de pollo entero (MacPollo / arranque)", "MacPollo"),
+        (280000, "compra_aceite_harina", "2 bidones de aceite de palma x 20L c/u", "Distribuidora Aceites"),
+        (240300, "compra_gaseosas", "Compra de gaseosas Postobon", "Postobon"),
+        (242000, "servicios_publicos", "Pipa de gas propano para freidoras (Pago hoy, entrega mañana)", "Distribuidora de Gas"),
+        (121905, "compra_aceite_harina", "Bulto de harina As de Oros", "Molino / Distribuidora"),
+        (105900, "compra_dotacion_empaques", "Factura salsas (sachet tomate, miel, rosada), servilletas Popular, vasos 7oz y 2 bolsas papas 2.5kg", "Distribuidora Desechables"),
+        (99150, "compra_aceite_harina", "Maizena x 50 libras para apanado", "Distribuidora"),
+        (17000, "compra_aceite_harina", "1 kilo de adobo Tecnas", "Tecnas")
+    ]
+
+    total_expected_expenses = sum(item[0] for item in startup_expenses)
+    assert total_expected_expenses == 1569505
+
+    for amt, cat, concept, recip in startup_expenses:
+        res = client.post("/api/accounting/expense", json={
+            "date_str": test_date,
+            "amount": amt,
+            "category": cat,
+            "concept": concept,
+            "payment_source": "banco_transferencia",
+            "recipient": recip,
+            "authorized_by": "Alejandro"
+        })
+        assert res.status_code == 200
+
+    # Registrar ingreso bruto del 28 de Octubre ($340.000 COP en efectivo)
+    res_inc = client.post("/api/accounting/daily-income", json={
+        "date_str": test_date,
+        "income_cash": 340000,
+        "income_digital": 0,
+        "income_datafono": 0,
+        "notes": "Ingresos brutos del día (Arqueo real reportado)"
+    })
+    assert res_inc.status_code == 200
+
+    # Consultar libro contable del mes
+    res_led = client.get(f"/api/accounting/ledger?month={month}")
+    assert res_led.status_code == 200
+    day_28 = next((d for d in res_led.json()["ledger"] if d["date_str"] == test_date), None)
+    assert day_28 is not None
+
+    # Verificaciones Contables Exactas:
+    assert day_28["income_total"] == 340000
+    assert day_28["income_cash"] == 340000
+    assert day_28["income_digital"] == 0
+    assert day_28["purchases_cogs"] == 1327505
+    assert day_28["operating_expenses"] == 242000
+    assert day_28["total_expenses"] == 1569505
+    assert day_28["net_profit"] == -1229505
+    assert day_28["net_cash_drawer"] == 340000  # Efectivo en caja intacto
+    assert day_28["net_digital_balance"] == -1569505  # Bancos / transferencias
+    assert day_28["expenses_count"] == 8
+
+    # Seguridad: Verificación de acceso y PIN
+    # 1. Alejandro con 1780 -> Exitoso
+    res_alejo = client.post("/api/auth/login", json={"username": "alejandro", "pin": "1780"})
+    assert res_alejo.status_code == 200
+    assert res_alejo.json()["user"]["role"] == "admin"
+
+    # 2. PIN erróneo -> Rechazado
+    res_wrong = client.post("/api/auth/login", json={"username": "alejandro", "pin": "0000"})
+    assert res_wrong.status_code == 401
+
+    # 3. Santiago con 1234 -> Rol cajero (no admin)
+    res_sant = client.post("/api/auth/login", json={"username": "santiago", "pin": "1234"})
+    assert res_sant.status_code == 200
+    assert res_sant.json()["user"]["role"] == "cajero"
+
+    # 4. Vista /gerencia exige pinGateModal y no guarda en storage
+    res_gerencia = client.get("/gerencia")
+    assert res_gerencia.status_code == 200
+    assert "pinGateModal" in res_gerencia.text
+    assert "localStorage" not in res_gerencia.text
+    assert "sessionStorage" not in res_gerencia.text
+

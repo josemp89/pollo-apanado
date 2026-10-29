@@ -366,6 +366,11 @@ def init_db():
     ON table_orders(table_number, status);
     """)
 
+    cursor.execute("""
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_table_orders_active 
+    ON table_orders(table_number) WHERE status = 'abierta';
+    """)
+
     # Migración idempotente: asegurar columnas location e item_name en la tabla inventory
     inv_cols = [r["name"] for r in cursor.execute("PRAGMA table_info(inventory);").fetchall()]
     if "location" not in inv_cols:
