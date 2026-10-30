@@ -5,7 +5,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, RedirectResponse
 from app.database import init_db
-from app.routers import pos, kitchen, cash, inventory, auth, accounting
+from app.routers import pos, kitchen, cash, inventory, auth, accounting, backup
+from app.services.backup import verify_and_auto_recover, trigger_live_backup
 
 app = FastAPI(
     title="Sistema de Gestión y POS - Pollo Apanado",
@@ -48,9 +49,22 @@ app.include_router(cash.router)
 app.include_router(inventory.router)
 app.include_router(auth.router)
 app.include_router(accounting.router)
+app.include_router(backup.router)
+
+@app.middleware("http")
+async def auto_backup_middleware(request: Request, call_next):
+    response = await call_next(request)
+    # Sincronización continua en segundo plano ante cualquier mutación exitosa
+    if request.method in ("POST", "PUT", "PATCH", "DELETE") and response.status_code < 400:
+        if "/api/backup/restore" not in request.url.path:
+            trigger_live_backup(in_background=True)
+    return response
 
 @app.on_event("startup")
 def on_startup():
+    # 1. Verificar integridad y recuperar automáticamente si la base de datos se dañó o perdió
+    recovery_result = verify_and_auto_recover()
+    # 2. Inicializar esquemas y tablas
     init_db()
 
 @app.get("/healthz")

@@ -312,6 +312,84 @@
       </div>
     </div>
 
+    <!-- ==================== SECCIÓN: COPIAS DE SEGURIDAD & RESPALDO CONTINUO ==================== -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-xl">
+            🛡️
+          </div>
+          <div>
+            <h2 class="text-sm sm:text-base font-black text-emerald-400 leading-tight">
+              COPIAS DE SEGURIDAD & PROTECCIÓN ANTICAÍDAS
+            </h2>
+            <p class="text-[11px] text-slate-400">
+              Espejo en vivo sincronizado con cada venta/gasto y puntos de restauración rotativos
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="createManualBackup()" class="px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 active:scale-95 text-slate-950 font-black text-xs shadow-lg transition flex items-center space-x-1.5 select-none">
+            <span>📸</span>
+            <span>Crear Punto Ahora</span>
+          </button>
+          <a href="/api/backup/download/asadero.backup.db" download class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs shadow-lg transition flex items-center space-x-1.5 select-none" title="Descargar copia exacta del sistema">
+            <span>💾</span>
+            <span>Descargar .DB</span>
+          </a>
+          <button type="button" onclick="loadBackupsList()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs" title="Refrescar lista">
+            🔄
+          </button>
+        </div>
+      </div>
+
+      <!-- Resumen de Estado -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="bg-slate-950 p-3 rounded-xl border border-emerald-500/30 flex items-center space-x-3">
+          <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+          <div>
+            <div class="text-[10px] uppercase font-bold text-slate-400">Espejo en Tiempo Real</div>
+            <div id="liveBackupStatusText" class="text-xs font-black text-emerald-300">Activo & Sincronizado</div>
+          </div>
+        </div>
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center space-x-3">
+          <span class="text-lg">🕒</span>
+          <div>
+            <div class="text-[10px] uppercase font-bold text-slate-400">Última Sincronización</div>
+            <div id="lastBackupTimeText" class="text-xs font-black text-slate-200">Verificando...</div>
+          </div>
+        </div>
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center space-x-3">
+          <span class="text-lg">🗄️</span>
+          <div>
+            <div class="text-[10px] uppercase font-bold text-slate-400">Tamaño Base de Datos</div>
+            <div id="dbSizeText" class="text-xs font-black text-amber-300">-- KB</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de Puntos de Restauración -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-slate-950/70 text-slate-400 border-b border-slate-800 font-bold uppercase text-[10px] tracking-wider">
+              <th class="py-2.5 px-3">Tipo / Etiqueta</th>
+              <th class="py-2.5 px-3">Fecha y Hora</th>
+              <th class="py-2.5 px-3">Tamaño</th>
+              <th class="py-2.5 px-3">Estado</th>
+              <th class="py-2.5 px-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="backupsTableBody" class="divide-y divide-slate-800 font-medium">
+            <tr>
+              <td colspan="5" class="py-4 text-center text-slate-500">Cargando puntos de restauración...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </main>
 
   <!-- ==================== MODALES ==================== -->
@@ -1124,6 +1202,98 @@
       window.location.href = `/api/accounting/export-ledger?month=${month}`;
     }
 
+    async function loadBackupsList() {
+      try {
+        const res = await fetch('/api/backup/status');
+        const json = await res.json();
+        if (!json.success) return;
+        const data = json.data;
+        
+        const statusEl = document.getElementById('liveBackupStatusText');
+        const lastEl = document.getElementById('lastBackupTimeText');
+        const dbSizeEl = document.getElementById('dbSizeText');
+        if (statusEl) statusEl.textContent = data.live_mirror_valid ? 'Activo & Sincronizado' : 'Error en Espejo';
+        if (lastEl) lastEl.textContent = data.last_backup_time || 'Activo';
+        if (dbSizeEl) dbSizeEl.textContent = data.database_size_formatted || '--';
+
+        const tbody = document.getElementById('backupsTableBody');
+        if (!tbody) return;
+        if (!data.snapshots || data.snapshots.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-slate-500">No hay copias adicionales aún</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = data.snapshots.map(s => `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-2.5 px-3 font-bold ${s.type === 'live_mirror' ? 'text-emerald-400' : 'text-amber-300'}">
+              ${s.type === 'live_mirror' ? '⚡ ' : '📸 '}${s.label || s.filename}
+            </td>
+            <td class="py-2.5 px-3 text-slate-300 font-mono text-[11px]">${s.modified_at}</td>
+            <td class="py-2.5 px-3 font-mono text-slate-400">${s.size_formatted}</td>
+            <td class="py-2.5 px-3">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${s.is_valid ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'}">
+                ${s.is_valid ? 'Íntegra' : 'Corrupta'}
+              </span>
+            </td>
+            <td class="py-2.5 px-3 text-right space-x-1.5">
+              <a href="/api/backup/download/${encodeURIComponent(s.filename)}" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold inline-block" download title="Descargar este archivo">
+                📥 Descargar
+              </a>
+              ${s.type !== 'live_mirror' ? `
+                <button type="button" onclick="confirmRestoreBackup('${s.filename}')" class="px-2.5 py-1 rounded-lg bg-red-950/60 hover:bg-red-900 border border-red-500/40 text-red-300 text-[11px] font-bold transition">
+                  Restaurar
+                </button>
+              ` : ''}
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Error cargando lista de respaldos:', err);
+      }
+    }
+
+    async function createManualBackup() {
+      const label = prompt('Ingrese una etiqueta o motivo para este punto de restauración (ej: antes_de_cerrar, arqueo):', 'manual_usuario');
+      if (label === null) return;
+      try {
+        const res = await fetch('/api/backup/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ label: label || 'manual' })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Punto de restauración creado con éxito: ' + data.filename);
+          loadBackupsList();
+        } else {
+          alert('Error: ' + (data.detail || 'No se pudo crear el respaldo'));
+        }
+      } catch (e) {
+        alert('Fallo de red al crear el respaldo: ' + e);
+      }
+    }
+
+    async function confirmRestoreBackup(filename) {
+      const pin = prompt('⚠️ ATENCIÓN: Va a restaurar la base de datos a este punto.\nIngrese el PIN de Gerencia (1780) para confirmar:');
+      if (!pin) return;
+      try {
+        const res = await fetch(`/api/backup/restore/${encodeURIComponent(filename)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin: pin })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Base de datos restaurada correctamente. La página se recargará.');
+          window.location.reload();
+        } else {
+          alert('Error restaurando: ' + (data.detail || 'PIN incorrecto o archivo dañado'));
+        }
+      } catch (e) {
+        alert('Fallo al restaurar: ' + e);
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       const { monthStr } = getTodayBogota();
       activeLedgerMonth = monthStr;
@@ -1131,6 +1301,7 @@
       if (picker) picker.value = monthStr;
 
       checkAuth();
+      loadBackupsList();
     });
   </script>
 </body>
