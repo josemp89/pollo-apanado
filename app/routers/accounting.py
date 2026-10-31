@@ -156,16 +156,20 @@ def get_accounting_ledger(month: Optional[str] = None):
                 cat = (exp["category"] or "").lower()
                 src = (exp["payment_source"] or "caja_efectivo").lower()
 
-                if cat.startswith("compra_"):
+                if cat.startswith("compra_") or cat in ("proveedor_gaseosas", "insumos_adobo", "compra_pollo", "compra_insumos"):
                     cogs += amt
                 elif cat == "retiro_socio":
                     withdrawals += amt
                 else:
                     opex += amt
 
-                if src in ("banco_transferencia", "bancos"):
+                if src in ("banco_transferencia", "bancos", "digital", "nequi"):
                     exp_digital += amt
+                elif src in ("fondo_realiso_socio", "caja_general", "efectivo_socio"):
+                    # Pagado del efectivo acumulado del realiso custodiado por el socio
+                    pass
                 else:
+                    # Pagado físicamente del cajón de mostrador
                     exp_cash += amt
 
             tot_expenses = cogs + opex + withdrawals
@@ -222,7 +226,8 @@ def get_accounting_ledger(month: Optional[str] = None):
             "month_label": f"{SPANISH_MONTHS[month_num - 1]} {year_num}",
             "days_in_month": num_days,
             "month_totals": month_totals,
-            "ledger": daily_ledger
+            "ledger": daily_ledger,
+            "expenses": [dict(r) for r in expense_rows]
         }
     finally:
         conn.close()
@@ -326,7 +331,8 @@ def create_accounting_expense(payload: CreateAccountingExpenseRequest):
         now = datetime.now()
         now_str = now.isoformat()
         date_str = payload.date_str if payload.date_str else now.strftime("%Y-%m-%d")
-        payment_source = payload.payment_source if payload.payment_source in ("banco_transferencia", "caja_efectivo") else "banco_transferencia"
+        allowed_sources = ("banco_transferencia", "caja_efectivo", "fondo_realiso_socio", "caja_general")
+        payment_source = payload.payment_source if payload.payment_source in allowed_sources else "banco_transferencia"
 
         cursor = conn.cursor()
         cursor.execute("""
@@ -433,6 +439,31 @@ def export_accounting_ledger_csv(month: Optional[str] = None):
         month_totals["net_digital_balance"],
         "-"
     ])
+
+    # SECCIÓN 2: DETALLE EXPLÍCITO DE FACTURAS Y COMPRAS A PROVEEDORES (PARA CONTADOR Y DIAN)
+    writer.writerow([])
+    writer.writerow([])
+    writer.writerow([f"DETALLE EXPLICITO DE COMPRAS Y PAGOS A PROVEEDORES - {ledger_data['month_label']}"])
+    writer.writerow([
+        "Fecha", "Hora", "Proveedor / Tercero", "N° Factura / Remisión", "Concepto Detallado",
+        "Categoría Contable", "Medio / Fondo de Pago", "Autorizado Por", "Valor Pagado COP"
+    ])
+
+    all_exp = ledger_data.get("expenses", [])
+    for exp in all_exp:
+        ts = exp.get("timestamp", "")
+        t_part = ts[11:16] if len(ts) >= 16 else "--:--"
+        writer.writerow([
+            exp.get("date_str", ""),
+            t_part,
+            exp.get("recipient", "Varios / Caja Menor"),
+            exp.get("receipt_number", "S/N"),
+            exp.get("concept", ""),
+            exp.get("category", "General"),
+            exp.get("payment_source", "caja_efectivo"),
+            exp.get("authorized_by", "Alejandro"),
+            exp.get("amount", 0)
+        ])
 
     content = "\ufeff" + output.getvalue()
     filename = f"Libro_Contable_DonPollo_{ledger_data['month']}.csv"

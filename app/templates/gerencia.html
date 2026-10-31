@@ -413,19 +413,26 @@
 
         <div>
           <label class="block font-bold text-slate-300 mb-1.5">¿De dónde salió el dinero?</label>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <label class="flex items-center space-x-2 p-2.5 rounded-xl border border-purple-500/50 bg-purple-950/20 cursor-pointer hover:bg-purple-950/40 transition">
               <input type="radio" name="qExpSource" value="banco_transferencia" checked class="text-purple-500 focus:ring-0">
               <div>
-                <div class="font-black text-purple-400 text-xs">📲 Bancos / Nequi</div>
-                <div class="text-[10px] text-slate-400">Transferencia celular</div>
+                <div class="font-black text-purple-400 text-xs">📲 Banco / Nequi</div>
+                <div class="text-[10px] text-slate-400">Transferencia digital</div>
+              </div>
+            </label>
+            <label class="flex items-center space-x-2 p-2.5 rounded-xl border border-amber-500/50 bg-amber-950/20 cursor-pointer hover:bg-amber-950/40 transition">
+              <input type="radio" name="qExpSource" value="fondo_realiso_socio" class="text-amber-500 focus:ring-0">
+              <div>
+                <div class="font-black text-amber-400 text-xs">💼 Fondo Realisos</div>
+                <div class="text-[10px] text-slate-400">Efectivo socio / compras</div>
               </div>
             </label>
             <label class="flex items-center space-x-2 p-2.5 rounded-xl border border-emerald-500/50 bg-emerald-950/20 cursor-pointer hover:bg-emerald-950/40 transition">
               <input type="radio" name="qExpSource" value="caja_efectivo" class="text-emerald-500 focus:ring-0">
               <div>
-                <div class="font-black text-emerald-400 text-xs">💵 Efectivo</div>
-                <div class="text-[10px] text-slate-400">Efectivo en mano</div>
+                <div class="font-black text-emerald-400 text-xs">💵 Caja Mostrador</div>
+                <div class="text-[10px] text-slate-400">Cajón diario (Santiago)</div>
               </div>
             </label>
           </div>
@@ -937,10 +944,14 @@
       allExpenses.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
 
       tbody.innerHTML = allExpenses.map(e => {
-        const isCash = e.payment_source === 'caja_efectivo';
-        const srcBadge = isCash
-          ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">💵 Efectivo</span>`
-          : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">📲 Transferencia</span>`;
+        let srcBadge = '';
+        if (e.payment_source === 'caja_efectivo') {
+          srcBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">💵 Caja Mostrador</span>`;
+        } else if (e.payment_source === 'fondo_realiso_socio' || e.payment_source === 'caja_general') {
+          srcBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">💼 Fondo Realisos</span>`;
+        } else {
+          srcBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">📲 Banco / Transferencia</span>`;
+        }
 
         const catBadge = getCategoryBadge(e.category);
         const dateStr = e.date_str || (e.timestamp ? e.timestamp.substring(0, 10) : '');
