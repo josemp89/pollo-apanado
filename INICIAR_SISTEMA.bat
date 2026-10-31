@@ -1,8 +1,4 @@
 @echo off
-title Sistema Pollo Apanado - POS y Cocina
-cls
-echo =========================================================
-echo    🍗 INICIANDO SISTEMA POLLO APANADO...
-echo =========================================================
-python run_server.py
-pause
+cd /d "%~dp0"
+start "" pythonw run_server.py
+exit
