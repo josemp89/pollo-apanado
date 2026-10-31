@@ -94,6 +94,25 @@ def update_product_prices(payload: UpdatePricesRequest):
         conn.close()
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/network-info")
+def get_network_info():
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('8.8.8.8', 1))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = '127.0.0.1'
+    finally:
+        s.close()
+    port = int(os.environ.get("PORT", 8000))
+    return {
+        "ip": ip,
+        "port": port,
+        "wifi_url": f"http://{ip}:{port}",
+        "local_url": f"http://localhost:{port}"
+    }
+
 @router.get("/products")
 def get_products():
     import os

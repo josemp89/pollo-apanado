@@ -111,6 +111,10 @@
 
     <!-- Reloj en vivo, Botón de Impresora y Status -->
     <div class="flex items-center space-x-2 flex-shrink-0">
+      <div id="wifiBadge" onclick="copyWifiUrl()" class="hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-amber-300 border border-slate-700 hover:border-amber-500/50 text-xs font-bold transition shadow cursor-pointer select-none" title="Conectar celulares/tablets en la misma red Wi-Fi">
+        <span>📱</span>
+        <span id="wifiIpDisplay" class="font-mono text-[11px]">Wi-Fi</span>
+      </div>
       <button type="button" onclick="openCashDrawer(event)" class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 text-xs font-black flex items-center space-x-1.5 transition shadow select-none cursor-pointer" title="Abrir Cajón Monedero">
         <span>⚡</span>
         <span class="font-black">Cajón</span>

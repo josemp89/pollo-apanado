@@ -239,7 +239,44 @@ function createUserSwitchModalDOM() {
   document.body.appendChild(div);
 }
 
+let currentWifiUrl = '';
+
+async function loadNetworkInfo() {
+  try {
+    const res = await fetch('/api/pos/network-info');
+    if (res.ok) {
+      const data = await res.json();
+      currentWifiUrl = data.wifi_url;
+      const el = document.getElementById('wifiIpDisplay');
+      const container = document.getElementById('wifiBadge');
+      if (el) {
+        el.textContent = `${data.ip}:${data.port}`;
+      }
+      if (container) {
+        container.classList.remove('hidden');
+        container.title = `Conectar celulares/tablets: ${data.wifi_url} (Clic para copiar)`;
+      }
+    }
+  } catch (e) {
+    console.debug('No network info available', e);
+  }
+}
+
+function copyWifiUrl() {
+  if (!currentWifiUrl) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(currentWifiUrl).then(() => {
+      alert(`Dirección Wi-Fi copiada al portapapeles:\n${currentWifiUrl}\n\nPuedes abrirla en cualquier celular o tablet conectado al mismo Wi-Fi.`);
+    }).catch(() => {
+      prompt('Copia esta dirección para celulares o tablets:', currentWifiUrl);
+    });
+  } else {
+    prompt('Copia esta dirección para celulares o tablets:', currentWifiUrl);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   getActiveUser();
   updateUserUI();
+  loadNetworkInfo();
 });
