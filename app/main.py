@@ -1,4 +1,5 @@
 import os
+import sys
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
@@ -25,7 +26,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": f"Error de validación en campo '{field}': {msg}", "errors": errors}
     )
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    BASE_DIR = os.path.join(sys._MEIPASS, "app")
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 

@@ -13,3 +13,6 @@ temp_raw_video/
 data/backups/
 data/*.backup.db
 gh.exe
+build/
+dist/
+*.spec
