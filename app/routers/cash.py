@@ -1421,22 +1421,51 @@ def get_daily_summary(date_str: Optional[str] = None, shift_id: Optional[int] = 
         total_expenses_cash = sum(e["amount"] for e in expenses_list if (e.get("payment_source") or "caja_efectivo") == "caja_efectivo")
 
         # 4. Fórmula R1: Conciliación de Efectivo (descuenta solo egresos en efectivo)
-        expected_cash = base_inicial + totals_dict["efectivo"] - total_expenses_cash
-        actual_cash = shift_info["actual_cash"] if shift_info else None
-        difference = (actual_cash - expected_cash) if actual_cash is not None else None
+        if shift_info and shift_info.get("status") == "cerrado":
+            # Si el turno está formalmente cerrado, los valores oficiales son los consolidados en cash_shifts
+            eff_cash_sales = shift_info.get("cash_sales") if shift_info.get("cash_sales") is not None else totals_dict["efectivo"]
+            eff_digital_sales = shift_info.get("digital_sales") if shift_info.get("digital_sales") is not None else totals_dict["nequi_daviplata"]
+            eff_datafono_sales = shift_info.get("datafono_sales") if shift_info.get("datafono_sales") is not None else totals_dict["datafono"]
+            eff_total_sales = shift_info.get("total_sales") if shift_info.get("total_sales") is not None else (eff_cash_sales + eff_digital_sales + eff_datafono_sales)
+            eff_total_expenses = shift_info.get("total_expenses") if shift_info.get("total_expenses") is not None else total_expenses
+            expected_cash = shift_info.get("expected_cash") if shift_info.get("expected_cash") is not None else (base_inicial + eff_cash_sales - eff_total_expenses)
+            actual_cash = shift_info.get("actual_cash") if shift_info.get("actual_cash") is not None else expected_cash
+            difference = shift_info.get("difference", 0)
 
-        cash_reconciliation = {
-            "base_inicial": base_inicial,
-            "cash_sales": totals_dict["efectivo"],
-            "total_expenses": total_expenses,
-            "expected_cash": expected_cash,
-            "actual_cash": actual_cash,
-            "difference": difference,
-            "digital_transfers": totals_dict["nequi_daviplata"],
-            "card_vouchers": totals_dict["datafono"],
-            "gran_total_sales": totals_dict["gran_total"],
-            "total_liquidity": expected_cash + totals_dict["nequi_daviplata"] + totals_dict["datafono"]
-        }
+            totals_dict["efectivo"] = eff_cash_sales
+            totals_dict["nequi_daviplata"] = eff_digital_sales
+            totals_dict["datafono"] = eff_datafono_sales
+            totals_dict["gran_total"] = eff_total_sales
+
+            cash_reconciliation = {
+                "base_inicial": base_inicial,
+                "cash_sales": eff_cash_sales,
+                "total_expenses": eff_total_expenses,
+                "expected_cash": expected_cash,
+                "actual_cash": actual_cash,
+                "difference": difference,
+                "digital_transfers": eff_digital_sales,
+                "card_vouchers": eff_datafono_sales,
+                "gran_total_sales": eff_total_sales,
+                "total_liquidity": expected_cash + eff_digital_sales + eff_datafono_sales
+            }
+        else:
+            expected_cash = base_inicial + totals_dict["efectivo"] - total_expenses_cash
+            actual_cash = shift_info["actual_cash"] if shift_info else None
+            difference = (actual_cash - expected_cash) if actual_cash is not None else None
+
+            cash_reconciliation = {
+                "base_inicial": base_inicial,
+                "cash_sales": totals_dict["efectivo"],
+                "total_expenses": total_expenses,
+                "expected_cash": expected_cash,
+                "actual_cash": actual_cash,
+                "difference": difference,
+                "digital_transfers": totals_dict["nequi_daviplata"],
+                "card_vouchers": totals_dict["datafono"],
+                "gran_total_sales": totals_dict["gran_total"],
+                "total_liquidity": expected_cash + totals_dict["nequi_daviplata"] + totals_dict["datafono"]
+            }
 
         # 5. Margen de Contribución Bruta Real del día
         margin_row = conn.execute(f"""
